@@ -16,10 +16,11 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     
     profile = relationship("Profile", back_populates="user", uselist=False)
-    applications = relationship("Application", back_populates="user")
+    applications = relationship("Application", back_populates="user", foreign_keys="Application.user_id")
     offers = relationship("Offer", back_populates="user")
     attendances = relationship("Attendance", back_populates="user")
     leaves = relationship("Leave", back_populates="user")
+    companies = relationship("Company", back_populates="owner")
 
 class Profile(Base):
     __tablename__ = "profiles"
@@ -52,7 +53,9 @@ class Company(Base):
     email = Column(String, nullable=True)
     rnc = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    owner_id = Column(Integer, ForeignKey("users.id"))
     
+    owner = relationship("User", back_populates="companies")
     jobs = relationship("Job", back_populates="company")
     employees = relationship("Employee", back_populates="company")
 
@@ -72,9 +75,11 @@ class Job(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     company_id = Column(Integer, ForeignKey("companies.id"))
+    posted_by = Column(Integer, ForeignKey("users.id"))
     
     company = relationship("Company", back_populates="jobs")
     applications = relationship("Application", back_populates="job")
+    poster = relationship("User")
 
 class Application(Base):
     __tablename__ = "applications"
@@ -85,10 +90,12 @@ class Application(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     job_id = Column(Integer, ForeignKey("jobs.id"))
     user_id = Column(Integer, ForeignKey("users.id"))
+    applicant_id = Column(Integer, ForeignKey("users.id"))
     
     job = relationship("Job", back_populates="applications")
-    user = relationship("User", back_populates="applications")
+    user = relationship("User", back_populates="applications", foreign_keys=[user_id])
     offers = relationship("Offer", back_populates="application")
+    applicant = relationship("User", foreign_keys=[applicant_id])
 
 class Offer(Base):
     __tablename__ = "offers"

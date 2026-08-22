@@ -14,7 +14,7 @@ def create_offer(offer: OfferCreate, current_user: User = Depends(get_current_us
     if not app or app.job.company.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Ou pa gen aksè")
     
-    new_offer = Offer(**offer.dict(), sent_by=current_user.id)
+    new_offer = Offer(**offer.dict(), user_id=current_user.id)
     db.add(new_offer)
     db.commit()
     db.refresh(new_offer)

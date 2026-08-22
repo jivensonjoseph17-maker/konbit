@@ -117,6 +117,7 @@ class ApplicationResponse(BaseModel):
         from_attributes = True
 
 class OfferCreate(BaseModel):
+    application_id: int
     salary: float
     start_date: datetime
 
