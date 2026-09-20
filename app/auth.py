@@ -1,50 +1,61 @@
-import bcrypt
-from datetime import datetime, timedelta
-from typing import Optional
-from jose import JWTError, jwt
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from datetime import timedelta
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from app.security import get_current_user, verify_password, get_password_hash, create_access_token
 from app.database import get_db
 from app.models import User
 from app.config import settings
 
-security = HTTPBearer()
+router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-def get_password_hash(password: str) -> str:
-    salt = bcrypt.gensalt()
-    hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
-    return hashed.decode('utf-8')
+class UserLogin(BaseModel):
+    email: str
+    password: str
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
-
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=30)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm="HS256")
-    return encoded_jwt
-
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db)) -> User:
-    token = credentials.credentials
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Token pa valab",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(token, settings.secret_key, algorithms=["HS256"])
-        user_id: str = payload.get("sub")
-        if user_id is None:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
+@router.post("/token")
+async def login_for_access_token(
+    user_credentials: UserLogin, 
+    db: Session = Depends(get_db)
+):
+    # Chèche itilizatè a nan baz done a pa imèl
+    user = db.query(User).filter(User.email == user_credentials.email).first()
     
-    user = db.query(User).filter(User.id == int(user_id)).first()
-    if user is None:
-        raise credentials_exception
-    return user
+    if not user or not verify_password(user_credentials.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Imèl oswa modpas la pa kòrèk",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Kreye token an
+    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+    access_token = create_access_token(
+        data={"sub": str(user.id)}, expires_delta=access_token_expires
+    )
+    
+    return {"access_token": access_token, "token_type": "bearer"}
+
+@router.post("/register", status_code=status.HTTP_201_CREATED)
+async def register_user(user_data: dict, db: Session = Depends(get_db)):
+    existing_user = db.query(User).filter(User.email == user_data.get("email")).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Imèl sa a deja anrejistre")
+    
+    hashed_pwd = get_password_hash(user_data.get("password"))
+    new_user = User(
+        email=user_data.get("email"),
+        hashed_password=hashed_pwd,
+        full_name=user_data.get("full_name"),
+        phone=user_data.get("phone"),
+        role=user_data.get("role", "applicant"),
+        is_active=True
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return {"message": "Kont ou kreye ak siksè"}
+
+@router.get("/me")
+async def read_users_me(current_user: User = Depends(get_current_user)):
+    return current_user

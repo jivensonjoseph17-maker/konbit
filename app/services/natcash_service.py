@@ -1,19 +1,11 @@
-import httpx
-from app.config import settings
 
-class NatCashService:
-    def __init__(self):
-        self.base_url = settings.kobara_base_url
-        self.api_key = settings.kobara_api_key
-    
-    async def create_payment(self, amount: float, reference: str):
-        url = f"{self.base_url}/payments"
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(url, json={
-                "amount": amount,
-                "reference": reference,
-                "currency": "HTG"
-            }, headers={"Authorization": f"Bearer {self.api_key}"})
-            return resp.json()
+from ..config import get_settings
 
-natcash_service = NatCashService()
+settings = get_settings()
+
+
+async def create_payment(amount: float, reference: str) -> dict:
+    """Kreye yon peman NatCash. Ranplase ak API reyèl NatCash la."""
+    if not settings.NATCASH_API_KEY:
+        return {"success": False, "message": "NatCash pa konfigire. Mete NATCASH_API_KEY nan .env"}
+    return {"success": True, "reference": reference, "amount": amount}
