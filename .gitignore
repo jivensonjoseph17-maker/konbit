@@ -45,6 +45,14 @@ pyvenv.cfg
 *.sqlite
 *.sqlite3
 
+# Alembic — kachèt sèlman.
+# MIGRASYON YO (alembic/versions/*.py) DWE ALE NAN GIT.
+# Se yo ki istwa estrikti baz done a: san yo, yon sèvè pwodiksyon
+# pa ka rebati menm estrikti a ak `alembic upgrade head`.
+alembic/__pycache__/
+alembic/versions/__pycache__/
+alembic/versions/*.pyc
+
 # Dokiman anplwaye yo telechaje (CV, sètifika doktè, kontra)
 # Se done pèsonèl — yo pa dwe janm rive sou GitHub
 uploads/

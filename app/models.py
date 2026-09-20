@@ -220,7 +220,13 @@ class Department(Base, TimestampMixin):
     code = Column(String(30))
     description = Column(Text)
     parent_id = Column(Integer, ForeignKey("departments.id"))    # depatman anndan depatman
-    head_employee_id = Column(Integer, ForeignKey("employees.id"))
+    # use_alter: kreye tab la san kontrent sa a, epi ajoute l apre ak ALTER TABLE.
+    # San sa gen yon bouk: departments -> employees -> departments, epi
+    # PostgreSQL pa ka kreye tab yo (SQLite pase, men li pa verifye).
+    head_employee_id = Column(
+        Integer,
+        ForeignKey("employees.id", use_alter=True, name="fk_department_head_employee"),
+    )
     is_active = Column(Boolean, default=True, nullable=False)
 
     organization = relationship("Organization", back_populates="departments")
@@ -514,9 +520,28 @@ class Payslip(Base, TimestampMixin):
     overtime_amount = Column(Integer, default=0)
     bonus_amount = Column(Integer, default=0)
     gross_amount = Column(Integer, default=0, nullable=False)
-    tax_amount = Column(Integer, default=0)          # Enpo sou salè
-    ona_amount = Column(Integer, default=0)          # ONA (Ayiti)
-    ofatma_amount = Column(Integer, default=0)       # OFATMA (Ayiti)
+
+    # --- Dediksyon (Ayiti) ---
+    # IRI sou salè debaz la, dapre baremn pwogresif 5 tranch la,
+    # aplike sou 90% brit la (abatman espesyal 10%, atik 92).
+    tax_amount = Column(Integer, default=0)
+
+    # Retni alasous fiks sou bonis, etrèn, prim ak èdtan siplemantè.
+    # Se yon prelèvman SEPARE de baremn nan (atik 96, dekrè 29 sept. 1986).
+    # 10% jouk 30 sept. 2026; 15% apati 1ye okt. 2026 (bidjè rektifikatif
+    # 2025-2026, Moniteur 5 jen 2026; antre an vigè ranvwaye pa MEF 14 jiyè 2026).
+    supplemental_tax_amount = Column(Integer, default=0)
+
+    ona_amount = Column(Integer, default=0)          # ONA — retrèt, 6%
+    ofatma_amount = Column(Integer, default=0)       # OFATMA — sante, 3%
+
+    # Kontribisyon Fon Jesyon ak Devlopman Kolektivite Teritoryal yo,
+    # 1% sou tout salè brit ki egal oswa depase 5 000 HTG pa mwa.
+    cfgdct_amount = Column(Integer, default=0)
+
+    # Fon dijans (FDU) ak Kès Asistans Sosyal (CAS), 1% sou salè brit.
+    fdu_cas_amount = Column(Integer, default=0)
+
     other_deductions = Column(Integer, default=0)
     net_amount = Column(Integer, default=0, nullable=False)
     currency = Column(SQLEnum(Currency), default=Currency.HTG, nullable=False)
