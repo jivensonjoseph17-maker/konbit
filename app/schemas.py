@@ -670,9 +670,12 @@ class PayslipOut(BaseModel):
     overtime_amount: int
     bonus_amount: int
     gross_amount: int
-    tax_amount: int
+    tax_amount: int                  # IRI sou salè regilye a
+    supplemental_tax_amount: int = 0 # Retni fiks sou bonis / èdtan siplemantè
     ona_amount: int
     ofatma_amount: int
+    cfgdct_amount: int = 0           # Kolektivite teritoryal, 1%
+    fdu_cas_amount: int = 0          # Fon dijans + Kès Asistans Sosyal, 1%
     other_deductions: int
     net_amount: int
     currency: Currency

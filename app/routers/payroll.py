@@ -73,13 +73,30 @@ logger = logging.getLogger("konbit")
 
 router = APIRouter()
 
-# --- To dediksyon (an pousantaj) ---
-ONA_RATE = 0.06          # Office National d'Assurance-vieillesse
-OFATMA_RATE = 0.03       # Office d'Assurance Accidents du Travail, Maladie et Maternité
+# ---------------------------------------------------------------------------
+# TO DEDIKSYON — AYITI
+#
+# Sous: DGI (dgi.gouv.ht), dekrè 29 septanm 2005 atik 149 (baremn),
+# atik 92 (abatman), dekrè 29 septanm 1986 atik 96 (retni sou bonis),
+# bidjè rektifikatif 2025-2026 (Moniteur 5 jen 2026) atik 3.
+#
+# YON KONTAB DWE VERIFYE TO SA YO ANVAN YON VRÈ BIZNIS SÈVI AK SISTÈM LAN.
+# ---------------------------------------------------------------------------
+
+ONA_RATE = 0.06          # Retrèt — Office National d'Assurance-vieillesse
+OFATMA_RATE = 0.03       # Sante — accidents, maladie, maternité
+CFGDCT_RATE = 0.01       # Kolektivite teritoryal yo
+FDU_CAS_RATE = 0.01      # Fon dijans + Kès Asistans Sosyal
+
+# CFGDCT aplike sèlman si salè brit mansyèl la ≥ 5 000 HTG
+CFGDCT_MONTHLY_FLOOR = 500000        # an santim
+
+# Abatman espesyal 10% (atik 92): baremn nan aplike sou 90% brit la.
+SALARY_ABATEMENT = 0.10
+
 OVERTIME_MULTIPLIER = 1.5
 
-# Baremn enpo sou salè (anyèl, an santim HTG).
-# Fòm: (limit siperyè, to). None = san limit.
+# Baremn IRI (anyèl, an santim HTG). Fòm: (limit siperyè, to). None = san limit.
 TAX_BRACKETS = [
     (6000000, 0.00),      # jiska 60 000 HTG/an : egzan
     (24000000, 0.10),     # 60 001 – 240 000
@@ -87,6 +104,22 @@ TAX_BRACKETS = [
     (100000000, 0.25),    # 480 001 – 1 000 000
     (None, 0.30),         # plis pase 1 000 000
 ]
+
+# Retni alasous FIKS sou bonis, etrèn, prim ak èdtan siplemantè.
+# Se yon prelèvman SEPARE de baremn nan — li pa pase nan tranch yo.
+# Atik 96 dekrè 1986 la te mete l a 10%. Bidjè rektifikatif 2025-2026 la
+# monte l a 15%, men MEF la (nòt 14 jiyè 2026) ranvwaye antre an vigè a
+# pou 1ye oktòb 2026.
+SUPPLEMENTAL_TAX_RATE_OLD = 0.10
+SUPPLEMENTAL_TAX_RATE_NEW = 0.15
+SUPPLEMENTAL_TAX_CHANGE_DATE = date(2026, 10, 1)
+
+
+def supplemental_tax_rate(pay_date: date) -> float:
+    """To retni sou bonis/prim/èdtan siplemantè, dapre dat peyman an."""
+    if pay_date >= SUPPLEMENTAL_TAX_CHANGE_DATE:
+        return SUPPLEMENTAL_TAX_RATE_NEW
+    return SUPPLEMENTAL_TAX_RATE_OLD
 
 
 # ---------------------------------------------------------------------------
@@ -126,23 +159,74 @@ def _notify(db: Session, org_id: int, user_id: Optional[int],
         db.rollback()
 
 
-def _annual_tax(annual_gross_cents: int) -> int:
-    """Kalkil enpo anyèl ak baremn pwogresif. Tout an santim."""
+def _annual_iri(annual_taxable_cents: int) -> int:
+    """Kalkil IRI anyèl ak baremn pwogresif 5 tranch la. Tout an santim."""
     tax = 0
     lower = 0
     for upper, rate in TAX_BRACKETS:
         if upper is None:
-            if annual_gross_cents > lower:
-                tax += int((annual_gross_cents - lower) * rate)
+            if annual_taxable_cents > lower:
+                tax += int((annual_taxable_cents - lower) * rate)
             break
-        if annual_gross_cents > upper:
+        if annual_taxable_cents > upper:
             tax += int((upper - lower) * rate)
             lower = upper
         else:
-            if annual_gross_cents > lower:
-                tax += int((annual_gross_cents - lower) * rate)
+            if annual_taxable_cents > lower:
+                tax += int((annual_taxable_cents - lower) * rate)
             break
     return tax
+
+
+def compute_deductions(
+    salary_gross: int,
+    supplemental_gross: int,
+    periods_per_year: int,
+    pay_date: date,
+) -> dict:
+    """
+    Kalkile tout dediksyon yo pou yon fich peye. Tout montan an santim.
+
+    `salary_gross`       : salè regilye a (san bonis, san èdtan siplemantè)
+    `supplemental_gross` : bonis + prim + peyman èdtan siplemantè
+
+    DE BAZ SEPARE:
+      1. Salè regilye a pase nan baremn pwogresif la, sou 90% brit
+         (abatman 10%, atik 92), anyalize epi divize pa kantite peryòd.
+      2. Bonis ak èdtan siplemantè pran yon retni FIKS sou montan brit yo,
+         san abatman, san baremn (atik 96).
+
+    ATANSYON: ONA ak OFATMA PA redwi baz enpozab la. Se yon erè komen.
+    """
+    total_gross = salary_gross + supplemental_gross
+
+    # --- Kotizasyon sosyal ak kontribisyon (sou tout brit la) ---
+    ona = int(total_gross * ONA_RATE)
+    ofatma = int(total_gross * OFATMA_RATE)
+    fdu_cas = int(total_gross * FDU_CAS_RATE)
+
+    # CFGDCT: plafon an defini pa mwa. Nou konvèti peryòd la an ekivalan mansyèl
+    # pou nou konpare ak plafon an san nou pa egzante moun ki peye chak kenzèn.
+    monthly_equivalent = int(total_gross * periods_per_year / 12)
+    cfgdct = int(total_gross * CFGDCT_RATE) if monthly_equivalent >= CFGDCT_MONTHLY_FLOOR else 0
+
+    # --- IRI sou salè regilye a ---
+    taxable_base = int(salary_gross * (1 - SALARY_ABATEMENT))
+    annual_iri = _annual_iri(taxable_base * periods_per_year)
+    iri = int(annual_iri / periods_per_year)
+
+    # --- Retni fiks sou bonis / èdtan siplemantè ---
+    rate = supplemental_tax_rate(pay_date)
+    supplemental_tax = int(supplemental_gross * rate)
+
+    return {
+        "tax_amount": iri,
+        "supplemental_tax_amount": supplemental_tax,
+        "ona_amount": ona,
+        "ofatma_amount": ofatma,
+        "cfgdct_amount": cfgdct,
+        "fdu_cas_amount": fdu_cas,
+    }
 
 
 def _periods_per_year(period: PayPeriod) -> int:
@@ -241,16 +325,16 @@ def _compute_payslip(db: Session, org_id: int, emp: Employee,
             if include_overtime else 0
         )
 
+    # Èdtan siplemantè tonbe nan menm retni fiks la ak bonis yo.
+    deductions = compute_deductions(
+        salary_gross=base,
+        supplemental_gross=overtime_amount,
+        periods_per_year=periods,
+        pay_date=period.pay_date,
+    )
+
     gross = base + overtime_amount
-
-    ona = int(gross * ONA_RATE)
-    ofatma = int(gross * OFATMA_RATE)
-
-    taxable = max(0, gross - ona - ofatma)
-    annual_tax = _annual_tax(taxable * periods)
-    tax = int(annual_tax / periods)
-
-    net = max(0, gross - ona - ofatma - tax)
+    net = max(0, gross - sum(deductions.values()))
 
     account = (emp.bank_account_number or "").strip()
     return {
@@ -258,9 +342,6 @@ def _compute_payslip(db: Session, org_id: int, emp: Employee,
         "overtime_amount": overtime_amount,
         "bonus_amount": 0,
         "gross_amount": gross,
-        "tax_amount": tax,
-        "ona_amount": ona,
-        "ofatma_amount": ofatma,
         "other_deductions": 0,
         "net_amount": net,
         "currency": emp.currency or Currency.HTG,
@@ -269,21 +350,37 @@ def _compute_payslip(db: Session, org_id: int, emp: Employee,
         "payment_method": emp.preferred_payment_method or PaymentMethod.CHECK,
         "bank_name": emp.bank_name,
         "account_last4": account[-4:] if len(account) >= 4 else None,
+        **deductions,
     }
 
 
-def _recompute_net(slip: Payslip) -> None:
-    """Rekalkile brit ak net apre yon ajisteman."""
-    slip.gross_amount = (
-        (slip.base_amount or 0)
-        + (slip.overtime_amount or 0)
-        + (slip.bonus_amount or 0)
+def _recompute(slip: Payslip, period: PayPeriod) -> None:
+    """
+    Rekalkile TOUT dediksyon yo apre yon ajisteman.
+
+    Sa a se koreksyon yon bug: premye vèsyon an te rekalkile net la san li
+    pa t retouche enpo a. Yon bonis t ap pase san enpo, epi DGI mande
+    yon retni fiks sou bonis — sa se yon manke nan obligasyon anplwayè a.
+    """
+    base = slip.base_amount or 0
+    overtime = slip.overtime_amount or 0
+    bonus = slip.bonus_amount or 0
+
+    periods = _periods_per_year(period)
+    deductions = compute_deductions(
+        salary_gross=base,
+        supplemental_gross=overtime + bonus,
+        periods_per_year=periods,
+        pay_date=period.pay_date,
     )
+
+    for field, value in deductions.items():
+        setattr(slip, field, value)
+
+    slip.gross_amount = base + overtime + bonus
     slip.net_amount = max(0, (
         slip.gross_amount
-        - (slip.tax_amount or 0)
-        - (slip.ona_amount or 0)
-        - (slip.ofatma_amount or 0)
+        - sum(deductions.values())
         - (slip.other_deductions or 0)
     ))
 
@@ -737,7 +834,11 @@ def adjust_payslip(
             ),
         )
 
-    before = f"bonis={slip.bonus_amount}, dediksyon={slip.other_deductions}, net={slip.net_amount}"
+    period = _get_period_or_404(db, org_id, slip.pay_period_id)
+    before = (
+        f"bonis={slip.bonus_amount}, enpo={slip.tax_amount}, "
+        f"retni-sip={slip.supplemental_tax_amount}, net={slip.net_amount}"
+    )
     data = payload.model_dump(exclude_unset=True)
 
     if "payment_method" in data and data["payment_method"] is not None:
@@ -758,14 +859,14 @@ def adjust_payslip(
     for field, value in data.items():
         setattr(slip, field, value)
 
-    _recompute_net(slip)
+    _recompute(slip, period)
     db.commit()
     db.refresh(slip)
 
     _audit(db, request, user, "adjust", "payslip", slip.id,
            changes=f"{before} -> bonis={slip.bonus_amount}, "
-                   f"dediksyon={slip.other_deductions}, net={slip.net_amount}. "
-                   f"Nòt: {payload.notes or '—'}")
+                   f"enpo={slip.tax_amount}, retni-sip={slip.supplemental_tax_amount}, "
+                   f"net={slip.net_amount}. Nòt: {payload.notes or '—'}")
     return slip
 
 
@@ -793,4 +894,49 @@ def employee_payslips(
 
     return MyPayslipsResponse(
         total=len(slips), items=[PayslipOut.model_validate(s) for s in slips]
+    )
+
+
+# ---------------------------------------------------------------------------
+# TO DEDIKSYON YO
+# ---------------------------------------------------------------------------
+
+class TaxRatesInfo(BaseModel):
+    ona_rate: float
+    ofatma_rate: float
+    cfgdct_rate: float
+    cfgdct_monthly_floor: int
+    fdu_cas_rate: float
+    salary_abatement: float
+    supplemental_tax_rate_today: float
+    supplemental_tax_change_date: date
+    tax_brackets: list[dict]
+    overtime_multiplier: float
+    note: str
+
+
+@router.get("/tax-rates", response_model=TaxRatesInfo, dependencies=[Depends(require_hr)])
+def tax_rates():
+    """
+    To yo sistèm lan sèvi pou kalkile peyòl la.
+    Frontend lan ka montre sa nan yon paj 'Kijan nou kalkile fich peye w'.
+    """
+    return TaxRatesInfo(
+        ona_rate=ONA_RATE,
+        ofatma_rate=OFATMA_RATE,
+        cfgdct_rate=CFGDCT_RATE,
+        cfgdct_monthly_floor=CFGDCT_MONTHLY_FLOOR,
+        fdu_cas_rate=FDU_CAS_RATE,
+        salary_abatement=SALARY_ABATEMENT,
+        supplemental_tax_rate_today=supplemental_tax_rate(date.today()),
+        supplemental_tax_change_date=SUPPLEMENTAL_TAX_CHANGE_DATE,
+        tax_brackets=[
+            {"up_to": upper, "rate": rate} for upper, rate in TAX_BRACKETS
+        ],
+        overtime_multiplier=OVERTIME_MULTIPLIER,
+        note=(
+            "To sa yo baze sou piblikasyon DGI yo. Yon kontab dwe verifye yo "
+            "anvan yon vrè biznis sèvi ak sistèm lan. Retni sou bonis ak èdtan "
+            "siplemantè pase de 10% a 15% nan 1ye oktòb 2026."
+        ),
     )

@@ -16,14 +16,16 @@ from .config import settings
 from .database import Base, engine
 
 # --- Router ki aktif ---
-from .routers import auth, employees, hierarchy, attendance, leaves, payroll
+from .routers import (
+    auth, employees, hierarchy, attendance, leaves,
+    payroll, training, feedback,
+    jobs, applications, offers,
+)
 
 # --- Router ki poko pare ---
 # Ansyen fichye sa yo t ap refere ak ansyen modèl yo. Dekomante chak liy
 # sèlman lè fichye a reekri pou nouvo schema a.
 # from .routers import companies
-# from .routers import jobs, applications, offers
-# from .routers import training, feedback
 
 logging.basicConfig(
     level=logging.DEBUG if settings.debug else logging.INFO,
@@ -36,7 +38,9 @@ logger = logging.getLogger("konbit")
 async def lifespan(app: FastAPI):
     # Nan devlopman sèlman: kreye tab yo otomatikman.
     # Nan pwodiksyon se Alembic ki fè travay sa a.
-    
+    if not settings.is_production:
+        Base.metadata.create_all(bind=engine)
+        logger.info("Tab yo kreye (mòd devlopman).")
     logger.info("Konbit API demare — anviwonman: %s", settings.environment)
     yield
     engine.dispose()
@@ -148,11 +152,11 @@ app.include_router(hierarchy.router, prefix="/api/hierarchy", tags=["Òganigram"
 app.include_router(attendance.router, prefix="/api/attendance", tags=["Prezans"])
 app.include_router(leaves.router,     prefix="/api/leaves",     tags=["Konje"])
 app.include_router(payroll.router,    prefix="/api/payroll",    tags=["Peyòl"])
+app.include_router(training.router,   prefix="/api/training",   tags=["Fòmasyon"])
+app.include_router(feedback.router,   prefix="/api/feedback",   tags=["Fidbak"])
+app.include_router(jobs.router,         prefix="/api/jobs",         tags=["Òf travay"])
+app.include_router(applications.router, prefix="/api/applications", tags=["Aplikasyon"])
+app.include_router(offers.router,       prefix="/api/offers",       tags=["Pwopozisyon"])
 
 # --- Poko pare ---
 # app.include_router(companies.router,    prefix="/api/companies",    tags=["Biznis"])
-# app.include_router(jobs.router,         prefix="/api/jobs",         tags=["Òf travay"])
-# app.include_router(applications.router, prefix="/api/applications", tags=["Aplikasyon"])
-# app.include_router(offers.router,       prefix="/api/offers",       tags=["Pwopozisyon"])
-# app.include_router(training.router,     prefix="/api/training",     tags=["Fòmasyon"])
-# app.include_router(feedback.router,     prefix="/api/feedback",     tags=["Fidbak"])
