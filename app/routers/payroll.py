@@ -27,12 +27,12 @@ anvan ou sèvi ak sistèm lan pou vrè peyòl.
 """
 
 import logging
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
-from sqlalchemy import func
+from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session
 
 from ..deps import (
@@ -291,6 +291,49 @@ def _unpaid_leave_days(db: Session, org_id: int, employee_id: int,
     return float(sum(float(r.total_days) for r in rows))
 
 
+def _business_days(start: date, end: date) -> int:
+    """Lendi–vandredi ant de dat, toude enkli."""
+    if end < start:
+        return 0
+    days = 0
+    cursor = start
+    while cursor <= end:
+        if cursor.weekday() < 5:
+            days += 1
+        cursor += timedelta(days=1)
+    return days
+
+
+def employment_window(emp: Employee, period: PayPeriod) -> tuple[Optional[date], Optional[date]]:
+    """
+    Pati nan peryòd la kote moun nan te anplwaye vrèman.
+    Retounen (None, None) si li pa t travay ditou nan peryòd la
+    (anboche apre, oswa ale anvan).
+    """
+    start = max(period.start_date, emp.hire_date) if emp.hire_date else period.start_date
+    end = min(period.end_date, emp.termination_date) if emp.termination_date else period.end_date
+    if end < start:
+        return None, None
+    return start, end
+
+
+def employment_factor(emp: Employee, period: PayPeriod) -> float:
+    """
+    Fraksyon salè a moun nan merite pou peryòd la, sou baz jou travay.
+    1.0 = tout peryòd la. 0.5 = mwatye. 0 = li pa t la ditou.
+
+    San sa, yon moun anboche 15 septanm ta resevwa tout salè septanm, epi
+    yon moun ki ale 10 septanm pa ta resevwa anyen pou jou li te travay yo.
+    """
+    start, end = employment_window(emp, period)
+    if start is None:
+        return 0.0
+    total = _business_days(period.start_date, period.end_date)
+    if total == 0:
+        return 0.0
+    return min(1.0, _business_days(start, end) / total)
+
+
 def _compute_payslip(db: Session, org_id: int, emp: Employee,
                      period: PayPeriod, include_overtime: bool) -> dict:
     """
@@ -311,7 +354,9 @@ def _compute_payslip(db: Session, org_id: int, emp: Employee,
             if include_overtime else 0
         )
     else:
-        base = int(emp.base_salary or 0)
+        # Salè fiks la, pwopòsyonèl ak jou moun nan te anplwaye nan peryòd la.
+        # (Moun pa lè yo pa bezwen sa: yo peye sou minit yo travay reyèlman.)
+        base = int((emp.base_salary or 0) * employment_factor(emp, period))
         # Rache jou konje san peye
         unpaid = _unpaid_leave_days(db, org_id, emp.id, period.start_date, period.end_date)
         if unpaid > 0:
@@ -492,10 +537,21 @@ def run_payroll(
             detail="Peyòl sa a deja peye. Ou pa ka rejenere l.",
         )
 
+    # Moun aktif yo, PLIS moun ki ale PANDAN peryòd la — yo dwe resevwa
+    # dènye salè yo pou jou yo te travay.
     q = db.query(Employee).filter(
         Employee.organization_id == org_id,
-        Employee.is_active.is_(True),
-        Employee.status.in_([EmploymentStatus.ACTIVE, EmploymentStatus.ON_LEAVE]),
+        or_(
+            and_(
+                Employee.is_active.is_(True),
+                Employee.status.in_([EmploymentStatus.ACTIVE, EmploymentStatus.ON_LEAVE]),
+            ),
+            and_(
+                Employee.status == EmploymentStatus.TERMINATED,
+                Employee.termination_date.isnot(None),
+                Employee.termination_date >= period.start_date,
+            ),
+        ),
     )
     if payload.employee_ids:
         q = q.filter(Employee.id.in_(payload.employee_ids))
@@ -514,6 +570,28 @@ def run_payroll(
         if exists:
             skipped += 1
             continue
+
+        full_name = f"{emp.first_name} {emp.last_name} ({emp.employee_number})"
+        window_start, window_end = employment_window(emp, period)
+        if window_start is None:
+            if emp.hire_date and emp.hire_date > period.end_date:
+                warnings.append(
+                    f"{full_name}: kòmanse {emp.hire_date:%d/%m/%Y}, apre peryòd sa a. Sote."
+                )
+            skipped += 1
+            continue
+
+        if (window_start, window_end) != (period.start_date, period.end_date) and emp.base_salary:
+            worked = _business_days(window_start, window_end)
+            total = _business_days(period.start_date, period.end_date)
+            reason = []
+            if window_start > period.start_date:
+                reason.append(f"kòmanse {window_start:%d/%m}")
+            if window_end < period.end_date:
+                reason.append(f"dènye jou {window_end:%d/%m}")
+            warnings.append(
+                f"{full_name}: {', '.join(reason)} — salè kalkile pou {worked} sou {total} jou travay."
+            )
 
         if not emp.base_salary and not emp.hourly_rate:
             warnings.append(
