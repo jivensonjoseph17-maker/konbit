@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Peyòl — KONMBIT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div class="app">
+    <aside id="sidebar"></aside>
+
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+
+      <main class="page">
+        <div class="page-head-row">
+          <div class="page-head">
+            <h1>Peyòl</h1>
+            <p>Kreye yon peryòd, kalkile fich peye yo, verifye yo, apwouve, epi make yo peye.</p>
+          </div>
+          <button class="btn btn-primary" type="button" id="new-btn">Nouvo peryòd</button>
+        </div>
+
+        <section class="panel form-panel" id="new-panel" hidden aria-labelledby="new-title">
+          <div class="panel-head"><h2 id="new-title">Nouvo peryòd peye</h2></div>
+          <form id="new-form" novalidate>
+            <div class="form-grid">
+              <div class="field span-2">
+                <label for="p-name">Non</label>
+                <input class="input" id="p-name" maxlength="100" autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="p-start">Premye jou</label>
+                <input class="input" id="p-start" type="date">
+              </div>
+              <div class="field">
+                <label for="p-end">Dènye jou</label>
+                <input class="input" id="p-end" type="date">
+              </div>
+              <div class="field">
+                <label for="p-pay">Dat peman</label>
+                <input class="input" id="p-pay" type="date">
+                <span class="hint" id="p-pay-hint"></span>
+              </div>
+            </div>
+            <p class="field-error" id="new-error" role="alert" style="margin-top: 12px;"></p>
+            <div class="form-actions">
+              <button class="btn btn-primary" type="submit" id="new-submit">Kreye peryòd la</button>
+              <button class="btn btn-ghost" type="button" id="new-cancel">Anile</button>
+            </div>
+          </form>
+        </section>
+
+        <div id="detail"></div>
+
+        <section class="panel" aria-labelledby="periods-title" style="margin-top: 20px;">
+          <div class="panel-head"><h2 id="periods-title">Tout peryòd yo</h2></div>
+          <div id="periods"><p class="loading">Ap chaje…</p></div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script src="shell.js"></script>
+  <script>
+  (async function () {
+    'use strict';
+    const { api, fmt, h, ApiError, shell } = Konbit;
+
+    const identity = await shell.mount('payroll', shell.ADMIN);
+    if (!identity) return;
+
+    const $ = (id) => document.getElementById(id);
+    const MONTHS = ['Janvye', 'Fevriye', 'Mas', 'Avril', 'Me', 'Jen',
+                    'Jiyè', 'Out', 'Septanm', 'Oktòb', 'Novanm', 'Desanm'];
+    const STATUS = {
+      draft: ['Bouyon', 'badge-pending'],
+      approved: ['Apwouve', 'badge-info'],
+      paid: ['Peye', 'badge-approved'],
+      cancelled: ['Anile', 'badge-cancelled'],
+    };
+
+    let periods = [];
+    let selectedId = Number(new URLSearchParams(location.search).get('id')) || null;
+    let lastWarnings = [];
+
+    // ---------------------------------------------------------------------
+    // ZOUTI
+    // ---------------------------------------------------------------------
+
+    function errorMessage(err) {
+      let msg = err instanceof ApiError ? err.message : 'Yon bagay pa mache.';
+      if (err && err.fields && err.fields.length) {
+        msg += ' ' + err.fields.map((f) => `${f.field}: ${f.message}`).join('; ');
+      }
+      return msg;
+    }
+
+    function iso(d) {
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    function statusBadge(status) {
+      const [label, cls] = STATUS[status] || [status, ''];
+      return h('span', { class: `badge ${cls}` }, label);
+    }
+
+    function deductionsOf(s) {
+      return (s.tax_amount || 0) + (s.supplemental_tax_amount || 0) + (s.ona_amount || 0)
+        + (s.ofatma_amount || 0) + (s.cfgdct_amount || 0) + (s.fdu_cas_amount || 0)
+        + (s.other_deductions || 0);
+    }
+
+    function centsToInput(cents) {
+      if (!cents) return '';
+      return (cents / 100).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+    }
+
+    function selectPeriod(id) {
+      selectedId = id;
+      lastWarnings = [];
+      const url = new URL(location.href);
+      url.searchParams.set('id', String(id));
+      history.replaceState(null, '', url);
+      renderPeriods();
+      loadDetail();
+    }
+
+    /**
+     * Konfimasyon nan paj la olye fenèt navigatè a. Retounen yon eleman:
+     * premye klik montre kesyon an, dezyèm klik egzekite aksyon an.
+     */
+    function confirmButton(label, question, className, onConfirm) {
+      const wrap = h('div', { class: 'confirm-wrap' });
+      const btn = h('button', { class: className, type: 'button' }, label);
+      wrap.append(btn);
+
+      btn.addEventListener('click', () => {
+        const yesClass = className.includes('danger') ? className : 'btn btn-primary';
+        const yes = h('button', { class: yesClass, type: 'button' }, 'Wi, kontinye');
+        const no = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, 'Anile');
+        const box = h('div', { class: 'confirm-box', role: 'alertdialog' },
+          h('p', {}, question),
+          h('div', { class: 'form-actions', style: 'margin-top: 12px;' }, yes, no),
+        );
+        wrap.replaceChildren(box);
+        yes.focus();
+        no.addEventListener('click', () => wrap.replaceChildren(btn));
+        yes.addEventListener('click', async () => {
+          yes.disabled = true; no.disabled = true;
+          yes.textContent = 'Yon ti moman…';
+          await onConfirm();
+        });
+      });
+      return wrap;
+    }
+
+    // ---------------------------------------------------------------------
+    // NOUVO PERYÒD
+    // ---------------------------------------------------------------------
+
+    function prefillNewPeriod() {
+      // Pwopoze pwochen mwa ki poko gen peryòd, oswa mwa sa a.
+      const today = new Date();
+      let y = today.getFullYear();
+      let m = today.getMonth();
+      const taken = new Set(periods.map((p) => p.start_date.slice(0, 7)));
+      for (let i = 0; i < 12; i++) {
+        const key = `${y}-${String(m + 1).padStart(2, '0')}`;
+        if (!taken.has(key)) break;
+        m += 1; if (m > 11) { m = 0; y += 1; }
+      }
+      const start = new Date(y, m, 1);
+      const end = new Date(y, m + 1, 0);
+      const pay = new Date(y, m + 1, 5);
+      $('p-name').value = `${MONTHS[m]} ${y}`;
+      $('p-start').value = iso(start);
+      $('p-end').value = iso(end);
+      $('p-pay').value = iso(pay);
+      updatePayHint();
+    }
+
+    function updatePayHint() {
+      // Retni sou bonis la depann de dat peman an (10% → 15% nan 1ye okt. 2026).
+      const v = $('p-pay').value;
+      $('p-pay-hint').textContent = v
+        ? `Retni sou bonis ak èdtan siplemantè: ${v >= '2026-10-01' ? '15%' : '10%'}`
+        : '';
+    }
+
+    $('p-pay').addEventListener('change', updatePayHint);
+
+    $('new-btn').addEventListener('click', () => {
+      prefillNewPeriod();
+      $('new-panel').hidden = false;
+      $('new-btn').hidden = true;
+      $('p-name').focus();
+    });
+
+    function closeNew() {
+      $('new-panel').hidden = true;
+      $('new-btn').hidden = false;
+      $('new-error').textContent = '';
+    }
+    $('new-cancel').addEventListener('click', closeNew);
+
+    $('new-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      $('new-error').textContent = '';
+      const payload = {
+        name: $('p-name').value.trim(),
+        start_date: $('p-start').value,
+        end_date: $('p-end').value,
+        pay_date: $('p-pay').value,
+      };
+      if (!payload.name || !payload.start_date || !payload.end_date || !payload.pay_date) {
+        $('new-error').textContent = 'Ranpli tout chan yo.';
+        return;
+      }
+      if (payload.end_date < payload.start_date) {
+        $('new-error').textContent = 'Dènye jou a pa ka anvan premye jou a.';
+        return;
+      }
+      if (payload.pay_date < payload.end_date) {
+        $('new-error').textContent = 'Dat peman an pa ka anvan fen peryòd la.';
+        return;
+      }
+
+      $('new-submit').disabled = true;
+      try {
+        const created = await api.post('/api/payroll/periods', payload);
+        closeNew();
+        await loadPeriods();
+        selectPeriod(created.id);
+      } catch (err) {
+        $('new-error').textContent = errorMessage(err);
+      } finally {
+        $('new-submit').disabled = false;
+      }
+    });
+
+    // ---------------------------------------------------------------------
+    // LIS PERYÒD
+    // ---------------------------------------------------------------------
+
+    async function loadPeriods() {
+      try {
+        const data = await api.get('/api/payroll/periods?limit=50');
+        periods = data.items;
+        if (!selectedId && periods.length) selectedId = periods[0].id;
+        renderPeriods();
+      } catch (err) {
+        $('periods').replaceChildren(h('p', { class: 'empty' }, errorMessage(err)));
+      }
+    }
+
+    function renderPeriods() {
+      if (!periods.length) {
+        $('periods').replaceChildren(h('p', { class: 'empty' },
+          'Ou poko gen okenn peryòd. Klike "Nouvo peryòd" pou kòmanse premye peyòl ou.'));
+        return;
+      }
+      $('periods').replaceChildren(h('div', { class: 'table-wrap flush' },
+        h('table', { class: 'table' },
+          h('thead', {}, h('tr', {},
+            h('th', { scope: 'col' }, 'Peryòd'),
+            h('th', { scope: 'col', class: 'hide-sm' }, 'Dat'),
+            h('th', { scope: 'col' }, 'Estati'),
+            h('th', { scope: 'col', class: 'num-col hide-sm' }, 'Fich'),
+            h('th', { scope: 'col', class: 'num-col' }, 'Total net'),
+          )),
+          h('tbody', {}, ...periods.map((p) => {
+            const link = h('a', { class: 'plain-link', href: `?id=${p.id}` }, p.name);
+            link.addEventListener('click', (e) => { e.preventDefault(); selectPeriod(p.id); });
+            return h('tr', { class: p.id === selectedId ? 'is-selected' : null },
+              h('td', {}, h('span', { class: 'who' }, link)),
+              h('td', { class: 'cell-muted hide-sm' }, `${fmt.shortDate(p.start_date)} – ${fmt.shortDate(p.end_date)}`),
+              h('td', {}, statusBadge(p.status)),
+              h('td', { class: 'num-col cell-muted hide-sm' }, String(p.payslip_count)),
+              h('td', { class: 'num-col' }, p.total_net ? fmt.money(p.total_net) : '—'),
+            );
+          })),
+        ),
+      ));
+    }
+
+    // ---------------------------------------------------------------------
+    // DETAY YON PERYÒD
+    // ---------------------------------------------------------------------
+
+    async function loadDetail() {
+      const box = $('detail');
+      if (!selectedId) { box.replaceChildren(); return; }
+      box.replaceChildren(h('section', { class: 'panel' }, h('p', { class: 'loading' }, 'Ap chaje…')));
+
+      try {
+        const [period, slips] = await Promise.all([
+          api.get(`/api/payroll/periods/${selectedId}`),
+          api.get(`/api/payroll/periods/${selectedId}/payslips`),
+        ]);
+        renderDetail(period, slips.items);
+      } catch (err) {
+        box.replaceChildren(h('div', { class: 'alert alert-error' }, errorMessage(err)));
+      }
+    }
+
+    async function refresh() {
+      await loadPeriods();
+      await loadDetail();
+    }
+
+    function stepper(status) {
+      const steps = [['draft', 'Kalkile ak verifye'], ['approved', 'Apwouve'], ['paid', 'Peye']];
+      const reached = { draft: 0, approved: 1, paid: 2 }[status] ?? 0;
+      return h('ol', { class: 'stepper', 'aria-label': 'Etap peyòl la' },
+        ...steps.map(([key, label], i) => h('li', {
+          class: i < reached ? 'done' : i === reached ? 'current' : null,
+          'aria-current': i === reached ? 'step' : null,
+        }, h('span', { class: 'step-n' }, String(i + 1)), label)),
+      );
+    }
+
+    function renderDetail(period, rows) {
+      const box = $('detail');
+      const msg = h('p', { class: 'field-error', role: 'status' });
+      const slips = rows.map((r) => r.payslip);
+
+      const totals = slips.reduce((t, s) => {
+        t.gross += s.gross_amount || 0;
+        t.ded += deductionsOf(s);
+        t.net += s.net_amount || 0;
+        t.methods[s.payment_method] = (t.methods[s.payment_method] || 0) + 1;
+        return t;
+      }, { gross: 0, ded: 0, net: 0, methods: {} });
+
+      // --- Aksyon dapre estati a ---
+      const actions = h('div', { class: 'period-actions' });
+
+      if (period.status === 'draft') {
+        const runBtn = h('button', { class: 'btn btn-primary', type: 'button' },
+          slips.length ? 'Ajoute moun ki manke yo' : 'Kalkile fich peye yo');
+        runBtn.addEventListener('click', async () => {
+          runBtn.disabled = true;
+          runBtn.textContent = 'Ap kalkile…';
+          msg.textContent = '';
+          try {
+            const r = await api.post(`/api/payroll/periods/${period.id}/run`, {
+              pay_period_id: period.id,
+              include_overtime: true,
+            });
+            lastWarnings = r.warnings || [];
+            if (r.created === 0 && r.skipped > 0 && !lastWarnings.length) {
+              lastWarnings = ['Tout anplwaye aktif yo gen fich yo deja.'];
+            }
+            await refresh();
+          } catch (err) {
+            msg.textContent = errorMessage(err);
+            runBtn.disabled = false;
+          }
+        });
+        actions.append(runBtn);
+
+        if (slips.length) {
+          actions.append(confirmButton(
+            'Apwouve peyòl la',
+            `Apre apwobasyon, ou p ap ka chanje ${slips.length} fich yo ankò, epi anplwaye yo ap ka wè yo. Total net: ${fmt.money(totals.net)}.`,
+            'btn btn-ghost',
+            async () => {
+              try {
+                await api.post(`/api/payroll/periods/${period.id}/approve`);
+                lastWarnings = [];
+                await refresh();
+              } catch (err) {
+                msg.textContent = errorMessage(err);
+                await loadDetail();
+              }
+            },
+          ));
+        }
+      }
+
+      if (period.status === 'approved') {
+        const checks = totals.methods.check || 0;
+        const checkInput = h('input', { class: 'input', id: 'check-start', inputmode: 'numeric',
+          placeholder: 'Egz: 1001', style: 'max-width: 180px;' });
+        const payBtn = h('button', { class: 'btn btn-primary', type: 'button' }, 'Make l peye');
+
+        payBtn.addEventListener('click', async () => {
+          msg.textContent = '';
+          const raw = checkInput.value.trim();
+          if (raw && !/^\d+$/.test(raw)) { msg.textContent = 'Nimewo chèk la dwe yon chif.'; return; }
+          payBtn.disabled = true;
+          payBtn.textContent = 'Ap anrejistre…';
+          try {
+            await api.post(`/api/payroll/periods/${period.id}/pay`,
+              raw ? { check_start_number: Number(raw) } : {});
+            await refresh();
+          } catch (err) {
+            msg.textContent = errorMessage(err);
+            payBtn.disabled = false;
+            payBtn.textContent = 'Make l peye';
+          }
+        });
+
+        actions.append(
+          checks
+            ? h('div', { class: 'field inline-field' },
+                h('label', { for: 'check-start' }, `Premye nimewo chèk (${checks} chèk)`),
+                checkInput)
+            : null,
+          payBtn,
+        );
+      }
+
+      // --- Rezime ---
+      const methodLabels = { check: 'chèk', direct_deposit: 'depo', moncash: 'MonCash', natcash: 'NatCash', cash: 'kach' };
+      const methodLine = Object.entries(totals.methods)
+        .map(([m, n]) => `${n} ${methodLabels[m] || m}`).join(', ');
+
+      const stat = (n, t) => h('div', { class: 'stat' }, h('div', { class: 'n' }, n), h('div', { class: 't' }, t));
+
+      box.replaceChildren(h('section', { class: 'panel period-panel' },
+        h('div', { class: 'period-head' },
+          h('div', {},
+            h('h2', { class: 'period-title' }, period.name, ' ', statusBadge(period.status)),
+            h('p', { class: 'cell-muted' },
+              `${fmt.date(period.start_date)} – ${fmt.date(period.end_date)}. ` +
+              (period.status === 'paid' ? 'Peye.' : `Peman prevwa ${fmt.date(period.pay_date)}.`)),
+          ),
+          stepper(period.status),
+        ),
+
+        lastWarnings.length
+          ? h('div', { class: 'alert alert-warn' },
+              h('strong', {}, 'Pou verifye:'),
+              h('ul', {}, ...lastWarnings.map((w) => h('li', {}, w))))
+          : null,
+
+        slips.length
+          ? h('div', { class: 'stat-line period-stats' },
+              stat(fmt.money(totals.gross), 'brit'),
+              stat(fmt.money(totals.ded), 'dediksyon'),
+              stat(fmt.money(totals.net), 'net pou peye'),
+              stat(String(slips.length), methodLine || 'fich'),
+            )
+          : h('p', { class: 'empty' }, 'Pa gen fich peye pou peryòd sa a ankò. Klike "Kalkile fich peye yo".'),
+
+        actions,
+        msg,
+
+        slips.length ? payslipTable(rows, period) : null,
+      ));
+    }
+
+    // ---------------------------------------------------------------------
+    // TABLO FICH PEYE
+    // ---------------------------------------------------------------------
+
+    function payslipTable(rows, period) {
+      const editable = period.status === 'draft';
+      const tbody = h('tbody');
+
+      rows.forEach(({ payslip: s, employee_name, employee_number }) => {
+        const detailRow = h('tr', { class: 'detail-row', hidden: true },
+          h('td', { colspan: '6' }, breakdown(s, editable)));
+
+        const toggle = h('button', { class: 'btn btn-quiet btn-sm', type: 'button', 'aria-expanded': 'false' },
+          editable ? 'Detay / ajiste' : 'Detay');
+        toggle.addEventListener('click', () => {
+          detailRow.hidden = !detailRow.hidden;
+          toggle.setAttribute('aria-expanded', String(!detailRow.hidden));
+        });
+
+        tbody.append(
+          h('tr', {},
+            h('td', {},
+              h('div', { class: 'who' }, employee_name),
+              h('div', { class: 'num' }, employee_number),
+            ),
+            h('td', { class: 'num-col hide-sm' }, fmt.money(s.gross_amount)),
+            h('td', { class: 'num-col hide-sm cell-muted' }, `−${fmt.money(deductionsOf(s))}`),
+            h('td', { class: 'num-col strong' }, fmt.money(s.net_amount)),
+            h('td', { class: 'cell-muted' }, fmt.paymentMethod(s)),
+            h('td', { class: 'actions' }, toggle),
+          ),
+          detailRow,
+        );
+      });
+
+      return h('div', { class: 'table-wrap flush', style: 'margin-top: 18px;' },
+        h('table', { class: 'table' },
+          h('thead', {}, h('tr', {},
+            h('th', { scope: 'col' }, 'Anplwaye'),
+            h('th', { scope: 'col', class: 'num-col hide-sm' }, 'Brit'),
+            h('th', { scope: 'col', class: 'num-col hide-sm' }, 'Dediksyon'),
+            h('th', { scope: 'col', class: 'num-col' }, 'Net'),
+            h('th', { scope: 'col' }, 'Peman'),
+            h('th', { scope: 'col' }, h('span', { class: 'visually-hidden' }, 'Aksyon')),
+          )),
+          tbody,
+        ),
+      );
+    }
+
+    function breakdown(s, editable) {
+      const line = (k, v, minus) => v
+        ? h('div', { class: minus ? 'row minus' : 'row' },
+            h('span', { class: 'k' }, k),
+            h('span', { class: 'v' }, `${minus ? '−' : ''}${fmt.money(v)}`))
+        : null;
+
+      const rowsBox = h('div', { class: 'rows' },
+        line('Salè debaz', s.base_amount),
+        line('Èdtan siplemantè', s.overtime_amount),
+        line('Bonis', s.bonus_amount),
+        h('div', { class: 'row' }, h('span', { class: 'k' }, 'Brit'), h('span', {}, fmt.money(s.gross_amount))),
+        line('IRI', s.tax_amount, true),
+        line('Retni sou bonis / èdtan siplemantè', s.supplemental_tax_amount, true),
+        line('ONA', s.ona_amount, true),
+        line('OFATMA', s.ofatma_amount, true),
+        line('CFGDCT', s.cfgdct_amount, true),
+        line('FDU / CAS', s.fdu_cas_amount, true),
+        line('Lòt dediksyon', s.other_deductions, true),
+        h('div', { class: 'row total' }, h('span', {}, 'Net'), h('span', {}, fmt.money(s.net_amount))),
+      );
+
+      if (!editable) return h('div', { class: 'breakdown-grid' }, rowsBox);
+
+      // --- Fòm ajisteman (bouyon sèlman) ---
+      const bonus = h('input', { class: 'input', inputmode: 'decimal', id: `b-${s.id}` });
+      bonus.value = centsToInput(s.bonus_amount);
+      const other = h('input', { class: 'input', inputmode: 'decimal', id: `o-${s.id}` });
+      other.value = centsToInput(s.other_deductions);
+      const method = h('select', { class: 'select', id: `m-${s.id}` },
+        ...[['check', 'Chèk'], ['direct_deposit', 'Depo dirèk'], ['moncash', 'MonCash'],
+            ['natcash', 'NatCash'], ['cash', 'Lajan kach']].map(([v, l]) => h('option', { value: v }, l)));
+      method.value = s.payment_method;
+      const note = h('input', { class: 'input', id: `n-${s.id}`, maxlength: '500',
+        placeholder: 'Egz: Bonis fen ane' });
+      const msg = h('p', { class: 'field-error', role: 'status' });
+      const save = h('button', { class: 'btn btn-primary btn-sm', type: 'submit' }, 'Rekalkile');
+
+      const form = h('form', { class: 'adjust-form', novalidate: true },
+        h('div', { class: 'field' }, h('label', { for: bonus.id }, 'Bonis (HTG)'), bonus),
+        h('div', { class: 'field' }, h('label', { for: other.id }, 'Lòt dediksyon (HTG)'), other,
+          h('span', { class: 'hint' }, 'Avans sou salè, prè, elatriye.')),
+        h('div', { class: 'field' }, h('label', { for: method.id }, 'Peman'), method),
+        h('div', { class: 'field' }, h('label', { for: note.id }, 'Nòt'), note),
+        msg,
+        h('div', {}, save),
+      );
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        msg.textContent = '';
+        const b = bonus.value.trim() ? fmt.parseMoney(bonus.value) : 0;
+        const o = other.value.trim() ? fmt.parseMoney(other.value) : 0;
+        if (b === null || o === null) { msg.textContent = 'Montan yo dwe chif valab.'; return; }
+
+        const changes = {};
+        if (b !== (s.bonus_amount || 0)) changes.bonus_amount = b;
+        if (o !== (s.other_deductions || 0)) changes.other_deductions = o;
+        if (method.value !== s.payment_method) changes.payment_method = method.value;
+        if (note.value.trim()) changes.notes = note.value.trim();
+
+        if (!Object.keys(changes).length) { msg.textContent = 'Pa gen anyen ki chanje.'; return; }
+
+        save.disabled = true;
+        save.textContent = 'Ap rekalkile…';
+        try {
+          await api.patch(`/api/payroll/payslips/${s.id}`, changes);
+          await refresh();
+        } catch (err) {
+          msg.textContent = errorMessage(err);
+          save.disabled = false;
+          save.textContent = 'Rekalkile';
+        }
+      });
+
+      return h('div', { class: 'breakdown-grid' }, rowsBox, form);
+    }
+
+    // ---------------------------------------------------------------------
+    // DEMARAJ
+    // ---------------------------------------------------------------------
+    await loadPeriods();
+    await loadDetail();
+  })();
+  </script>
+</body>
+</html>

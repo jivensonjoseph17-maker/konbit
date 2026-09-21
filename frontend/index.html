@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#030712">
+  <meta name="description" content="KONMBIT — platfòm jesyon anplwaye, prezans, konje, peyòl ak fòmasyon pou antrepriz ayisyen, an kreyòl.">
+  <title>KONMBIT — Platfòm antrepriz ak travay</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #030712;
+      --bg-card: #0b0f19;
+      --primary: #0051cf;
+      --primary-hover: #003db3;
+      --accent-blue: #3b82f6;
+      --accent-gold: #d4af37;
+      --text-main: #f3f4f6;
+      --text-secondary: #9ca3af;
+      --border-color: #1f2937;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    a { color: inherit; }
+
+    :focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; border-radius: 4px; }
+
+    /* ---------------- NAVBAR ---------------- */
+
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 40px;
+      background-color: rgba(3, 7, 18, 0.98);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .logo {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-decoration: none;
+      gap: 3px;
+    }
+
+    .logo-graphic {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(212, 175, 55, 0.1));
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .logo-k-letter {
+      font-size: 1.6rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--accent-gold) 0%, var(--accent-blue) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -1px;
+    }
+
+    .logo-swoosh {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      border-top-color: var(--accent-gold);
+      border-right-color: var(--accent-blue);
+      animation: rotateSwoosh 6s linear infinite;
+    }
+
+    @keyframes rotateSwoosh { to { transform: rotate(360deg); } }
+
+    .logo-text {
+      font-weight: 900;
+      font-size: 0.85rem;
+      letter-spacing: 1.5px;
+      background: linear-gradient(135deg, #ffffff 30%, var(--accent-gold) 70%, var(--accent-blue) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .menu-toggle {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--text-main);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    .nav-links { display: flex; gap: 20px; align-items: center; }
+
+    .nav-item { position: relative; }
+
+    .nav-link {
+      background: none;
+      border: 0;
+      color: var(--text-main);
+      font: inherit;
+      font-weight: 500;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 0;
+      transition: color 0.2s;
+      cursor: pointer;
+    }
+
+    .nav-link:hover { color: var(--accent-gold); }
+    .nav-link i { font-size: 0.6rem; transition: transform 0.3s ease; }
+    .nav-item.open .nav-link i { transform: rotate(180deg); }
+
+    .mega-menu {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      width: 320px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.7);
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+      z-index: 2000;
+    }
+
+    .nav-item.open .mega-menu { display: flex; }
+
+    .mega-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: none;
+      border: 0;
+      color: var(--text-main);
+      font: inherit;
+      font-size: 0.9rem;
+      text-align: left;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .mega-item:hover { background: rgba(212, 175, 55, 0.12); color: var(--accent-gold); }
+    .mega-item i { font-size: 0.8rem; color: var(--text-secondary); }
+
+    .nav-actions { display: flex; gap: 12px; align-items: center; }
+
+    .icon-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-main);
+      font-size: 1.1rem;
+      cursor: pointer;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      text-decoration: none;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .icon-btn:hover { background: rgba(255, 255, 255, 0.08); color: var(--accent-gold); }
+
+    .btn-sales, .btn-outline {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50px;
+      padding: 11px 22px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      text-decoration: none;
+      cursor: pointer;
+      transition: opacity 0.2s, background 0.2s;
+    }
+
+    .btn-sales {
+      background: linear-gradient(135deg, var(--primary), var(--accent-blue));
+      color: #fff;
+      border: none;
+      box-shadow: 0 4px 12px rgba(0, 81, 207, 0.4);
+    }
+
+    .btn-sales:hover { opacity: 0.9; }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text-main);
+      border: 1px solid #374151;
+    }
+
+    .btn-outline:hover { background: rgba(255, 255, 255, 0.05); }
+
+    /* ---------------- HERO ---------------- */
+
+    .main-container {
+      flex: 1;
+      padding: 40px;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .hero-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      align-items: center;
+      margin-bottom: 50px;
+    }
+
+    .hero-title {
+      font-size: clamp(2.1rem, 4.2vw, 3rem);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      margin-bottom: 20px;
+      color: #ffffff;
+      max-width: 16ch;
+    }
+
+    .hero-desc {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      line-height: 1.6;
+      margin-bottom: 28px;
+      max-width: 52ch;
+    }
+
+    .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+    /* ---------------- APÈSI PWODWI ----------------
+       Se vrè tablo de bò a, an miniati. Minitè a se sèl bagay ki bouje
+       sou tout paj la — li montre sa pwodwi a fè san yon mo. */
+
+    .preview {
+      position: relative;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.55);
+      display: grid;
+      gap: 14px;
+    }
+
+    .pv-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      padding: 0 4px 4px;
+    }
+
+    .pv-hello { font-weight: 700; font-size: 1.05rem; }
+    .pv-org { color: var(--text-secondary); font-size: 0.8rem; }
+
+    .pv-clock {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 18px;
+      padding: 20px;
+      border-radius: 14px;
+      border: 1px solid rgba(212, 175, 55, 0.45);
+      background:
+        radial-gradient(ellipse 60% 130% at 0% 50%, rgba(212, 175, 55, 0.13), transparent 70%),
+        #0d1426;
+    }
+
+    .pv-ring {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      border: 3px solid var(--accent-gold);
+      display: grid;
+      place-items: center;
+    }
+
+    .pv-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--accent-gold);
+      animation: pvPulse 2.4s ease-in-out infinite;
+    }
+
+    @keyframes pvPulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(0.8); }
+    }
+
+    .pv-label { color: var(--text-secondary); font-size: 0.78rem; }
+
+    .pv-time {
+      font-size: clamp(1.7rem, 3vw, 2.2rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .pv-btn {
+      border: 1px solid #374151;
+      border-radius: 999px;
+      padding: 9px 16px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .pv-row { display: grid; grid-template-columns: 1.25fr 1fr; gap: 14px; }
+
+    .pv-card {
+      padding: 16px 18px;
+      border-radius: 14px;
+      background: #0d1426;
+      border: 1px solid var(--border-color);
+    }
+
+    .pv-card .pv-label { margin-bottom: 4px; }
+
+    .pv-money {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .pv-pill {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 5px 11px;
+      border-radius: 999px;
+      background: rgba(37, 99, 235, 0.16);
+      color: #a9c1f6;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .pv-big {
+      font-size: 1.7rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.1;
+    }
+
+    .pv-big small { font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; }
+
+    .pv-note {
+      color: #6b7280;
+      font-size: 0.78rem;
+      text-align: center;
+      margin-top: 2px;
+    }
+
+    .visually-hidden {
+      position: absolute !important;
+      width: 1px; height: 1px;
+      overflow: hidden; clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+
+    /* ---------------- MODIL ---------------- */
+
+    .section-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; }
+    .section-sub { color: var(--text-secondary); margin-bottom: 20px; max-width: 60ch; }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 20px;
+    }
+
+    @media (max-width: 1000px) {
+      .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 620px) {
+      .card-grid { grid-template-columns: 1fr; }
+      .pv-row { grid-template-columns: 1fr; }
+      .pv-clock { grid-template-columns: auto 1fr; }
+      .pv-btn { grid-column: 1 / -1; text-align: center; }
+    }
+
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      padding: 24px;
+      border-radius: 12px;
+      text-align: left;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .feature-card:hover { transform: translateY(-4px); border-color: var(--accent-gold); }
+
+    .feature-card i { color: var(--accent-gold); font-size: 1.3rem; margin-bottom: 14px; display: block; }
+    .feature-card h3 { font-size: 1.1rem; margin-bottom: 8px; color: #fff; }
+    .feature-card p { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.55; }
+
+    /* ---------------- APÈL POU AKSYON ---------------- */
+
+    .cta-section {
+      margin-top: 60px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      padding: 40px;
+      border-radius: 16px;
+      display: grid;
+      grid-template-columns: 1.3fr 1fr;
+      gap: 32px;
+      align-items: center;
+    }
+
+    .cta-section h2 { font-size: 1.8rem; margin-bottom: 10px; color: #fff; }
+    .cta-section p { color: var(--text-secondary); line-height: 1.6; }
+    .cta-actions { display: flex; flex-direction: column; gap: 12px; }
+    .cta-actions a { width: 100%; }
+
+    /* ---------------- MODAL ---------------- */
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 7, 18, 0.85);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 3000;
+      padding: 20px;
+    }
+
+    .modal-overlay.active { display: flex; }
+
+    .modal-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      width: 100%;
+      max-width: 560px;
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .modal-header h3 { font-size: 1.2rem; color: #fff; }
+
+    .close-btn {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 1.5rem;
+      cursor: pointer;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+    }
+
+    .close-btn:hover { background: rgba(255, 255, 255, 0.06); color: #fff; }
+
+    .modal-body {
+      background: #000;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 28px 20px;
+      text-align: center;
+    }
+
+    .modal-body i { font-size: 2.8rem; color: var(--accent-gold); margin-bottom: 12px; display: block; }
+    .modal-body p { color: var(--text-secondary); font-size: 0.92rem; line-height: 1.55; max-width: 440px; margin: 0 auto; }
+    .modal-body .btn-sales { margin-top: 20px; }
+
+    /* ---------------- PYE PAJ ---------------- */
+
+    .site-footer {
+      text-align: center;
+      padding: 32px 20px;
+      border-top: 1px solid var(--border-color);
+      color: #6b7280;
+      font-size: 0.85rem;
+      margin-top: 60px;
+    }
+
+    /* ---------------- MOBIL ---------------- */
+
+    @media (max-width: 900px) {
+      .navbar { padding: 12px 20px; }
+      .main-container { padding: 28px 20px; }
+      .hero-section, .cta-section { grid-template-columns: 1fr; }
+      .menu-toggle { display: block; }
+      .nav-links {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        background: var(--bg-card);
+        flex-direction: column;
+        align-items: stretch;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border-color);
+        display: none;
+      }
+      .nav-links.active { display: flex; }
+      .mega-menu { position: static; width: 100%; box-shadow: none; }
+      .btn-sales.nav-cta { display: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .logo-swoosh { animation: none; }
+      .pv-dot { animation: none; }
+      .feature-card { transition: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar" aria-label="Meni prensipal">
+    <a href="index.html" class="logo" aria-label="KONMBIT — akèy">
+      <div class="logo-graphic" aria-hidden="true">
+        <div class="logo-swoosh"></div>
+        <span class="logo-k-letter">K</span>
+      </div>
+      <span class="logo-text">KONMBIT</span>
+    </a>
+
+    <button class="menu-toggle" id="menu-toggle" aria-label="Louvri meni an" aria-expanded="false" aria-controls="nav-links">
+      <i class="fas fa-bars" aria-hidden="true"></i>
+    </button>
+
+    <div class="nav-links" id="nav-links">
+      <div class="nav-item">
+        <button class="nav-link" type="button" aria-expanded="false">Pwodwi <i class="fas fa-chevron-down" aria-hidden="true"></i></button>
+        <div class="mega-menu">
+          <button class="mega-item" type="button" data-preview="hr"><span>Dosye anplwaye ak òganigram</span> <i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+          <button class="mega-item" type="button" data-preview="time"><span>Klòk in / klòk out</span> <i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+          <button class="mega-item" type="button" data-preview="leave"><span>Konje ak apwobasyon</span> <i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+          <button class="mega-item" type="button" data-preview="payroll"><span>Peyòl ak fich peye</span> <i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+          <button class="mega-item" type="button" data-preview="training"><span>Fòmasyon pa videyo</span> <i class="fas fa-play-circle" aria-hidden="true"></i></button>
+          <button class="mega-item" type="button" data-preview="hiring"><span>Rekritman</span> <i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+        </div>
+      </div>
+
+      <div class="nav-item">
+        <button class="nav-link" type="button" aria-expanded="false">Endistri <i class="fas fa-chevron-down" aria-hidden="true"></i></button>
+        <div class="mega-menu">
+          <button class="mega-item" type="button" data-preview="retail"><span>Komès ak boutik</span> <i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+          <button class="mega-item" type="button" data-preview="health"><span>Sante</span> <i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+          <button class="mega-item" type="button" data-preview="hospitality"><span>Otèl, restoran ak faktori</span> <i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+          <button class="mega-item" type="button" data-preview="services"><span>Sèvis pwofesyonèl</span> <i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+          <button class="mega-item" type="button" data-preview="education"><span>Edikasyon</span> <i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+        </div>
+      </div>
+
+      <div class="nav-item">
+        <button class="nav-link" type="button" aria-expanded="false">Konpayi <i class="fas fa-chevron-down" aria-hidden="true"></i></button>
+        <div class="mega-menu">
+          <button class="mega-item" type="button" data-preview="about"><span>Kiyès nou ye</span> <i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+          <button class="mega-item" type="button" data-preview="security"><span>Sekirite done yo</span> <i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-actions">
+      <a class="icon-btn" id="account-link" href="login.html" title="Konekte" aria-label="Konekte">
+        <i class="fas fa-user" aria-hidden="true"></i>
+      </a>
+      <a href="login.html#enskri" class="btn-sales nav-cta">Enskri biznis ou</a>
+    </div>
+  </nav>
+
+  <main class="main-container">
+    <section class="hero-section">
+      <div>
+        <h1 class="hero-title">Peyòl, konje ak prezans, an kreyòl pou biznis ayisyen</h1>
+        <p class="hero-desc">
+          ONA, OFATMA ak IRI kalkile pou ou. Anplwaye yo antre ak soti sou
+          telefòn yo, mande konje, epi wè si y ap resevwa chèk, depo oswa MonCash.
+        </p>
+        <div class="hero-actions">
+          <a href="login.html#enskri" class="btn-sales">Enskri biznis ou</a>
+          <a href="login.html" class="btn-outline" id="hero-login">Konekte</a>
+        </div>
+      </div>
+
+      <figure class="preview">
+        <figcaption class="visually-hidden">
+          Apèsi tablo de bò yon anplwaye: minitè prezans, dènye fich peye
+          peye pa chèk, ak jou konje ki rete.
+        </figcaption>
+
+        <div aria-hidden="true">
+          <div class="pv-top">
+            <span class="pv-hello">Bonjou, Mari</span>
+            <span class="pv-org">Boulanjri Soley</span>
+          </div>
+
+          <div class="pv-clock">
+            <span class="pv-ring"><span class="pv-dot"></span></span>
+            <div>
+              <div class="pv-label">W ap travay depi</div>
+              <div class="pv-time" id="pv-time">03:42:18</div>
+            </div>
+            <span class="pv-btn">Klòk out</span>
+          </div>
+
+          <div class="pv-row" style="margin-top: 14px;">
+            <div class="pv-card">
+              <div class="pv-label">Dènye peman</div>
+              <div class="pv-money">39 125,00 HTG</div>
+              <span class="pv-pill">Chèk nimewo 1001</span>
+            </div>
+            <div class="pv-card">
+              <div class="pv-label">Konje</div>
+              <div class="pv-big">10 <small>/ 15</small></div>
+              <div class="pv-label" style="margin-top: 6px;">jou vakans ki rete</div>
+            </div>
+          </div>
+        </div>
+
+        <p class="pv-note">Sa se tablo de bò chak anplwaye jwenn.</p>
+      </figure>
+    </section>
+
+    <section aria-labelledby="modules-title">
+      <h2 class="section-title" id="modules-title">Sa ekip ou ap jwenn</h2>
+      <p class="section-sub">Chak modil mache poukont li, men yo pataje menm dosye anplwaye a — pa gen anyen pou retape.</p>
+
+      <div class="card-grid">
+        <button class="feature-card" type="button" data-preview="time">
+          <i class="fas fa-clock" aria-hidden="true"></i>
+          <h3>Klòk in / klòk out</h3>
+          <p>Anplwaye yo antre ak soti sou telefòn yo. Manadjè a wè kiyès ki la an tan reyèl.</p>
+        </button>
+        <button class="feature-card" type="button" data-preview="payroll">
+          <i class="fas fa-file-invoice-dollar" aria-hidden="true"></i>
+          <h3>Peyòl ak fich peye</h3>
+          <p>ONA, OFATMA, IRI kalkile pou ou. Chak moun wè si l ap resevwa chèk, depo oswa MonCash.</p>
+        </button>
+        <button class="feature-card" type="button" data-preview="leave">
+          <i class="fas fa-umbrella-beach" aria-hidden="true"></i>
+          <h3>Konje</h3>
+          <p>Demann an de klik, apwobasyon pa manadjè a, balans ki ajiste pou kont li.</p>
+        </button>
+        <button class="feature-card" type="button" data-preview="hr">
+          <i class="fas fa-sitemap" aria-hidden="true"></i>
+          <h3>Dosye ak òganigram</h3>
+          <p>Chak anplwaye konnen ki moun ki sou tèt li. HR jwenn tout dosye yo nan yon sèl kote.</p>
+        </button>
+        <button class="feature-card" type="button" data-preview="training">
+          <i class="fas fa-play-circle" aria-hidden="true"></i>
+          <h3>Fòmasyon pa videyo</h3>
+          <p>Mete videyo fòmasyon, asiyen yo, epi wè kiyès ki fini ak kiyès ki an reta.</p>
+        </button>
+        <button class="feature-card" type="button" data-preview="hiring">
+          <i class="fas fa-user-plus" aria-hidden="true"></i>
+          <h3>Rekritman</h3>
+          <p>Pibliye travay, resevwa CV, planifye antrevi. Lè w anboche, dosye anplwaye a kreye pou kont li.</p>
+        </button>
+      </div>
+    </section>
+
+    <section class="cta-section" aria-labelledby="cta-title">
+      <div>
+        <h2 id="cta-title">Mete ekip ou sou KONMBIT jodi a</h2>
+        <p>
+          Kreye espas biznis ou an kèk minit. W ap vin premye administratè a,
+          epi w ap ka ajoute anplwaye ou yo apre sa.
+        </p>
+      </div>
+      <div class="cta-actions">
+        <a href="login.html#enskri" class="btn-sales">Enskri biznis ou</a>
+        <a href="login.html" class="btn-outline">Mwen deja gen yon kont</a>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal-overlay" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="modal-title"></h3>
+        <button class="close-btn" type="button" id="modal-close" aria-label="Fèmen">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <p>&copy; 2026 KONMBIT. Tout dwa rezève. Fèt ak lanmou pou kominote a.</p>
+  </footer>
+
+  <script>
+  (function () {
+    'use strict';
+
+    // Si moun nan deja konekte, bouton yo mennen l dirèk nan tablo de bò a.
+    let loggedIn = false;
+    try { loggedIn = Boolean(localStorage.getItem('konbit.access_token')); } catch { /* prive */ }
+    if (loggedIn) {
+      const account = document.getElementById('account-link');
+      account.href = 'dashboard.html';
+      account.title = 'Tablo de bò mwen';
+      const heroLogin = document.getElementById('hero-login');
+      heroLogin.href = 'dashboard.html';
+      heroLogin.textContent = 'Ale nan tablo de bò mwen';
+    }
+
+    // Kreye eleman san innerHTML — tèks toujou antre kòm textContent.
+    function h(tag, attrs, ...children) {
+      const el = document.createElement(tag);
+      for (const [k, v] of Object.entries(attrs || {})) {
+        if (v === null || v === undefined || v === false) continue;
+        if (k === 'class') el.className = v;
+        else el.setAttribute(k, v);
+      }
+      for (const c of children.flat()) {
+        if (c === null || c === undefined) continue;
+        el.append(c instanceof Node ? c : document.createTextNode(String(c)));
+      }
+      return el;
+    }
+
+    // ---------------- MENI ----------------
+    const navItems = document.querySelectorAll('.nav-item');
+    const navLinks = document.getElementById('nav-links');
+    const toggle = document.getElementById('menu-toggle');
+
+    function closeMenus(except) {
+      navItems.forEach((item) => {
+        if (item === except) return;
+        item.classList.remove('open');
+        item.querySelector('.nav-link').setAttribute('aria-expanded', 'false');
+      });
+    }
+
+    navItems.forEach((item) => {
+      const trigger = item.querySelector('.nav-link');
+      trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeMenus(item);
+        const open = item.classList.toggle('open');
+        trigger.setAttribute('aria-expanded', String(open));
+      });
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.nav-item')) closeMenus();
+    });
+
+    toggle.addEventListener('click', () => {
+      const open = navLinks.classList.toggle('active');
+      toggle.setAttribute('aria-expanded', String(open));
+    });
+
+    // ---------------- MINITÈ APÈSI A ----------------
+    // Li konte menm jan ak vrè tablo de bò a. Moun ki mande mwens
+    // mouvman wè yon chif fiks.
+    const pvTime = document.getElementById('pv-time');
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let pvSeconds = 3 * 3600 + 42 * 60 + 18;
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+    function renderPv() {
+      const h = Math.floor(pvSeconds / 3600);
+      const m = Math.floor((pvSeconds % 3600) / 60);
+      pvTime.textContent = `${pad(h)}:${pad(m)}:${pad(pvSeconds % 60)}`;
+    }
+
+    renderPv();
+    if (!reducedMotion) {
+      setInterval(() => { pvSeconds += 1; renderPv(); }, 1000);
+    }
+
+    // ---------------- MODAL ----------------
+    const previews = {
+      hr: ['fas fa-sitemap', 'Dosye anplwaye ak òganigram',
+        'Chak anplwaye gen yon dosye konplè: kontak, pozisyon, salè, dokiman. Òganigram lan montre chak moun ki sou tèt li, jouk anwo nèt.'],
+      time: ['fas fa-clock', 'Klòk in / klòk out',
+        'Anplwaye a peze yon bouton sou telefòn li lè l rive ak lè l ale. Sistèm lan kalkile èdtan travay ak èdtan siplemantè, epi manadjè a wè kiyès ki la kounye a.'],
+      leave: ['fas fa-umbrella-beach', 'Konje ak apwobasyon',
+        'Anplwaye a chwazi dat yo, manadjè li resevwa demann lan, epi balans lan ajiste otomatikman lè l apwouve. Wikenn pa konte.'],
+      payroll: ['fas fa-file-invoice-dollar', 'Peyòl ak fich peye',
+        'ONA, OFATMA, IRI, CFGDCT ak FDU/CAS kalkile pou chak moun. Anplwaye a wè fich li ak kijan l ap resevwa lajan an: chèk, depo dirèk, MonCash oswa NatCash.'],
+      training: ['fas fa-play-circle', 'Fòmasyon pa videyo',
+        'Mete videyo fòmasyon, asiyen yo bay anplwaye ak yon delè. Chak moun ka kanpe epi kontinye kote l te ye a. HR wè kiyès ki fini.'],
+      hiring: ['fas fa-user-plus', 'Rekritman',
+        'Pibliye òf travay sou yon paj karyè piblik, resevwa aplikasyon, planifye antrevi ak voye pwopozisyon. Lè kandida a aksepte, dosye anplwaye l kreye pou kont li.'],
+      retail: ['fas fa-store', 'Komès ak boutik',
+        'Swiv prezans kesye yo ak vandè yo nan plizyè boutik, jere orè ak konje san papye.'],
+      health: ['fas fa-heart-pulse', 'Sante',
+        'Klinik ak lopital jere ekip k ap travay jou kou nwit, ak fòmasyon obligatwa pou chak moun.'],
+      hospitality: ['fas fa-utensils', 'Otèl, restoran ak faktori',
+        'Anpil moun, anpil orè: klòk in sou telefòn ak peyòl ki kalkile èdtan siplemantè otomatikman.'],
+      services: ['fas fa-briefcase', 'Sèvis pwofesyonèl',
+        'Kabinè ak biwo swiv evalyasyon pèfòmans, fidbak ak fòmasyon kontinyèl pou ekip yo.'],
+      education: ['fas fa-graduation-cap', 'Edikasyon',
+        'Lekòl ak inivèsite jere pwofesè ak pèsonèl administratif, konje ak peyòl, nan yon sèl kote.'],
+      about: ['fas fa-building', 'Kiyès nou ye',
+        'KONMBIT se yon platfòm resous imèn ki fèt an Ayiti, an kreyòl, pou antrepriz ayisyen — soti nan ti boutik rive nan gwo konpayi.'],
+      security: ['fas fa-shield-halved', 'Sekirite done yo',
+        'Chak biznis separe nèt de lòt yo. Enfòmasyon sansib tankou NIF ak nimewo kont labank pa parèt nan lis yo, epi chak fwa yon moun gade yo, sa ekri nan yon jounal.'],
+    };
+
+    const modal = document.getElementById('modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalBody = document.getElementById('modal-body');
+    const modalClose = document.getElementById('modal-close');
+    let lastFocus = null;
+
+    function openPreview(key) {
+      const item = previews[key];
+      if (!item) return;
+      const [icon, title, text] = item;
+
+      closeMenus();
+      navLinks.classList.remove('active');
+      lastFocus = document.activeElement;
+
+      modalTitle.textContent = title;
+      modalBody.replaceChildren(
+        h('i', { class: icon, 'aria-hidden': 'true' }),
+        h('p', {}, text),
+        h('a', { class: 'btn-sales', href: 'login.html#enskri' }, 'Enskri biznis ou'),
+      );
+      modal.classList.add('active');
+      modalClose.focus();
+    }
+
+    function closeModal() {
+      modal.classList.remove('active');
+      if (lastFocus) lastFocus.focus();
+    }
+
+    document.querySelectorAll('[data-preview]').forEach((el) =>
+      el.addEventListener('click', () => openPreview(el.dataset.preview))
+    );
+
+    modalClose.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('active')) closeModal();
+    });
+  })();
+  </script>
+</body>
+</html>

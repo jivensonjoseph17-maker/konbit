@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Konekte — KONMBIT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div class="auth-page">
+
+    <aside class="auth-aside">
+      <a class="brand" href="index.html">
+        <span class="brand-mark" aria-hidden="true">K</span>
+        <span class="brand-name">KONMBIT</span>
+      </a>
+
+      <div>
+        <h1>Tout ekip ou nan yon sèl kote.</h1>
+        <p class="lede">
+          Anplwaye yo antre ak soti, mande konje, wè fich peye yo epi swiv
+          fòmasyon yo — san papye, san fil datant.
+        </p>
+        <ul class="auth-facts">
+          <li><span><strong>Fich peye klè</strong>Chak moun wè si l ap resevwa chèk, depo oswa MonCash.</span></li>
+          <li><span><strong>Konje san papye</strong>Manadjè a apwouve, balans lan ajiste pou kont li.</span></li>
+          <li><span><strong>Òganigram vivan</strong>Chak anplwaye konnen ki moun ki sou tèt li.</span></li>
+        </ul>
+      </div>
+
+      <p class="auth-footnote">Fèt an Ayiti, an kreyòl.</p>
+    </aside>
+
+    <main class="auth-main">
+      <div class="auth-card">
+
+        <div class="tabs" role="tablist" aria-label="Chwazi">
+          <button class="tab" role="tab" id="tab-login" aria-selected="true" aria-controls="panel-login">Konekte</button>
+          <button class="tab" role="tab" id="tab-signup" aria-selected="false" aria-controls="panel-signup">Enskri biznis ou</button>
+        </div>
+
+        <!-- KONEKSYON -->
+        <section id="panel-login" role="tabpanel" aria-labelledby="tab-login">
+          <h2>Bon retou</h2>
+          <p class="sub">Konekte ak imel ou te resevwa nan men responsab ou.</p>
+
+          <form class="auth-form" id="login-form" novalidate>
+            <div class="alert alert-error" id="login-error" role="alert"></div>
+
+            <div class="field">
+              <label for="login-email">Imel</label>
+              <input class="input" id="login-email" name="email" type="email"
+                     autocomplete="username" required>
+            </div>
+
+            <div class="field">
+              <label for="login-password">Modpas</label>
+              <input class="input" id="login-password" name="password" type="password"
+                     autocomplete="current-password" required>
+            </div>
+
+            <button class="btn btn-primary" type="submit" id="login-submit">Konekte</button>
+          </form>
+
+          <p class="auth-switch">
+            Premye fwa w sou KONMBIT?
+            <button class="link-btn" type="button" data-go="signup">Enskri biznis ou</button>
+          </p>
+        </section>
+
+        <!-- ENSKRIPSYON -->
+        <section id="panel-signup" role="tabpanel" aria-labelledby="tab-signup" hidden>
+          <h2>Kreye espas biznis ou</h2>
+          <p class="sub">W ap vin premye administratè a. Apre sa w ap ka ajoute ekip ou.</p>
+
+          <form class="auth-form" id="signup-form" novalidate>
+            <div class="alert alert-error" id="signup-error" role="alert"></div>
+
+            <div class="field">
+              <label for="org-name">Non biznis la</label>
+              <input class="input" id="org-name" type="text" required maxlength="200"
+                     autocomplete="organization">
+            </div>
+
+            <div class="field">
+              <label for="org-slug">Adrès paj karyè w</label>
+              <input class="input" id="org-slug" type="text" required maxlength="100"
+                     pattern="[a-z0-9-]+" aria-describedby="slug-hint">
+              <span class="hint" id="slug-hint">Lèt piti, chif ak tirè sèlman.</span>
+            </div>
+
+            <div class="form-row">
+              <div class="field">
+                <label for="org-city">Vil</label>
+                <input class="input" id="org-city" type="text" autocomplete="address-level2">
+              </div>
+              <div class="field">
+                <label for="org-currency">Lajan</label>
+                <select class="select" id="org-currency">
+                  <option value="HTG" selected>Goud (HTG)</option>
+                  <option value="USD">Dola (USD)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="admin-name">Non konplè w</label>
+              <input class="input" id="admin-name" type="text" required autocomplete="name">
+            </div>
+
+            <div class="field">
+              <label for="admin-email">Imel ou</label>
+              <input class="input" id="admin-email" type="email" required autocomplete="email">
+            </div>
+
+            <div class="field">
+              <label for="admin-password">Modpas</label>
+              <input class="input" id="admin-password" type="password" required
+                     minlength="10" autocomplete="new-password" aria-describedby="pw-hint">
+              <span class="hint" id="pw-hint">Omwen 10 karaktè, ak lèt ak chif.</span>
+            </div>
+
+            <button class="btn btn-primary" type="submit" id="signup-submit">Kreye espas la</button>
+          </form>
+
+          <p class="auth-switch">
+            Ou deja gen yon kont?
+            <button class="link-btn" type="button" data-go="login">Konekte</button>
+          </p>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="api.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const { auth, ApiError } = Konbit;
+
+    // Si moun nan deja konekte, voye l dirèk nan tablo de bò a.
+    if (auth.isLoggedIn()) {
+      location.replace(safeNext());
+      return;
+    }
+
+    /**
+     * Kote pou voye moun nan apre koneksyon. Nou aksepte sèlman yon non
+     * fichye .html lokal — sinon yon atakè ta ka voye yon lyen
+     * login.html?next=https://sit-fo.com epi vòlè moun apre yo konekte.
+     */
+    function safeNext() {
+      const next = new URLSearchParams(location.search).get('next') || '';
+      return /^[a-z0-9_-]+\.html$/i.test(next) && next !== 'login.html'
+        ? next
+        : 'dashboard.html';
+    }
+
+    // --- Onglè ---
+    const tabs = {
+      login: [document.getElementById('tab-login'), document.getElementById('panel-login')],
+      signup: [document.getElementById('tab-signup'), document.getElementById('panel-signup')],
+    };
+
+    function show(which) {
+      for (const [name, [tab, panel]] of Object.entries(tabs)) {
+        const active = name === which;
+        tab.setAttribute('aria-selected', String(active));
+        panel.hidden = !active;
+      }
+      const first = tabs[which][1].querySelector('input');
+      if (first) first.focus();
+    }
+
+    tabs.login[0].addEventListener('click', () => show('login'));
+    tabs.signup[0].addEventListener('click', () => show('signup'));
+    document.querySelectorAll('[data-go]').forEach((b) =>
+      b.addEventListener('click', () => show(b.dataset.go))
+    );
+
+    if (location.hash === '#enskri') show('signup');
+
+    // --- Zouti ---
+    function setBusy(button, busy, label) {
+      button.disabled = busy;
+      button.textContent = busy ? 'Yon ti moman…' : label;
+    }
+
+    function showError(box, err) {
+      box.textContent = err instanceof ApiError
+        ? err.message
+        : 'Yon bagay pa mache. Eseye ankò.';
+    }
+
+    // --- Koneksyon ---
+    const loginForm = document.getElementById('login-form');
+    const loginError = document.getElementById('login-error');
+    const loginBtn = document.getElementById('login-submit');
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      loginError.textContent = '';
+
+      const email = loginForm.email.value.trim();
+      const password = loginForm.password.value;
+      if (!email || !password) {
+        loginError.textContent = 'Mete imel ou ak modpas ou.';
+        return;
+      }
+
+      setBusy(loginBtn, true, 'Konekte');
+      try {
+        await auth.login(email, password);
+        location.replace(safeNext());
+      } catch (err) {
+        showError(loginError, err);
+        loginForm.password.value = '';
+        loginForm.password.focus();
+        setBusy(loginBtn, false, 'Konekte');
+      }
+    });
+
+    // --- Enskripsyon ---
+    const signupForm = document.getElementById('signup-form');
+    const signupError = document.getElementById('signup-error');
+    const signupBtn = document.getElementById('signup-submit');
+    const nameInput = document.getElementById('org-name');
+    const slugInput = document.getElementById('org-slug');
+    let slugTouched = false;
+
+    function slugify(text) {
+      return text
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')   // retire aksan: "Pòtoprens" → "potoprens"
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 100);
+    }
+
+    nameInput.addEventListener('input', () => {
+      if (!slugTouched) slugInput.value = slugify(nameInput.value);
+    });
+
+    slugInput.addEventListener('input', () => {
+      slugTouched = true;
+      slugInput.value = slugInput.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+    });
+
+    signupForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      signupError.textContent = '';
+
+      const password = document.getElementById('admin-password').value;
+      const payload = {
+        organization: {
+          name: nameInput.value.trim(),
+          slug: slugInput.value.trim(),
+          city: document.getElementById('org-city').value.trim() || null,
+          country: 'HT',
+          default_currency: document.getElementById('org-currency').value,
+        },
+        admin_full_name: document.getElementById('admin-name').value.trim(),
+        admin_email: document.getElementById('admin-email').value.trim(),
+        admin_password: password,
+      };
+
+      // Verifikasyon rapid anvan nou deranje sèvè a
+      if (!payload.organization.name || !payload.organization.slug
+          || !payload.admin_full_name || !payload.admin_email) {
+        signupError.textContent = 'Ranpli tout chan ki obligatwa yo.';
+        return;
+      }
+      if (password.length < 10 || !/\d/.test(password) || !/[a-zA-Z]/.test(password)) {
+        signupError.textContent = 'Modpas la dwe gen omwen 10 karaktè, ak lèt ak chif.';
+        return;
+      }
+
+      setBusy(signupBtn, true, 'Kreye espas la');
+      try {
+        await auth.signup(payload);
+        location.replace('dashboard.html');
+      } catch (err) {
+        showError(signupError, err);
+        setBusy(signupBtn, false, 'Kreye espas la');
+      }
+    });
+  })();
+  </script>
+</body>
+</html>

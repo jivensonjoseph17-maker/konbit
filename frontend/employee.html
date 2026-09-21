@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dosye anplwaye — KONMBIT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div class="app">
+    <aside id="sidebar"></aside>
+
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+
+      <main class="page">
+        <a class="back-link" href="employees.html">Tout anplwaye yo</a>
+
+        <div id="content"><p class="loading">Ap chaje…</p></div>
+      </main>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script src="shell.js"></script>
+  <script>
+  (async function () {
+    'use strict';
+    const { api, fmt, h, ApiError, shell } = Konbit;
+
+    const identity = await shell.mount('employees', shell.ADMIN);
+    if (!identity) return;
+
+    const content = document.getElementById('content');
+    const id = Number(new URLSearchParams(location.search).get('id'));
+
+    if (!Number.isInteger(id) || id <= 0) {
+      content.replaceChildren(h('div', { class: 'alert alert-error' }, 'Pa gen anplwaye chwazi. Retounen nan lis la.'));
+      return;
+    }
+
+    let emp = null;          // dosye a jan li ye nan baz done a
+    let others = [];         // lòt anplwaye yo, pou lis manadjè a
+
+    // ---------------------------------------------------------------------
+    // ZOUTI
+    // ---------------------------------------------------------------------
+
+    function field(label, input, hint) {
+      const idAttr = input.id;
+      return h('div', { class: 'field' },
+        h('label', { for: idAttr }, label),
+        input,
+        hint ? h('span', { class: 'hint' }, hint) : null,
+      );
+    }
+
+    function input(id, value, attrs = {}) {
+      const el = h('input', { class: 'input', id, autocomplete: 'off', ...attrs });
+      el.value = value ?? '';
+      return el;
+    }
+
+    function select(id, options, value) {
+      const el = h('select', { class: 'select', id },
+        ...options.map(([v, label]) => h('option', { value: v }, label)));
+      el.value = value ?? '';
+      return el;
+    }
+
+    function centsToInput(cents) {
+      if (cents === null || cents === undefined) return '';
+      return (cents / 100).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+    }
+
+    function errorMessage(err) {
+      let msg = err instanceof ApiError ? err.message : 'Yon bagay pa mache.';
+      if (err && err.fields && err.fields.length) {
+        msg += ' ' + err.fields.map((f) => `${f.field}: ${f.message}`).join('; ');
+      }
+      return msg;
+    }
+
+    // ---------------------------------------------------------------------
+    // CHAJE
+    // ---------------------------------------------------------------------
+
+    async function load() {
+      try {
+        const [e, list] = await Promise.all([
+          api.get(`/api/employees/${id}`),
+          api.get('/api/employees?size=100'),
+        ]);
+        emp = e;
+        others = list.items.filter((x) => x.id !== id);
+        render();
+      } catch (err) {
+        content.replaceChildren(h('div', { class: 'alert alert-error' }, errorMessage(err)));
+      }
+    }
+
+    // ---------------------------------------------------------------------
+    // RANN
+    // ---------------------------------------------------------------------
+
+    function render() {
+      const name = `${emp.first_name} ${emp.last_name}`;
+      document.title = `${name} — KONMBIT`;
+      const terminated = emp.status === 'terminated';
+
+      // --- Tèt ---
+      const secretBox = h('section', { class: 'secret', hidden: true, 'aria-live': 'polite' });
+      const actionMsg = h('p', { class: 'field-error', role: 'status' });
+
+      const resetBtn = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, 'Nouvo modpas');
+      resetBtn.addEventListener('click', async () => {
+        if (!confirm(`Jenere yon nouvo modpas pou ${name}? Ansyen an p ap mache ankò.`)) return;
+        resetBtn.disabled = true;
+        actionMsg.textContent = '';
+        try {
+          const r = await api.post(`/api/employees/${id}/reset-password`);
+          showSecret(secretBox, `Nouvo modpas pou ${name}`, r.temporary_password, r.login_email);
+        } catch (err) {
+          actionMsg.textContent = errorMessage(err);
+        } finally {
+          resetBtn.disabled = false;
+        }
+      });
+
+      const statusBtn = terminated
+        ? h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, 'Remete l nan biznis la')
+        : h('button', { class: 'btn btn-danger btn-sm', type: 'button' }, 'Mete deyò');
+
+      const terminatePanel = buildTerminatePanel(name);
+
+      statusBtn.addEventListener('click', async () => {
+        actionMsg.textContent = '';
+        if (!terminated) {
+          terminatePanel.hidden = false;
+          terminatePanel.querySelector('input[type="date"]').focus();
+          return;
+        }
+        if (!confirm(`Remete ${name} kòm anplwaye aktif? Kont koneksyon li ap reaktive tou.`)) return;
+        statusBtn.disabled = true;
+        try {
+          emp = await api.post(`/api/employees/${id}/reactivate`);
+          render();
+        } catch (err) {
+          actionMsg.textContent = errorMessage(err);
+          statusBtn.disabled = false;
+        }
+      });
+
+      const head = h('div', { class: 'emp-head' },
+        h('span', { class: 'avatar avatar-lg', 'aria-hidden': 'true' }, shell.initials(name)),
+        h('div', { class: 'emp-head-text' },
+          h('h1', {}, name),
+          h('p', { class: 'emp-meta' },
+            h('span', {}, emp.employee_number),
+            h('span', { class: `badge badge-${emp.status}` }, fmt.employmentStatus(emp.status)),
+            h('span', {}, `Depi ${fmt.date(emp.hire_date)}`),
+          ),
+          terminated && emp.termination_date
+            ? h('p', { class: 'emp-meta' }, `Soti ${fmt.date(emp.termination_date)}`)
+            : null,
+        ),
+        h('div', { class: 'emp-actions' },
+          emp.user_id ? resetBtn : null,
+          statusBtn,
+        ),
+      );
+
+      const missingAccount = emp.preferred_payment_method === 'direct_deposit' && !emp.has_bank_account;
+      const missingMobile = ['moncash', 'natcash'].includes(emp.preferred_payment_method) && !emp.mobile_money_number;
+
+      content.replaceChildren(
+        head,
+        missingAccount || missingMobile
+          ? h('div', { class: 'alert alert-error', style: 'margin-bottom: 20px;' },
+              missingAccount
+                ? `${emp.first_name} chwazi depo dirèk men li pa gen nimewo kont. Fich peye li yo ap fèt pa chèk jouk ou ajoute l anba a.`
+                : `${emp.first_name} chwazi ${emp.preferred_payment_method === 'moncash' ? 'MonCash' : 'NatCash'} men li pa gen nimewo telefòn. Fich peye li yo ap fèt pa chèk jouk ou ajoute l anba a.`)
+          : null,
+        actionMsg,
+        secretBox,
+        terminatePanel,
+        h('div', { class: 'grid' },
+          h('div', { class: 'col' }, buildForm()),
+          h('div', { class: 'col' }, hierarchyPanel(), payslipsPanel(), leavePanel()),
+        ),
+      );
+    }
+
+    function showSecret(box, title, password, email) {
+      const code = h('code', {}, password);
+      const copy = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, 'Kopye');
+      copy.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(password); copy.textContent = 'Kopye ✓'; }
+        catch { copy.textContent = 'Ctrl+C pou kopye'; }
+      });
+      box.replaceChildren(
+        h('h2', {}, title),
+        h('p', {}, 'Modpas sa a parèt yon sèl fwa. Voye l bay moun nan kounye a epi mande l chanje l lè l konekte.'),
+        h('div', { class: 'secret-row' }, code, copy, email ? h('span', { class: 'email' }, `Imel: ${email}`) : null),
+      );
+      box.hidden = false;
+    }
+
+    // ---------------------------------------------------------------------
+    // METE DEYÒ
+    // ---------------------------------------------------------------------
+
+    function buildTerminatePanel(name) {
+      const today = new Date().toISOString().slice(0, 10);
+      const date = input('t-date', today, { type: 'date' });
+      const reason = h('textarea', { class: 'textarea', id: 't-reason', maxlength: '1000' });
+      const deactivate = h('input', { type: 'checkbox', id: 't-login', checked: true });
+      const msg = h('p', { class: 'field-error', role: 'status' });
+      const confirmBtn = h('button', { class: 'btn btn-danger', type: 'submit' }, `Mete ${name} deyò`);
+      const cancel = h('button', { class: 'btn btn-ghost', type: 'button' }, 'Anile');
+
+      const form = h('form', { class: 'panel form-panel danger-panel', hidden: true, novalidate: true },
+        h('div', { class: 'panel-head' }, h('h2', {}, 'Mete anplwaye a deyò')),
+        h('p', { class: 'empty', style: 'margin-bottom: 16px;' },
+          'Dosye a pa efase — li se yon dokiman legal. Moun ki te anba l yo ap pase anba manadjè li a.'),
+        h('div', { class: 'form-grid' },
+          field('Dènye jou travay', date),
+          h('div', { class: 'field', style: 'align-self: end;' },
+            h('label', { class: 'check' }, deactivate, 'Bloke kont koneksyon li'),
+          ),
+          h('div', { class: 'field span-2' },
+            h('label', { for: 't-reason' }, 'Rezon'),
+            reason,
+            h('span', { class: 'hint' }, 'Sa ale nan jounal odit la. Sèlman HR ak administratè ap wè l.'),
+          ),
+        ),
+        msg,
+        h('div', { class: 'form-actions' }, confirmBtn, cancel),
+      );
+
+      cancel.addEventListener('click', () => { form.hidden = true; msg.textContent = ''; });
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        msg.textContent = '';
+        if (!date.value) { msg.textContent = 'Chwazi dènye jou travay la.'; return; }
+        if (reason.value.trim().length < 3) { msg.textContent = 'Ekri yon rezon (omwen 3 karaktè).'; return; }
+
+        confirmBtn.disabled = true;
+        try {
+          emp = await api.post(`/api/employees/${id}/terminate`, {
+            termination_date: date.value,
+            reason: reason.value.trim(),
+            deactivate_login: deactivate.checked,
+          });
+          render();
+        } catch (err) {
+          msg.textContent = errorMessage(err);
+          confirmBtn.disabled = false;
+        }
+      });
+
+      return form;
+    }
+
+    // ---------------------------------------------------------------------
+    // FÒM MODIFIKASYON
+    // ---------------------------------------------------------------------
+
+    function buildForm() {
+      const hourly = Boolean(emp.hourly_rate) && !emp.base_salary;
+
+      const f = {
+        first: input('e-first', emp.first_name, { maxlength: '100' }),
+        last: input('e-last', emp.last_name, { maxlength: '100' }),
+        email: input('e-email', emp.personal_email, { type: 'email' }),
+        phone: input('e-phone', emp.phone, { type: 'tel' }),
+        address: input('e-address', emp.address),
+        city: input('e-city', emp.city),
+        ecName: input('e-ec-name', emp.emergency_contact_name),
+        ecPhone: input('e-ec-phone', emp.emergency_contact_phone, { type: 'tel' }),
+
+        manager: select('e-manager',
+          [['', 'Pa gen manadjè'], ...others.map((o) =>
+            [String(o.id), `${o.first_name} ${o.last_name} (${o.employee_number})`])],
+          emp.manager_id ? String(emp.manager_id) : ''),
+        type: select('e-type', [
+          ['full_time', 'Tan plen'], ['part_time', 'Tan pasyèl'], ['contract', 'Kontra'],
+          ['intern', 'Estaj'], ['seasonal', 'Sezon'],
+        ], emp.employment_type),
+
+        paytype: select('e-paytype', [['monthly', 'Salè pa mwa'], ['hourly', 'Pa lè']],
+          hourly ? 'hourly' : 'monthly'),
+        amount: input('e-amount', centsToInput(hourly ? emp.hourly_rate : emp.base_salary),
+          { inputmode: 'decimal' }),
+        method: select('e-method', [
+          ['check', 'Chèk'], ['direct_deposit', 'Depo dirèk labank'],
+          ['moncash', 'MonCash'], ['natcash', 'NatCash'], ['cash', 'Lajan kach'],
+        ], emp.preferred_payment_method),
+        bank: input('e-bank', emp.bank_name),
+        account: input('e-account', '', { placeholder: 'Kite l vid pou pa chanje l' }),
+        mobile: input('e-mobile', emp.mobile_money_number, { type: 'tel' }),
+      };
+
+      const amountLabel = h('label', { for: 'e-amount' });
+      const amountHint = h('span', { class: 'hint' });
+      const amountField = h('div', { class: 'field' }, amountLabel, f.amount, amountHint);
+
+      // Nou pa janm montre nimewo kont lan — sèlman si gen youn oswa non.
+      const accountHint = emp.has_bank_account
+        ? h('span', { class: 'hint' }, 'Gen yon nimewo kont anrejistre. Pou sekirite, li pa parèt isit la.')
+        : h('span', { class: 'field-error' },
+            'Pa gen nimewo kont anrejistre. Peyòl la ap peye moun sa a pa chèk jouk ou mete youn.');
+      f.account.placeholder = emp.has_bank_account ? 'Kite l vid pou pa chanje l' : 'Nimewo kont labank';
+      const bankFields = [
+        field('Bank', f.bank),
+        h('div', { class: 'field' }, h('label', { for: 'e-account' }, 'Nimewo kont'), f.account, accountHint),
+      ];
+      const mobileField = h('div', { class: 'field span-2' },
+        h('label', { for: 'e-mobile' }, 'Nimewo MonCash / NatCash'), f.mobile);
+
+      function sync() {
+        const isHourly = f.paytype.value === 'hourly';
+        amountLabel.textContent = isHourly ? 'To pa lè (HTG)' : 'Salè pa mwa (HTG)';
+        const cents = fmt.parseMoney(f.amount.value);
+        amountHint.textContent = cents !== null ? `= ${fmt.money(cents)}` : '';
+        const m = f.method.value;
+        bankFields.forEach((el) => { el.hidden = m !== 'direct_deposit'; });
+        mobileField.hidden = !['moncash', 'natcash'].includes(m);
+      }
+      f.paytype.addEventListener('change', sync);
+      f.method.addEventListener('change', sync);
+      f.amount.addEventListener('input', sync);
+
+      const msg = h('div', { role: 'status', id: 'edit-msg' });
+      const save = h('button', { class: 'btn btn-primary', type: 'submit' }, 'Anrejistre chanjman yo');
+
+      const form = h('form', { class: 'panel', novalidate: true },
+        h('div', { class: 'panel-head' }, h('h2', {}, 'Dosye a')),
+        h('div', { class: 'form-grid' },
+          h('p', { class: 'form-section-title' }, 'Idantite ak kontak'),
+          field('Prenon', f.first),
+          field('Non', f.last),
+          field('Imel pèsonèl', f.email),
+          field('Telefòn', f.phone),
+          field('Adrès', f.address),
+          field('Vil', f.city),
+          field('Moun pou rele an ka ijans', f.ecName),
+          field('Telefòn moun sa a', f.ecPhone),
+
+          h('p', { class: 'form-section-title' }, 'Travay'),
+          field('Manadjè', f.manager, 'Se manadjè a ki apwouve konje moun nan.'),
+          field('Kalite kontra', f.type),
+
+          h('p', { class: 'form-section-title' }, 'Salè ak peman'),
+          field('Kijan li peye', f.paytype),
+          amountField,
+          h('div', { class: 'field span-2' },
+            h('label', { for: 'e-method' }, 'Kijan li resevwa lajan l'), f.method),
+          ...bankFields,
+          mobileField,
+        ),
+        msg,
+        h('div', { class: 'form-actions' }, save),
+      );
+
+      sync();
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        msg.className = '';
+        msg.textContent = '';
+
+        const cents = f.amount.value.trim() ? fmt.parseMoney(f.amount.value) : null;
+        if (f.amount.value.trim() && cents === null) {
+          msg.className = 'alert alert-error';
+          msg.textContent = 'Salè a pa yon chif valab.';
+          return;
+        }
+        if (!f.first.value.trim() || !f.last.value.trim()) {
+          msg.className = 'alert alert-error';
+          msg.textContent = 'Prenon ak non pa ka vid.';
+          return;
+        }
+
+        const isHourly = f.paytype.value === 'hourly';
+        const method = f.method.value;
+        const orNull = (v) => (v.trim() ? v.trim() : null);
+
+        const desired = {
+          first_name: f.first.value.trim(),
+          last_name: f.last.value.trim(),
+          personal_email: orNull(f.email.value),
+          phone: orNull(f.phone.value),
+          address: orNull(f.address.value),
+          city: orNull(f.city.value),
+          emergency_contact_name: orNull(f.ecName.value),
+          emergency_contact_phone: orNull(f.ecPhone.value),
+          manager_id: f.manager.value ? Number(f.manager.value) : null,
+          employment_type: f.type.value,
+          base_salary: isHourly ? null : cents,
+          hourly_rate: isHourly ? cents : null,
+          preferred_payment_method: method,
+          bank_name: method === 'direct_deposit' ? orNull(f.bank.value) : emp.bank_name,
+          mobile_money_number: ['moncash', 'natcash'].includes(method)
+            ? orNull(f.mobile.value) : emp.mobile_money_number,
+        };
+
+        // Voye sèlman sa ki chanje — konsa jounal odit la montre egzakteman ki chan HR touche.
+        const changes = {};
+        for (const [k, v] of Object.entries(desired)) {
+          if ((emp[k] ?? null) !== v) changes[k] = v;
+        }
+        if (method === 'direct_deposit' && f.account.value.trim()) {
+          changes.bank_account_number = f.account.value.trim();
+        }
+
+        if (method === 'direct_deposit' && !f.account.value.trim() && !emp.has_bank_account) {
+          msg.className = 'alert alert-error';
+          msg.textContent = 'Mete nimewo kont labank lan pou depo dirèk.';
+          return;
+        }
+        if (['moncash', 'natcash'].includes(method) && !desired.mobile_money_number) {
+          msg.className = 'alert alert-error';
+          msg.textContent = 'Mete nimewo telefòn MonCash oswa NatCash la.';
+          return;
+        }
+
+        if (!Object.keys(changes).length) {
+          msg.className = 'alert alert-ok';
+          msg.textContent = 'Pa gen anyen ki chanje.';
+          return;
+        }
+
+        save.disabled = true;
+        save.textContent = 'Ap anrejistre…';
+        try {
+          emp = await api.patch(`/api/employees/${id}`, changes);
+          render();
+          const ok = document.getElementById('edit-msg');
+          if (ok) {
+            ok.className = 'alert alert-ok';
+            ok.textContent = `Anrejistre: ${Object.keys(changes).length} chanjman.`;
+          }
+        } catch (err) {
+          msg.className = 'alert alert-error';
+          msg.textContent = errorMessage(err);
+          save.disabled = false;
+          save.textContent = 'Anrejistre chanjman yo';
+        }
+      });
+
+      return form;
+    }
+
+    // ---------------------------------------------------------------------
+    // PANO SOU KOTE
+    // ---------------------------------------------------------------------
+
+    function sidePanel(title) {
+      const body = h('div', {}, h('p', { class: 'loading' }, 'Ap chaje…'));
+      return { el: h('section', { class: 'panel' },
+        h('div', { class: 'panel-head' }, h('h2', {}, title)), body), body };
+    }
+
+    function personLink(p) {
+      const name = `${p.first_name} ${p.last_name}`;
+      return h('a', { class: 'plain-link', href: `employee.html?id=${p.id}` }, name);
+    }
+
+    function hierarchyPanel() {
+      const { el, body } = sidePanel('Òganigram');
+      Promise.all([
+        api.get(`/api/hierarchy/${id}/chain`),
+        api.get(`/api/hierarchy/${id}/team`),
+      ]).then(([chain, team]) => {
+        const blocks = [];
+        blocks.push(h('p', { class: 'sub-label' }, 'Sou tèt li'));
+        blocks.push(chain.chain.length
+          ? h('ol', { class: 'plain-list' }, ...chain.chain.map((p) => h('li', {}, personLink(p),
+              h('span', { class: 'num' }, p.employee_number))))
+          : h('p', { class: 'empty' }, 'Pesonn. Chwazi yon manadjè nan dosye a.'));
+
+        blocks.push(h('p', { class: 'sub-label', style: 'margin-top: 16px;' },
+          `Anba l (${team.total_direct} dirèk, ${team.total_all_levels} antou)`));
+        blocks.push(team.direct_reports.length
+          ? h('ul', { class: 'plain-list' }, ...team.direct_reports.map((p) => h('li', {}, personLink(p),
+              h('span', { class: 'num' }, p.employee_number))))
+          : h('p', { class: 'empty' }, 'Pesonn pa rapòte ba li.'));
+
+        body.replaceChildren(...blocks);
+      }).catch((err) => body.replaceChildren(h('p', { class: 'empty' }, errorMessage(err))));
+      return el;
+    }
+
+    function payslipsPanel() {
+      const { el, body } = sidePanel('Fich peye');
+      api.get(`/api/payroll/employee/${id}/payslips?limit=6`).then((data) => {
+        if (!data.items.length) {
+          body.replaceChildren(h('p', { class: 'empty' }, 'Poko gen fich peye.'));
+          return;
+        }
+        body.replaceChildren(h('ul', { class: 'list' }, ...data.items.map((s) =>
+          h('li', {},
+            h('div', {},
+              h('div', {}, fmt.money(s.net_amount, s.currency)),
+              h('div', { class: 'sub' }, fmt.paymentMethod(s)),
+            ),
+            h('span', { class: `badge badge-${s.status === 'paid' ? 'approved' : 'pending'}` },
+              s.status === 'paid' ? `Peye ${fmt.shortDate(s.paid_at)}` : (s.status === 'approved' ? 'Apwouve' : 'Bouyon')),
+          ),
+        )));
+      }).catch((err) => body.replaceChildren(h('p', { class: 'empty' }, errorMessage(err))));
+      return el;
+    }
+
+    function leavePanel() {
+      const { el, body } = sidePanel('Konje');
+      api.get(`/api/leaves/employee/${id}/balances`).then((data) => {
+        if (!data.balances.length) {
+          body.replaceChildren(h('p', { class: 'empty' },
+            `Pa gen balans konje pou ${data.year} ankò.`));
+          return;
+        }
+        body.replaceChildren(h('div', { class: 'balances' }, ...data.balances.map((b) =>
+          h('div', { class: 'balance' },
+            h('div', { class: 'n' }, String(b.remaining_days),
+              h('small', {}, ` / ${b.entitled_days + b.carried_over_days}`)),
+            h('div', { class: 't' }, `jou ${fmt.leaveType(b.leave_type).toLowerCase()} ki rete`),
+          ))));
+      }).catch((err) => body.replaceChildren(h('p', { class: 'empty' }, errorMessage(err))));
+      return el;
+    }
+
+    load();
+  })();
+  </script>
+</body>
+</html>

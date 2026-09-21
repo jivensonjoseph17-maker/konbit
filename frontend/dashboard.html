@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tablo de bò — KONMBIT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div class="app">
+    <aside id="sidebar"></aside>
+
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+
+<main class="page">
+    <div class="page-head">
+      <h1 id="greeting">Bonjou</h1>
+      <p id="today-label"></p>
+    </div>
+
+    <div class="grid">
+      <div class="col" id="col-main"></div>
+      <div class="col" id="col-side"></div>
+    </div>
+  </main>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script src="shell.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const { api, fmt, h, ApiError, shell } = Konbit;
+
+    const colMain = document.getElementById('col-main');
+    const colSide = document.getElementById('col-side');
+
+    // -----------------------------------------------------------------------
+    // ZOUTI
+    // -----------------------------------------------------------------------
+
+    function panel(title, meta) {
+      const body = h('div', {}, h('p', { class: 'loading' }, 'Ap chaje…'));
+      const el = h('section', { class: 'panel' },
+        h('div', { class: 'panel-head' },
+          h('h2', {}, title),
+          meta ? h('span', { class: 'meta' }, meta) : null,
+        ),
+        body,
+      );
+      return { el, body };
+    }
+
+    function fill(container, ...nodes) {
+      container.replaceChildren(...nodes.flat().filter(Boolean));
+    }
+
+    function errorText(err) {
+      return err instanceof ApiError ? err.message : 'Nou pa t ka chaje seksyon sa a.';
+    }
+
+    function initials(name) {
+      return (name || '?')
+        .split(/\s+/).filter(Boolean).slice(0, 2)
+        .map((p) => p[0].toUpperCase()).join('');
+    }
+
+    /** Pozisyon GPS pou klòk in. Si moun nan refize, nou kontinye san li. */
+    function getPosition(timeoutMs = 6000) {
+      return new Promise((resolve) => {
+        if (!navigator.geolocation) return resolve({});
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve({
+            latitude: Number(pos.coords.latitude.toFixed(7)),
+            longitude: Number(pos.coords.longitude.toFixed(7)),
+          }),
+          () => resolve({}),
+          { timeout: timeoutMs, maximumAge: 60000 },
+        );
+      });
+    }
+
+    const isManager = (role) => ['manager', 'hr', 'org_admin', 'super_admin'].includes(role);
+
+    // -----------------------------------------------------------------------
+    // TÈT PAJ
+    // -----------------------------------------------------------------------
+
+    function renderGreeting(identity) {
+      const user = identity.user;
+      const hour = new Date().getHours();
+      const hello = hour < 12 ? 'Bonjou' : hour < 18 ? 'Bon apremidi' : 'Bonswa';
+      document.getElementById('greeting').textContent = `${hello}, ${user.full_name.split(' ')[0]}`;
+      document.getElementById('today-label').textContent = new Date().toLocaleDateString('fr-FR', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+      });
+    }
+
+    // -----------------------------------------------------------------------
+    // KLÒK IN / KLÒK OUT
+    // -----------------------------------------------------------------------
+
+    function clockSection() {
+      const label = h('p', { class: 'clock-label' }, 'Ap chaje…');
+      const time = h('p', { class: 'clock-time', 'aria-live': 'off' }, '00:00:00');
+      const since = h('p', { class: 'clock-since' });
+      const message = h('p', { class: 'field-error', role: 'status' });
+      const breakSelect = h('select', { class: 'select', 'aria-label': 'Tan repo', hidden: true },
+        h('option', { value: '0' }, 'Pa gen repo'),
+        h('option', { value: '30' }, '30 min repo'),
+        h('option', { value: '60' }, '1è repo'),
+      );
+      breakSelect.style.marginBottom = '10px';
+      const button = h('button', { class: 'btn btn-primary', type: 'button', disabled: true }, 'Klòk in');
+
+      const el = h('section', { class: 'clock', 'aria-label': 'Prezans' },
+        h('div', { class: 'clock-ring', 'aria-hidden': 'true' }, h('span', { class: 'clock-dot' })),
+        h('div', {}, label, time, since, message),
+        h('div', {}, breakSelect, button),
+      );
+
+      let timer = null;
+      let clockedIn = false;
+
+      function tick(start) {
+        time.textContent = fmt.clock((Date.now() - start.getTime()) / 1000);
+      }
+
+      function render(status) {
+        clearInterval(timer);
+        clockedIn = status.clocked_in;
+        el.classList.toggle('is-on', clockedIn);
+        breakSelect.hidden = !clockedIn;
+        button.disabled = false;
+
+        if (clockedIn) {
+          const start = fmt.parseDate(status.entry.clock_in_at);
+          label.textContent = 'W ap travay depi';
+          since.textContent = `Ou antre a ${fmt.time(start)}`;
+          button.textContent = 'Klòk out';
+          button.className = 'btn btn-ghost';
+          tick(start);
+          timer = setInterval(() => tick(start), 1000);
+        } else {
+          label.textContent = 'Ou poko antre';
+          time.textContent = '00:00:00';
+          since.textContent = 'Peze bouton an lè w rive sou travay la.';
+          button.textContent = 'Klòk in';
+          button.className = 'btn btn-primary';
+        }
+      }
+
+      async function load() {
+        try {
+          render(await api.get('/api/attendance/status'));
+        } catch (err) {
+          label.textContent = 'Prezans';
+          message.textContent = errorText(err);
+        }
+      }
+
+      button.addEventListener('click', async () => {
+        message.textContent = '';
+        button.disabled = true;
+        const original = button.textContent;
+        button.textContent = 'Yon ti moman…';
+        try {
+          if (clockedIn) {
+            const entry = await api.post('/api/attendance/clock-out', {
+              break_minutes: Number(breakSelect.value),
+            });
+            since.textContent = `Jounen fini: ${fmt.duration(entry.worked_minutes)} travay.`;
+          } else {
+            const pos = await getPosition();
+            await api.post('/api/attendance/clock-in', {
+              ...pos,
+              device_info: navigator.userAgent.slice(0, 250),
+            });
+          }
+          await load();
+        } catch (err) {
+          message.textContent = errorText(err);
+          button.textContent = original;
+          button.disabled = false;
+        }
+      });
+
+      load();
+      return el;
+    }
+
+    // -----------------------------------------------------------------------
+    // FICH PEYE
+    // -----------------------------------------------------------------------
+
+    function payslipSection() {
+      const { el, body } = panel('Fich peye');
+
+      api.get('/api/payroll/me/payslips?limit=6').then((data) => {
+        if (!data.items.length) {
+          fill(body, h('p', { class: 'empty' }, 'Ou poko gen fich peye. Li ap parèt isit la lè HR fin apwouve peyòl la.'));
+          return;
+        }
+
+        const s = data.items[0];
+        const cur = s.currency;
+        const minus = (label, value) => value
+          ? h('div', { class: 'row minus' }, h('span', { class: 'k' }, label), h('span', { class: 'v' }, `−${fmt.money(value, cur)}`))
+          : null;
+
+        const breakdown = h('details', { class: 'breakdown' },
+          h('summary', {}, 'Detay kalkil la'),
+          h('div', { class: 'rows' },
+            h('div', { class: 'row' }, h('span', { class: 'k' }, 'Salè debaz'), h('span', {}, fmt.money(s.base_amount, cur))),
+            s.overtime_amount ? h('div', { class: 'row' }, h('span', { class: 'k' }, 'Èdtan siplemantè'), h('span', {}, fmt.money(s.overtime_amount, cur))) : null,
+            s.bonus_amount ? h('div', { class: 'row' }, h('span', { class: 'k' }, 'Bonis'), h('span', {}, fmt.money(s.bonus_amount, cur))) : null,
+            h('div', { class: 'row' }, h('span', { class: 'k' }, 'Brit'), h('span', {}, fmt.money(s.gross_amount, cur))),
+            minus('Enpo sou salè (IRI)', s.tax_amount),
+            minus('Retni sou bonis / èdtan siplemantè', s.supplemental_tax_amount),
+            minus('ONA', s.ona_amount),
+            minus('OFATMA', s.ofatma_amount),
+            minus('CFGDCT', s.cfgdct_amount),
+            minus('FDU / CAS', s.fdu_cas_amount),
+            minus('Lòt dediksyon', s.other_deductions),
+            h('div', { class: 'row total' }, h('span', {}, 'Net'), h('span', {}, fmt.money(s.net_amount, cur))),
+          ),
+        );
+
+        const older = data.items.slice(1);
+
+        fill(body,
+          h('p', { class: 'clock-label' }, s.status === 'paid' ? 'Dènye peman' : 'Apwouve, poko peye'),
+          h('p', { class: 'pay-net' }, fmt.money(s.net_amount, cur)),
+          h('span', { class: 'pay-method' }, fmt.paymentMethod(s)),
+          h('p', { class: 'pay-meta' },
+            s.paid_at ? `Peye ${fmt.date(s.paid_at)}` : 'Ap peye nan pwochen jou yo',
+          ),
+          breakdown,
+          older.length ? h('ul', { class: 'list' }, ...older.map((o) =>
+            h('li', {},
+              h('div', {},
+                h('div', {}, fmt.money(o.net_amount, o.currency)),
+                h('div', { class: 'sub' }, fmt.paymentMethod(o)),
+              ),
+              h('span', { class: 'sub' }, o.paid_at ? fmt.shortDate(o.paid_at) : '—'),
+            )
+          )) : null,
+        );
+        if (older.length) body.lastChild.style.marginTop = '14px';
+      }).catch((err) => fill(body, h('p', { class: 'empty' }, errorText(err))));
+
+      return el;
+    }
+
+    // -----------------------------------------------------------------------
+    // KONJE
+    // -----------------------------------------------------------------------
+
+    function leaveSection() {
+      const { el, body } = panel('Konje');
+
+      const balancesBox = h('div', { class: 'balances' });
+      const requestsBox = h('div', {});
+      const formMessage = h('p', { role: 'status' });
+
+      const typeSelect = h('select', { class: 'select', id: 'leave-type', required: true },
+        ...['vacation', 'sick', 'maternity', 'paternity', 'bereavement', 'unpaid', 'other']
+          .map((t) => h('option', { value: t }, fmt.leaveType(t))),
+      );
+      const start = h('input', { class: 'input', id: 'leave-start', type: 'date', required: true });
+      const end = h('input', { class: 'input', id: 'leave-end', type: 'date', required: true });
+      const reason = h('textarea', { class: 'textarea', id: 'leave-reason', maxlength: '1000' });
+      const submit = h('button', { class: 'btn btn-primary', type: 'submit' }, 'Voye demann lan');
+
+      const today = new Date().toISOString().slice(0, 10);
+      start.min = today;
+      start.addEventListener('change', () => {
+        end.min = start.value;
+        if (!end.value || end.value < start.value) end.value = start.value;
+      });
+
+      const form = h('form', { class: 'leave-form', novalidate: true },
+        h('div', { class: 'field' }, h('label', { for: 'leave-type' }, 'Kalite konje'), typeSelect),
+        h('div', { class: 'form-row' },
+          h('div', { class: 'field' }, h('label', { for: 'leave-start' }, 'Premye jou'), start),
+          h('div', { class: 'field' }, h('label', { for: 'leave-end' }, 'Dènye jou'), end),
+        ),
+        h('div', { class: 'field' },
+          h('label', { for: 'leave-reason' }, 'Rezon (opsyonèl)'),
+          reason,
+          h('span', { class: 'hint' }, 'Sèlman manadjè w ak HR ap wè sa.'),
+        ),
+        formMessage,
+        h('div', {}, submit),
+      );
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        formMessage.className = '';
+        formMessage.textContent = '';
+
+        if (!start.value || !end.value) {
+          formMessage.className = 'field-error';
+          formMessage.textContent = 'Chwazi premye ak dènye jou konje a.';
+          return;
+        }
+
+        submit.disabled = true;
+        try {
+          const created = await api.post('/api/leaves', {
+            leave_type: typeSelect.value,
+            start_date: start.value,
+            end_date: end.value,
+            reason: reason.value.trim() || null,
+          });
+          formMessage.className = 'alert alert-ok';
+          formMessage.textContent =
+            `Demann lan voye: ${created.total_days} jou travay. Manadjè w ap resevwa l.`;
+          form.reset();
+          await load();
+        } catch (err) {
+          formMessage.className = 'field-error';
+          formMessage.textContent = errorText(err);
+        } finally {
+          submit.disabled = false;
+        }
+      });
+
+      async function load() {
+        const [balances, requests] = await Promise.allSettled([
+          api.get('/api/leaves/me/balances'),
+          api.get('/api/leaves/me'),
+        ]);
+
+        if (balances.status === 'fulfilled') {
+          const items = balances.value.balances;
+          fill(balancesBox, items.length
+            ? items.map((b) => h('div', { class: 'balance' },
+                h('div', { class: 'n' }, String(b.remaining_days), h('small', {}, ` / ${b.entitled_days + b.carried_over_days}`)),
+                h('div', { class: 't' }, `jou ${fmt.leaveType(b.leave_type).toLowerCase()} ki rete`),
+              ))
+            : h('p', { class: 'empty' }, 'HR poko mete balans konje w pou ane sa a.'));
+        } else {
+          fill(balancesBox, h('p', { class: 'empty' }, errorText(balances.reason)));
+        }
+
+        if (requests.status === 'fulfilled' && requests.value.items.length) {
+          const recent = requests.value.items.slice(0, 4);
+          fill(requestsBox,
+            h('ul', { class: 'list' }, ...recent.map((r) =>
+              h('li', {},
+                h('div', {},
+                  h('div', {}, `${fmt.leaveType(r.leave_type)} — ${r.total_days} jou`),
+                  h('div', { class: 'sub' }, `${fmt.shortDate(r.start_date)} → ${fmt.shortDate(r.end_date)}`),
+                ),
+                h('span', { class: `badge badge-${r.status}` }, fmt.requestStatus(r.status)),
+              )
+            )),
+          );
+          requestsBox.style.marginTop = '14px';
+        } else {
+          fill(requestsBox);
+        }
+      }
+
+      fill(body, balancesBox, requestsBox, form);
+      load();
+      return el;
+    }
+
+    // -----------------------------------------------------------------------
+    // CHÈN KOMANDMAN — "moun ki sou tèt mwen"
+    // -----------------------------------------------------------------------
+
+    function chainSection() {
+      const { el, body } = panel('Ekip ou');
+
+      api.get('/api/hierarchy/me/chain').then((data) => {
+        if (!data.chain.length) {
+          fill(body, h('p', { class: 'empty' }, 'Pa gen pesonn sou tèt ou nan òganigram lan.'));
+          return;
+        }
+        // API a bay manadjè dirèk la an premye; nou montre l de anwo an ba.
+        const topDown = [...data.chain].reverse();
+        const person = (p, isMe) => h('li', { class: isMe ? 'me' : null },
+          h('span', { class: 'avatar', 'aria-hidden': 'true' }, initials(`${p.first_name} ${p.last_name}`)),
+          h('div', {},
+            h('div', { class: 'who' }, isMe ? `${p.first_name} ${p.last_name} (ou)` : `${p.first_name} ${p.last_name}`),
+            h('div', { class: 'num' }, p.employee_number),
+          ),
+        );
+        fill(body, h('ol', { class: 'chain', 'aria-label': 'Chèn komandman' },
+          ...topDown.map((p) => person(p, false)),
+          person(data.employee, true),
+        ));
+      }).catch((err) => fill(body, h('p', { class: 'empty' }, errorText(err))));
+
+      return el;
+    }
+
+    // -----------------------------------------------------------------------
+    // FÒMASYON
+    // -----------------------------------------------------------------------
+
+    function trainingSection() {
+      const { el, body } = panel('Fòmasyon');
+
+      api.get('/api/training/me/courses').then((data) => {
+        if (!data.items.length) {
+          fill(body, h('p', { class: 'empty' }, 'Ou pa gen okenn fòmasyon pou kounye a.'));
+          return;
+        }
+        fill(body, ...data.items.map((c) => {
+          const done = Boolean(c.completed_at);
+          const bar = h('div', { class: done ? 'bar done' : 'bar', role: 'progressbar',
+            'aria-valuenow': String(c.progress_percent), 'aria-valuemin': '0', 'aria-valuemax': '100',
+            'aria-label': `Pwogrè ${c.course.title}` },
+            h('span', {}),
+          );
+          bar.firstChild.style.width = `${c.progress_percent}%`;
+
+          let status;
+          if (done) status = h('span', { class: 'badge badge-approved' }, 'Fini');
+          else if (c.is_overdue) status = h('span', { class: 'badge badge-late' }, 'An reta');
+          else if (c.due_date) status = h('span', { class: 'sub' }, `Anvan ${fmt.shortDate(c.due_date)}`);
+
+          return h('div', { class: 'course' },
+            h('div', { class: 'course-top' },
+              h('span', { class: 'course-title' }, c.course.title),
+              status,
+            ),
+            bar,
+          );
+        }));
+      }).catch((err) => fill(body, h('p', { class: 'empty' }, errorText(err))));
+
+      return el;
+    }
+
+    // -----------------------------------------------------------------------
+    // MANADJÈ / HR — APWOBASYON AK PREZANS
+    // -----------------------------------------------------------------------
+
+    function approvalsSection() {
+      const { el, body } = panel('Demann konje pou ou apwouve');
+
+      async function load() {
+        try {
+          const data = await api.get('/api/leaves/pending');
+          if (!data.items.length) {
+            fill(body, h('p', { class: 'empty' }, 'Pa gen okenn demann k ap tann ou.'));
+            return;
+          }
+          fill(body, ...data.items.map(({ request: r, employee_name }) => {
+            const note = h('input', { class: 'input', type: 'text', placeholder: 'Nòt (opsyonèl)',
+              'aria-label': `Nòt pou ${employee_name}`, maxlength: '500' });
+            const msg = h('p', { class: 'field-error', role: 'status' });
+
+            async function decide(approve, buttons) {
+              buttons.forEach((b) => { b.disabled = true; });
+              msg.textContent = '';
+              try {
+                await api.post(`/api/leaves/${r.id}/decide`, {
+                  approve,
+                  note: note.value.trim() || null,
+                });
+                await load();
+              } catch (err) {
+                msg.textContent = errorText(err);
+                buttons.forEach((b) => { b.disabled = false; });
+              }
+            }
+
+            const yes = h('button', { class: 'btn btn-primary btn-sm', type: 'button' }, 'Apwouve');
+            const no = h('button', { class: 'btn btn-danger btn-sm', type: 'button' }, 'Refize');
+            yes.addEventListener('click', () => decide(true, [yes, no]));
+            no.addEventListener('click', () => decide(false, [yes, no]));
+
+            return h('div', { class: 'approval' },
+              h('div', {},
+                h('div', { class: 'who' }, employee_name),
+                h('div', { class: 'what' },
+                  `${fmt.leaveType(r.leave_type)} — ${r.total_days} jou, ` +
+                  `${fmt.shortDate(r.start_date)} → ${fmt.shortDate(r.end_date)}`),
+                r.reason ? h('div', { class: 'what' }, `« ${r.reason} »`) : null,
+              ),
+              note,
+              h('div', { class: 'actions' }, yes, no),
+              msg,
+            );
+          }));
+        } catch (err) {
+          fill(body, h('p', { class: 'empty' }, errorText(err)));
+        }
+      }
+
+      load();
+      return el;
+    }
+
+    function todaySection() {
+      const { el, body } = panel('Prezans jodi a');
+
+      api.get('/api/attendance/today').then((d) => {
+        const stat = (n, t) => h('div', { class: 'stat' }, h('div', { class: 'n' }, String(n)), h('div', { class: 't' }, t));
+        fill(body,
+          h('div', { class: 'stat-line' },
+            stat(d.present_count, 'antre jodi a'),
+            stat(d.still_working, 'ap travay kounye a'),
+            stat(d.total_active_employees, 'anplwaye aktif'),
+          ),
+          d.present.length ? h('ul', { class: 'list' }, ...d.present.slice(0, 8).map((p) =>
+            h('li', {},
+              h('span', {}, p.full_name),
+              h('span', { class: 'sub' },
+                p.clocked_out
+                  ? `${fmt.time(p.clock_in_at)} — ${fmt.duration(p.worked_minutes)}`
+                  : `depi ${fmt.time(p.clock_in_at)}`),
+            )
+          )) : null,
+        );
+        if (d.present.length) body.lastChild.style.marginTop = '14px';
+      }).catch((err) => fill(body, h('p', { class: 'empty' }, errorText(err))));
+
+      return el;
+    }
+
+    // -----------------------------------------------------------------------
+    // DEMARAJ
+    // -----------------------------------------------------------------------
+
+    async function start() {
+      const identity = await shell.mount('dashboard');
+      if (!identity) return;
+
+      renderGreeting(identity);
+      const role = identity.user.role;
+      const hasEmployee = Boolean(identity.employee_id);
+      const isAdmin = shell.ADMIN.includes(role);
+
+      if (hasEmployee) {
+        colMain.append(clockSection(), payslipSection(), leaveSection());
+        colSide.append(chainSection(), trainingSection());
+        if (isManager(role)) {
+          colSide.prepend(approvalsSection());
+          colSide.append(todaySection());
+        }
+        return;
+      }
+
+      // Admin san dosye anplwaye: tablo jesyon an okipe tout lajè a.
+      const goEmployees = h('a', { class: 'btn btn-primary btn-sm', href: 'employees.html' }, 'Jere anplwaye yo');
+      colMain.append(
+        h('div', { class: 'notice' },
+          h('p', {}, 'Kont ou a se yon kont administratè, san dosye anplwaye — ' +
+            'donk ou pa gen klòk in, fich peye ni konje pou tèt ou isit la.'),
+          isAdmin ? h('div', { style: 'margin-top: 12px;' }, goEmployees) : null,
+        ),
+        todaySection(),
+      );
+      if (isManager(role)) colSide.append(approvalsSection());
+    }
+
+    start();
+  })();
+  </script>
+</body>
+</html>

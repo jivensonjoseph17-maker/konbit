@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Anplwaye — KONMBIT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div class="app">
+    <aside id="sidebar"></aside>
+
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+
+      <main class="page">
+        <div class="page-head-row">
+          <div class="page-head">
+            <h1>Anplwaye</h1>
+            <p id="count-label">Ap chaje…</p>
+          </div>
+          <button class="btn btn-primary" type="button" id="add-btn">Ajoute yon anplwaye</button>
+        </div>
+
+        <!-- Modpas tanporè: parèt yon sèl fwa -->
+        <section class="secret" id="secret" hidden aria-live="polite">
+          <h2 id="secret-title"></h2>
+          <p>Modpas sa a parèt yon sèl fwa. Voye l bay moun nan kounye a epi mande l chanje l lè l konekte.</p>
+          <div class="secret-row">
+            <code id="secret-password"></code>
+            <button class="btn btn-ghost btn-sm" type="button" id="secret-copy">Kopye</button>
+            <span class="email" id="secret-email"></span>
+          </div>
+        </section>
+
+        <!-- Fòm ajoute -->
+        <section class="panel form-panel" id="form-panel" hidden aria-labelledby="form-title">
+          <div class="panel-head">
+            <h2 id="form-title">Nouvo anplwaye</h2>
+          </div>
+
+          <form id="emp-form" novalidate>
+            <div class="alert alert-error" id="form-error" role="alert"></div>
+
+            <div class="form-grid" style="margin-top: 12px;">
+              <p class="form-section-title">Idantite</p>
+
+              <div class="field">
+                <label for="f-first">Prenon</label>
+                <input class="input" id="f-first" required maxlength="100" autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="f-last">Non</label>
+                <input class="input" id="f-last" required maxlength="100" autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="f-email">Imel</label>
+                <input class="input" id="f-email" type="email" required autocomplete="off">
+                <span class="hint">Se ak imel sa a moun nan ap konekte.</span>
+              </div>
+              <div class="field">
+                <label for="f-phone">Telefòn</label>
+                <input class="input" id="f-phone" type="tel" placeholder="+509 3000 0000" autocomplete="off">
+              </div>
+
+              <p class="form-section-title">Travay</p>
+
+              <div class="field">
+                <label for="f-hire">Dat li kòmanse</label>
+                <input class="input" id="f-hire" type="date" required>
+              </div>
+              <div class="field">
+                <label for="f-type">Kalite kontra</label>
+                <select class="select" id="f-type">
+                  <option value="full_time">Tan plen</option>
+                  <option value="part_time">Tan pasyèl</option>
+                  <option value="contract">Kontra</option>
+                  <option value="intern">Estaj</option>
+                  <option value="seasonal">Sezon</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="f-manager">Manadjè</label>
+                <select class="select" id="f-manager">
+                  <option value="">Pa gen manadjè</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="f-role">Aksè nan KONMBIT</label>
+                <select class="select" id="f-role">
+                  <option value="employee">Anplwaye</option>
+                  <option value="manager">Manadjè — apwouve konje ekip li</option>
+                  <option value="hr">Resous imèn — jere tout anplwaye</option>
+                </select>
+              </div>
+
+              <p class="form-section-title">Salè ak peman</p>
+
+              <div class="field">
+                <label for="f-paytype">Kijan li peye</label>
+                <select class="select" id="f-paytype">
+                  <option value="monthly">Salè pa mwa</option>
+                  <option value="hourly">Pa lè</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="f-amount" id="f-amount-label">Salè pa mwa (HTG)</label>
+                <input class="input" id="f-amount" inputmode="decimal" placeholder="45 000" autocomplete="off">
+                <span class="hint" id="f-amount-hint"></span>
+              </div>
+              <div class="field span-2">
+                <label for="f-method">Kijan li resevwa lajan l</label>
+                <select class="select" id="f-method">
+                  <option value="check">Chèk</option>
+                  <option value="direct_deposit">Depo dirèk labank</option>
+                  <option value="moncash">MonCash</option>
+                  <option value="natcash">NatCash</option>
+                  <option value="cash">Lajan kach</option>
+                </select>
+              </div>
+              <div class="field" data-method="direct_deposit" hidden>
+                <label for="f-bank">Bank</label>
+                <input class="input" id="f-bank" placeholder="Sogebank, Unibank, BNC…" autocomplete="off">
+              </div>
+              <div class="field" data-method="direct_deposit" hidden>
+                <label for="f-account">Nimewo kont</label>
+                <input class="input" id="f-account" autocomplete="off">
+              </div>
+              <div class="field span-2" data-method="mobile" hidden>
+                <label for="f-mobile">Nimewo telefòn MonCash / NatCash</label>
+                <input class="input" id="f-mobile" type="tel" placeholder="+509 3000 0000" autocomplete="off">
+              </div>
+
+              <div class="span-2" style="margin-top: 6px;">
+                <label class="check">
+                  <input type="checkbox" id="f-login" checked>
+                  Kreye yon kont pou l ka konekte
+                </label>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button class="btn btn-primary" type="submit" id="f-submit">Anrejistre anplwaye a</button>
+              <button class="btn btn-ghost" type="button" id="f-cancel">Anile</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- Lis -->
+        <div class="toolbar">
+          <label class="visually-hidden" for="search">Chèche yon anplwaye</label>
+          <input class="input" id="search" type="search" placeholder="Chèche pa non oswa nimewo">
+          <label class="check">
+            <input type="checkbox" id="show-inactive">
+            Montre moun ki pa la ankò
+          </label>
+        </div>
+
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">Anplwaye</th>
+                <th scope="col">Estati</th>
+                <th scope="col" class="hide-sm">Manadjè</th>
+                <th scope="col"><span class="visually-hidden">Aksyon</span></th>
+              </tr>
+            </thead>
+            <tbody id="rows">
+              <tr><td colspan="4" class="loading">Ap chaje…</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pager" id="pager" hidden>
+          <span id="pager-label"></span>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-ghost btn-sm" type="button" id="prev">Anvan</button>
+            <button class="btn btn-ghost btn-sm" type="button" id="next">Apre</button>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script src="shell.js"></script>
+  <script>
+  (async function () {
+    'use strict';
+    const { api, fmt, h, ApiError, shell } = Konbit;
+
+    const identity = await shell.mount('employees', shell.ADMIN);
+    if (!identity) return;
+
+    const $ = (id) => document.getElementById(id);
+    const PAGE_SIZE = 25;
+
+    const state = { page: 1, q: '', inactive: false, total: 0, managers: new Map() };
+
+    // ---------------------------------------------------------------------
+    // MODPAS TANPORÈ
+    // ---------------------------------------------------------------------
+
+    function showSecret(title, password, email) {
+      $('secret-title').textContent = title;
+      $('secret-password').textContent = password;
+      $('secret-email').textContent = email ? `Imel koneksyon: ${email}` : '';
+      $('secret').hidden = false;
+      $('secret-copy').textContent = 'Kopye';
+      $('secret').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    $('secret-copy').addEventListener('click', async () => {
+      const text = $('secret-password').textContent;
+      try {
+        await navigator.clipboard.writeText(text);
+        $('secret-copy').textContent = 'Kopye ✓';
+      } catch {
+        // Kèk navigatè bloke clipboard la: nou seleksyone tèks la pou moun nan kopye l.
+        const range = document.createRange();
+        range.selectNodeContents($('secret-password'));
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        $('secret-copy').textContent = 'Ctrl+C pou kopye';
+      }
+    });
+
+    // ---------------------------------------------------------------------
+    // LIS
+    // ---------------------------------------------------------------------
+
+    async function loadManagers() {
+      // Tout anplwaye aktif, pou lis manadjè a ak pou afiche non manadjè yo.
+      try {
+        const data = await api.get('/api/employees?size=100');
+        state.managers = new Map(data.items.map((e) => [e.id, `${e.first_name} ${e.last_name}`]));
+        const select = $('f-manager');
+        select.replaceChildren(
+          h('option', { value: '' }, 'Pa gen manadjè'),
+          ...data.items.map((e) => h('option', { value: String(e.id) },
+            `${e.first_name} ${e.last_name} (${e.employee_number})`)),
+        );
+      } catch { /* lis la ap toujou mache san non manadjè yo */ }
+    }
+
+    async function loadList() {
+      const params = new URLSearchParams({
+        page: String(state.page),
+        size: String(PAGE_SIZE),
+      });
+      if (state.q) params.set('q', state.q);
+      if (state.inactive) params.set('include_inactive', 'true');
+
+      const body = $('rows');
+      try {
+        const data = await api.get(`/api/employees?${params}`);
+        state.total = data.total;
+
+        $('count-label').textContent = data.total === 1
+          ? '1 moun'
+          : `${data.total} moun${state.q ? ` pou "${state.q}"` : ''}`;
+
+        if (!data.items.length) {
+          body.replaceChildren(h('tr', {}, h('td', { colspan: '4', class: 'empty' },
+            state.q
+              ? 'Pesonn pa koresponn ak rechèch sa a.'
+              : 'Ou poko gen anplwaye. Klike "Ajoute yon anplwaye" pou kòmanse.')));
+        } else {
+          body.replaceChildren(...data.items.map(row));
+        }
+
+        const pages = Math.max(1, Math.ceil(data.total / PAGE_SIZE));
+        $('pager').hidden = pages <= 1;
+        $('pager-label').textContent = `Paj ${state.page} sou ${pages}`;
+        $('prev').disabled = state.page <= 1;
+        $('next').disabled = state.page >= pages;
+      } catch (err) {
+        body.replaceChildren(h('tr', {}, h('td', { colspan: '4', class: 'empty' }, err.message)));
+      }
+    }
+
+    function row(e) {
+      const name = `${e.first_name} ${e.last_name}`;
+      const resetBtn = h('button', { class: 'btn btn-quiet btn-sm', type: 'button' }, 'Nouvo modpas');
+
+      resetBtn.addEventListener('click', async () => {
+        if (!confirm(`Jenere yon nouvo modpas pou ${name}? Ansyen an p ap mache ankò.`)) return;
+        resetBtn.disabled = true;
+        try {
+          const r = await api.post(`/api/employees/${e.id}/reset-password`);
+          showSecret(`Nouvo modpas pou ${name}`, r.temporary_password, r.login_email);
+        } catch (err) {
+          alert(err.message);
+        } finally {
+          resetBtn.disabled = false;
+        }
+      });
+
+      return h('tr', {},
+        h('td', {},
+          h('div', { class: 'person' },
+            h('span', { class: 'avatar', 'aria-hidden': 'true' }, shell.initials(name)),
+            h('div', {},
+              h('a', { class: 'who plain-link', href: `employee.html?id=${e.id}` }, name),
+              h('div', { class: 'num' }, e.employee_number),
+            ),
+          ),
+        ),
+        h('td', {}, h('span', { class: `badge badge-${e.status}` }, fmt.employmentStatus(e.status))),
+        h('td', { class: 'cell-muted hide-sm' }, e.manager_id ? (state.managers.get(e.manager_id) || '—') : '—'),
+        h('td', { class: 'actions' }, resetBtn),
+      );
+    }
+
+    let searchTimer;
+    $('search').addEventListener('input', (e) => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        state.q = e.target.value.trim();
+        state.page = 1;
+        loadList();
+      }, 300);
+    });
+
+    $('show-inactive').addEventListener('change', (e) => {
+      state.inactive = e.target.checked;
+      state.page = 1;
+      loadList();
+    });
+
+    $('prev').addEventListener('click', () => { state.page -= 1; loadList(); });
+    $('next').addEventListener('click', () => { state.page += 1; loadList(); });
+
+    // ---------------------------------------------------------------------
+    // FÒM
+    // ---------------------------------------------------------------------
+
+    const form = $('emp-form');
+    const formError = $('form-error');
+
+    function openForm() {
+      $('form-panel').hidden = false;
+      $('add-btn').hidden = true;
+      if (!$('f-hire').value) $('f-hire').value = new Date().toISOString().slice(0, 10);
+      $('f-first').focus();
+    }
+
+    function closeForm() {
+      $('form-panel').hidden = true;
+      $('add-btn').hidden = false;
+      form.reset();
+      formError.textContent = '';
+      syncPayFields();
+    }
+
+    $('add-btn').addEventListener('click', openForm);
+    $('f-cancel').addEventListener('click', closeForm);
+
+    function syncPayFields() {
+      const hourly = $('f-paytype').value === 'hourly';
+      $('f-amount-label').textContent = hourly ? 'To pa lè (HTG)' : 'Salè pa mwa (HTG)';
+      $('f-amount').placeholder = hourly ? '250' : '45 000';
+
+      const method = $('f-method').value;
+      document.querySelectorAll('[data-method]').forEach((el) => {
+        const show = el.dataset.method === 'mobile'
+          ? ['moncash', 'natcash'].includes(method)
+          : el.dataset.method === method;
+        el.hidden = !show;
+      });
+      showAmountHint();
+    }
+
+    function showAmountHint() {
+      const cents = fmt.parseMoney($('f-amount').value);
+      $('f-amount-hint').textContent = cents ? `= ${fmt.money(cents)}` : '';
+    }
+
+    $('f-paytype').addEventListener('change', syncPayFields);
+    $('f-method').addEventListener('change', syncPayFields);
+    $('f-amount').addEventListener('input', showAmountHint);
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      formError.textContent = '';
+
+      const first = $('f-first').value.trim();
+      const last = $('f-last').value.trim();
+      const email = $('f-email').value.trim();
+      const hire = $('f-hire').value;
+      const method = $('f-method').value;
+      const cents = fmt.parseMoney($('f-amount').value);
+      const hourly = $('f-paytype').value === 'hourly';
+      const createLogin = $('f-login').checked;
+
+      const problems = [];
+      if (!first || !last) problems.push('Mete prenon ak non moun nan.');
+      if (!hire) problems.push('Chwazi dat li kòmanse.');
+      if (createLogin && !email) problems.push('Ou bezwen yon imel pou kreye kont koneksyon an.');
+      if ($('f-amount').value.trim() && cents === null) problems.push('Salè a pa yon chif valab.');
+      if (method === 'direct_deposit' && !$('f-account').value.trim()) {
+        problems.push('Mete nimewo kont labank lan pou depo dirèk.');
+      }
+      if (['moncash', 'natcash'].includes(method) && !$('f-mobile').value.trim()) {
+        problems.push('Mete nimewo telefòn MonCash oswa NatCash la.');
+      }
+      if (problems.length) {
+        formError.textContent = problems.join(' ');
+        return;
+      }
+
+      const payload = {
+        first_name: first,
+        last_name: last,
+        personal_email: email || null,
+        phone: $('f-phone').value.trim() || null,
+        hire_date: hire,
+        employment_type: $('f-type').value,
+        manager_id: $('f-manager').value ? Number($('f-manager').value) : null,
+        base_salary: !hourly ? cents : null,
+        hourly_rate: hourly ? cents : null,
+        currency: 'HTG',
+        preferred_payment_method: method,
+        bank_name: method === 'direct_deposit' ? ($('f-bank').value.trim() || null) : null,
+        bank_account_number: method === 'direct_deposit' ? $('f-account').value.trim() : null,
+        mobile_money_number: ['moncash', 'natcash'].includes(method) ? $('f-mobile').value.trim() : null,
+        create_login: createLogin,
+        login_email: createLogin ? email : null,
+        login_role: $('f-role').value,
+      };
+
+      const submit = $('f-submit');
+      submit.disabled = true;
+      submit.textContent = 'Ap anrejistre…';
+
+      try {
+        const r = await api.post('/api/employees', payload);
+        closeForm();
+        if (r.temporary_password) {
+          showSecret(
+            `${r.employee.first_name} ${r.employee.last_name} ajoute (${r.employee.employee_number})`,
+            r.temporary_password,
+            r.login_email,
+          );
+        }
+        await loadManagers();
+        await loadList();
+      } catch (err) {
+        let msg = err instanceof ApiError ? err.message : 'Yon bagay pa mache.';
+        if (err.fields && err.fields.length) {
+          msg += ' ' + err.fields.map((f) => `${f.field}: ${f.message}`).join('; ');
+        }
+        formError.textContent = msg;
+      } finally {
+        submit.disabled = false;
+        submit.textContent = 'Anrejistre anplwaye a';
+      }
+    });
+
+    // ---------------------------------------------------------------------
+    // DEMARAJ
+    // ---------------------------------------------------------------------
+    syncPayFields();
+    await loadManagers();
+    await loadList();
+  })();
+  </script>
+</body>
+</html>
