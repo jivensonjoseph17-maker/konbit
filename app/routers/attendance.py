@@ -21,6 +21,7 @@ estati ADJUSTED, ak rezon an ekri. Se konsa yon kontab ka verifye peyòl la.
 import logging
 from datetime import date, datetime, time, timedelta, timezone
 from typing import Annotated, Optional
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel
@@ -40,6 +41,7 @@ from ..models import (
     AuditLog,
     Employee,
     EmploymentStatus,
+    Organization,
     TimeEntry,
     User,
     UserRole,
@@ -86,6 +88,49 @@ def _audit(db: Session, request: Request, user: User, action: str,
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+DEFAULT_TZ = "America/Port-au-Prince"
+LATE_AFTER = time(9, 0)          # lè lokal apre sa yon moun konte an reta
+
+
+def _org_tz(db: Session, org_id: int):
+    """
+    Fizo orè biznis la. TOUT kalkil dat (ki jou yon moun travay, kiyès ki
+    la jodi a, kiyès ki an reta) dwe fèt nan lè LOKAL biznis la — pa an UTC.
+
+    San sa, yon moun ki klòk in a 9è diswa an Ayiti (1è maten UTC) ta
+    anrejistre sou jou ki vini an, epi li ta disparèt nan tablo jodi a.
+    """
+    name = db.query(Organization.timezone).filter(Organization.id == org_id).scalar()
+    for candidate in (name, DEFAULT_TZ):
+        if not candidate:
+            continue
+        try:
+            return ZoneInfo(candidate)
+        except (ZoneInfoNotFoundError, ValueError):
+            continue
+
+    # Baz done fizo orè a pa disponib ditou (sou Windows: `pip install tzdata`).
+    # Nou tonbe sou UTC olye nou kraze paj la — men nou di l fò nan lòg yo,
+    # paske dat yo ap fo apre 8è diswa lè Ayiti.
+    logger.error(
+        "Fizo orè '%s' pa jwenn. Enstale pakè 'tzdata'. N ap sèvi ak UTC pou kounye a.",
+        name or DEFAULT_TZ,
+    )
+    return ZoneInfo("UTC") if _utc_available() else timezone.utc
+
+
+def _utc_available() -> bool:
+    try:
+        ZoneInfo("UTC")
+        return True
+    except (ZoneInfoNotFoundError, ValueError):
+        return False
+
+
+def _local_today(db: Session, org_id: int) -> date:
+    return datetime.now(_org_tz(db, org_id)).date()
 
 
 def _as_aware(dt: Optional[datetime]) -> Optional[datetime]:
@@ -195,10 +240,11 @@ def clock_in(
         )
 
     now = _now()
+    tz = _org_tz(db, org_id)
     entry = TimeEntry(
         organization_id=org_id,
         employee_id=emp.id,
-        work_date=now.date(),
+        work_date=now.astimezone(tz).date(),     # jou LOKAL, pa jou UTC
         clock_in_at=now,
         status=AttendanceStatus.OPEN,
         clock_in_lat=payload.latitude,
@@ -328,6 +374,7 @@ def employee_entries(
 
 def _build_summary(db: Session, org_id: int, employee_id: int,
                    start: date, end: date) -> AttendanceSummary:
+    tz = _org_tz(db, org_id)
     rows = db.query(TimeEntry).filter(
         TimeEntry.organization_id == org_id,
         TimeEntry.employee_id == employee_id,
@@ -347,11 +394,11 @@ def _build_summary(db: Session, org_id: int, employee_id: int,
             business_days += 1
         cursor += timedelta(days=1)
 
-    # Moun ki rive apre 9:00 lokal (aproksimasyon UTC pou kounye a)
+    # Moun ki rive apre 9:00, an lè LOKAL biznis la
     late = 0
     for r in rows:
         ci = _as_aware(r.clock_in_at)
-        if ci and ci.time() > time(9, 0):
+        if ci and ci.astimezone(tz).time() > LATE_AFTER:
             late += 1
 
     return AttendanceSummary(
@@ -374,7 +421,7 @@ def my_summary(
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
 ):
-    end = end_date or date.today()
+    end = end_date or _local_today(db, org_id)
     start = start_date or end.replace(day=1)
     return _build_summary(db, org_id, emp.id, start, end)
 
@@ -390,7 +437,7 @@ def employee_summary(
 ):
     target = _get_employee_or_404(db, org_id, employee_id)
     ensure_can_view_employee(user, target, db)
-    end = end_date or date.today()
+    end = end_date or _local_today(db, org_id)
     start = start_date or end.replace(day=1)
     return _build_summary(db, org_id, employee_id, start, end)
 
@@ -422,7 +469,7 @@ def today_board(user: CurrentUser, org_id: TenantId, db: DbSession):
     Tablo prezans jodi a. HR ak admin wè tout moun;
     yon manadjè wè sèlman ekip dirèk li.
     """
-    today = date.today()
+    today = _local_today(db, org_id)
 
     q = (
         db.query(TimeEntry, Employee)

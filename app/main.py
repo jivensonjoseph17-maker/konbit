@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from .config import settings
-from .database import Base, engine
+from .database import engine
 
 # --- Router ki aktif ---
 from .routers import (
@@ -36,11 +36,9 @@ logger = logging.getLogger("konbit")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Nan devlopman sèlman: kreye tab yo otomatikman.
-    # Nan pwodiksyon se Alembic ki fè travay sa a.
-    if not settings.is_production:
-        Base.metadata.create_all(bind=engine)
-        logger.info("Tab yo kreye (mòd devlopman).")
+    # Pa gen create_all isit: se Alembic sèlman ki kreye ak modifye tab yo.
+    # Si ou chanje yon modèl: alembic revision --autogenerate -m "..."
+    # epi alembic upgrade head.
     logger.info("Konbit API demare — anviwonman: %s", settings.environment)
     yield
     engine.dispose()
