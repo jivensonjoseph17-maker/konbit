@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rekritman — KONMBIT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div class="app">
+    <aside id="sidebar"></aside>
+
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+
+      <main class="page">
+        <div class="page-head-row">
+          <div class="page-head">
+            <h1>Rekritman</h1>
+            <p id="count-label">Ap chaje…</p>
+          </div>
+          <button class="btn btn-primary" type="button" id="add-btn">Nouvo òf</button>
+        </div>
+
+        <!-- Fòm kreye yon òf -->
+        <section class="panel form-panel" id="form-panel" hidden aria-labelledby="form-title">
+          <div class="panel-head">
+            <h2 id="form-title">Nouvo òf travay</h2>
+          </div>
+
+          <form id="job-form" novalidate>
+            <div class="alert alert-error" id="form-error" role="alert"></div>
+
+            <div class="form-grid" style="margin-top: 12px;">
+              <p class="form-section-title">Baz</p>
+
+              <div class="field span-2">
+                <label for="f-title">Tit pòs la</label>
+                <input class="input" id="f-title" required minlength="3" maxlength="200" autocomplete="off" placeholder="Kesye, Enjenyè Lojisyèl...">
+              </div>
+              <div class="field">
+                <label for="f-location">Kote</label>
+                <input class="input" id="f-location" maxlength="200" autocomplete="off" placeholder="Pòtoprens, Ayiti">
+              </div>
+              <div class="field">
+                <label for="f-type">Kalite kontra</label>
+                <select class="select" id="f-type">
+                  <option value="full_time">Tan plen</option>
+                  <option value="part_time">Tan pasyèl</option>
+                  <option value="contract">Kontra</option>
+                  <option value="intern">Estaj</option>
+                  <option value="seasonal">Sezon</option>
+                </select>
+              </div>
+              <div class="field span-2">
+                <label class="check" style="margin-top: 8px;">
+                  <input type="checkbox" id="f-remote">
+                  Travay la ka fèt adistans
+                </label>
+              </div>
+
+              <p class="form-section-title">Deskripsyon</p>
+
+              <div class="field span-2">
+                <label for="f-desc">Deskripsyon pòs la</label>
+                <textarea class="textarea" id="f-desc" rows="4" maxlength="4000"></textarea>
+                <span class="hint">Obligatwa anvan ou ka pibliye òf la.</span>
+              </div>
+              <div class="field span-2">
+                <label for="f-req">Kalifikasyon mande</label>
+                <textarea class="textarea" id="f-req" rows="3" maxlength="4000"></textarea>
+              </div>
+              <div class="field span-2">
+                <label for="f-resp">Responsablite</label>
+                <textarea class="textarea" id="f-resp" rows="3" maxlength="4000"></textarea>
+              </div>
+
+              <p class="form-section-title">Salè ak kantite pòs</p>
+
+              <div class="field">
+                <label for="f-salmin">Salè minimòm (HTG)</label>
+                <input class="input" id="f-salmin" inputmode="decimal" placeholder="Opsyonèl" autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="f-salmax">Salè maksimòm (HTG)</label>
+                <input class="input" id="f-salmax" inputmode="decimal" placeholder="Opsyonèl" autocomplete="off">
+              </div>
+              <div class="field span-2">
+                <label class="check">
+                  <input type="checkbox" id="f-showsal">
+                  Montre salè a sou paj karyè piblik la
+                </label>
+              </div>
+              <div class="field">
+                <label for="f-openings">Kantite pòs louvri</label>
+                <input class="input" id="f-openings" type="number" min="1" max="999" value="1">
+              </div>
+              <div class="field">
+                <label for="f-closes">Dat fèmti (opsyonèl)</label>
+                <input class="input" id="f-closes" type="date">
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button class="btn btn-primary" type="submit">Kreye òf la</button>
+              <button class="btn btn-ghost" type="button" id="f-cancel">Anile</button>
+            </div>
+          </form>
+        </section>
+
+        <div class="toolbar">
+          <input class="input" id="search" type="search" placeholder="Chèche pa tit">
+          <select class="select" id="f-status" aria-label="Estati">
+            <option value="">Tout estati</option>
+            <option value="draft">Bouyon</option>
+            <option value="published">Pibliye</option>
+            <option value="closed">Fèmen</option>
+          </select>
+        </div>
+
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">Tit</th>
+                <th scope="col">Estati</th>
+                <th scope="col" class="num-col hide-sm">Kandida</th>
+                <th scope="col" class="num-col hide-sm">Pòs louvri</th>
+                <th scope="col"><span class="visually-hidden">Aksyon</span></th>
+              </tr>
+            </thead>
+            <tbody id="rows">
+              <tr><td colspan="5" class="loading">Ap chaje…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script src="shell.js"></script>
+  <script>
+  (async function () {
+    'use strict';
+    const { api, fmt, h, ApiError, shell } = Konbit;
+
+    const identity = await shell.mount('hiring', shell.ADMIN);
+    if (!identity) return;
+
+    const $ = (id) => document.getElementById(id);
+
+    const JOB_STATUS = {
+      draft: ['Bouyon', 'badge-pending'],
+      published: ['Pibliye', 'badge-approved'],
+      closed: ['Fèmen', 'badge-cancelled'],
+    };
+
+    const state = { q: '', status: '', items: [] };
+
+    function errorMessage(err) {
+      let msg = err instanceof ApiError ? err.message : 'Yon bagay pa mache.';
+      if (err && err.fields && err.fields.length) {
+        msg += ' ' + err.fields.map((f) => `${f.field}: ${f.message}`).join('; ');
+      }
+      return msg;
+    }
+
+    function statusBadge(status) {
+      const [label, cls] = JOB_STATUS[status] || [status, ''];
+      return h('span', { class: `badge ${cls}` }, label);
+    }
+
+    // -----------------------------------------------------------------------
+    // FÒM KREYE
+    // -----------------------------------------------------------------------
+
+    const form = $('job-form');
+    const formError = $('form-error');
+
+    function openForm() {
+      $('form-panel').hidden = false;
+      $('add-btn').hidden = true;
+      $('f-title').focus();
+    }
+
+    function closeForm() {
+      $('form-panel').hidden = true;
+      $('add-btn').hidden = false;
+      form.reset();
+      formError.textContent = '';
+    }
+
+    $('add-btn').addEventListener('click', openForm);
+    $('f-cancel').addEventListener('click', closeForm);
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      formError.textContent = '';
+
+      const title = $('f-title').value.trim();
+      if (title.length < 3) {
+        formError.textContent = 'Tit la dwe gen omwen 3 karaktè.';
+        return;
+      }
+
+      const salMin = $('f-salmin').value.trim() ? fmt.parseMoney($('f-salmin').value) : null;
+      const salMax = $('f-salmax').value.trim() ? fmt.parseMoney($('f-salmax').value) : null;
+      if (($('f-salmin').value.trim() && salMin === null) || ($('f-salmax').value.trim() && salMax === null)) {
+        formError.textContent = 'Salè a pa yon chif valab.';
+        return;
+      }
+
+      const payload = {
+        title,
+        description: $('f-desc').value.trim() || null,
+        requirements: $('f-req').value.trim() || null,
+        responsibilities: $('f-resp').value.trim() || null,
+        location: $('f-location').value.trim() || null,
+        is_remote: $('f-remote').checked,
+        employment_type: $('f-type').value,
+        salary_min: salMin,
+        salary_max: salMax,
+        show_salary: $('f-showsal').checked,
+        openings: Number($('f-openings').value) || 1,
+        closes_at: $('f-closes').value ? `${$('f-closes').value}T23:59:59` : null,
+      };
+
+      const submitBtn = form.querySelector('[type="submit"]');
+      submitBtn.disabled = true;
+      try {
+        const job = await api.post('/api/jobs', payload);
+        location.href = `job.html?id=${job.id}`;
+      } catch (err) {
+        formError.textContent = errorMessage(err);
+        submitBtn.disabled = false;
+      }
+    });
+
+    // -----------------------------------------------------------------------
+    // LIS
+    // -----------------------------------------------------------------------
+
+    async function loadList() {
+      const body = $('rows');
+      body.replaceChildren(h('tr', {}, h('td', { colspan: '5', class: 'loading' }, 'Ap chaje…')));
+
+      const params = new URLSearchParams();
+      if (state.q) params.set('q', state.q);
+      if (state.status) params.set('status', state.status);
+
+      try {
+        const data = await api.get(`/api/jobs?${params}`);
+        state.items = data.items;
+        $('count-label').textContent = data.total === 1 ? '1 òf' : `${data.total} òf`;
+
+        if (!data.items.length) {
+          body.replaceChildren(h('tr', {}, h('td', { colspan: '5', class: 'empty' },
+            state.q || state.status
+              ? 'Pa gen òf ki koresponn ak filtè a.'
+              : 'Ou poko gen okenn òf travay. Klike "Nouvo òf" pou kòmanse.')));
+        } else {
+          body.replaceChildren(...data.items.map(row));
+        }
+      } catch (err) {
+        body.replaceChildren(h('tr', {}, h('td', { colspan: '5', class: 'empty' }, errorMessage(err))));
+      }
+    }
+
+    function row(job) {
+      return h('tr', {},
+        h('td', {},
+          h('a', { class: 'who plain-link', href: `job.html?id=${job.id}` }, job.title),
+          job.location ? h('div', { class: 'num' }, job.is_remote ? `${job.location} · adistans` : job.location) : null,
+        ),
+        h('td', {}, statusBadge(job.status)),
+        h('td', { class: 'num-col cell-muted hide-sm' }, String(job.application_count)),
+        h('td', { class: 'num-col cell-muted hide-sm' }, String(job.openings)),
+        h('td', { class: 'actions' }, h('a', { class: 'btn btn-ghost btn-sm', href: `job.html?id=${job.id}` }, 'Wè')),
+      );
+    }
+
+    let searchTimer;
+    $('search').addEventListener('input', (e) => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        state.q = e.target.value.trim();
+        loadList();
+      }, 300);
+    });
+
+    $('f-status').addEventListener('change', (e) => {
+      state.status = e.target.value;
+      loadList();
+    });
+
+    loadList();
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Balans konje — KONMBIT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div class="app">
+    <aside id="sidebar"></aside>
+
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+
+      <main class="page">
+        <div class="page-head-row">
+          <div class="page-head">
+            <h1>Balans konje</h1>
+            <p id="count-label">Ap chaje…</p>
+          </div>
+          <button class="btn btn-primary" type="button" id="bulk-btn">Mete 15 jou pou tout moun</button>
+        </div>
+
+        <p class="hint" style="display: block; margin-top: -14px; margin-bottom: 18px;">
+          Kòd Travay Ayisyen an bay 15 jou konje vakans chak ane apre yon ane sèvis.
+          Chanje yon chif nan tablo a epi klike "Sove" sou ranje moun nan pou anrejistre l.
+        </p>
+
+        <div class="toolbar">
+          <input class="input" id="search" type="search" placeholder="Chèche pa non oswa nimewo">
+          <select class="select" id="f-type" aria-label="Kalite konje"></select>
+          <select class="select" id="f-year" aria-label="Ane"></select>
+          <label class="check">
+            <input type="checkbox" id="show-inactive">
+            Montre moun ki pa la ankò
+          </label>
+        </div>
+
+        <p class="hint" id="bulk-msg" role="status" style="display: block; min-height: 18px;"></p>
+
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">Anplwaye</th>
+                <th scope="col" class="num-col">Jou definitif</th>
+                <th scope="col" class="num-col hide-sm">Jou pote</th>
+                <th scope="col" class="num-col hide-sm">Jou itilize</th>
+                <th scope="col" class="num-col">Rete</th>
+                <th scope="col"><span class="visually-hidden">Aksyon</span></th>
+              </tr>
+            </thead>
+            <tbody id="rows">
+              <tr><td colspan="6" class="loading">Ap chaje…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script src="shell.js"></script>
+  <script>
+  (async function () {
+    'use strict';
+    const { api, fmt, h, ApiError, shell } = Konbit;
+
+    // 'leave-admin' matche id ki nan NAV nan shell.js, pou meni an sou kote
+    // limen bon lyen an. shell.ADMIN = super_admin / org_admin / hr.
+    const identity = await shell.mount('leave-admin', shell.ADMIN);
+    if (!identity) return;
+
+    const $ = (id) => document.getElementById(id);
+
+    // Sèlman kalite konje ki gen yon balans ki gen sans pou HR jere.
+    // Konje san peye, antèman ak "lòt" pa rache anyen (gade NON_DEDUCTIBLE
+    // nan backend/app/routers/leaves.py), donk yo pa parèt isit la.
+    const DEDUCTIBLE_TYPES = ['vacation', 'sick', 'maternity', 'paternity'];
+
+    const CURRENT_YEAR = new Date().getFullYear();
+    const state = { type: 'vacation', year: CURRENT_YEAR, q: '', inactive: false, items: [] };
+
+    function errorText(err) {
+      return err instanceof ApiError ? err.message : 'Yon bagay pa mache.';
+    }
+
+    function fmtDays(n) {
+      return Number(n).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+    }
+
+    // -----------------------------------------------------------------------
+    // FILT
+    // -----------------------------------------------------------------------
+
+    $('f-type').replaceChildren(
+      ...DEDUCTIBLE_TYPES.map((t) => h('option', { value: t }, fmt.leaveType(t))),
+    );
+    $('f-type').value = state.type;
+
+    $('f-year').replaceChildren(
+      ...[CURRENT_YEAR - 1, CURRENT_YEAR, CURRENT_YEAR + 1].map((y) =>
+        h('option', { value: String(y) }, String(y))),
+    );
+    $('f-year').value = String(state.year);
+
+    // Balans "15 jou default" la se yon règ vakans sèlman — nou kache bouton
+    // an gwo a pou lòt kalite konje pou HR pa aksidantèlman mete 15 jou malad.
+    function syncBulkButton() {
+      $('bulk-btn').hidden = state.type !== 'vacation';
+    }
+    syncBulkButton();
+
+    $('f-type').addEventListener('change', (e) => {
+      state.type = e.target.value;
+      syncBulkButton();
+      loadList();
+    });
+
+    $('f-year').addEventListener('change', (e) => {
+      state.year = Number(e.target.value);
+      loadList();
+    });
+
+    let searchTimer;
+    $('search').addEventListener('input', (e) => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        state.q = e.target.value.trim();
+        loadList();
+      }, 300);
+    });
+
+    $('show-inactive').addEventListener('change', (e) => {
+      state.inactive = e.target.checked;
+      loadList();
+    });
+
+    // -----------------------------------------------------------------------
+    // LIS
+    // -----------------------------------------------------------------------
+
+    async function loadList() {
+      const body = $('rows');
+      body.replaceChildren(h('tr', {}, h('td', { colspan: '6', class: 'loading' }, 'Ap chaje…')));
+      $('bulk-msg').textContent = '';
+
+      const params = new URLSearchParams({ leave_type: state.type, year: String(state.year) });
+      if (state.q) params.set('q', state.q);
+      if (state.inactive) params.set('include_inactive', 'true');
+
+      try {
+        const data = await api.get(`/api/leaves/balances?${params}`);
+        state.items = data.items;
+
+        $('count-label').textContent = `${data.total} moun — ${fmt.leaveType(state.type)} ${state.year}`;
+
+        if (!data.items.length) {
+          body.replaceChildren(h('tr', {}, h('td', { colspan: '6', class: 'empty' },
+            state.q ? 'Pesonn pa koresponn ak rechèch sa a.' : 'Pa gen anplwaye aktif.')));
+        } else {
+          body.replaceChildren(...data.items.map(row));
+        }
+      } catch (err) {
+        body.replaceChildren(h('tr', {}, h('td', { colspan: '6', class: 'empty' }, errorText(err))));
+      }
+    }
+
+    function row(item) {
+      const entitled = h('input', {
+        class: 'input', type: 'number', min: '0', max: '365', step: '0.5',
+        'aria-label': `Jou definitif pou ${item.employee_name}`,
+      });
+      entitled.value = item.entitled_days;
+
+      const carried = h('input', {
+        class: 'input', type: 'number', min: '0', max: '365', step: '0.5',
+        'aria-label': `Jou pote pou ${item.employee_name}`,
+      });
+      carried.value = item.carried_over_days;
+
+      const remainingCell = h('span', { class: 'strong' }, fmtDays(item.remaining_days));
+      const rowMsg = h('span', { class: 'field-error' });
+      const saveBtn = h('button', { class: 'btn btn-ghost btn-sm', type: 'button', disabled: true }, 'Sove');
+
+      function markDirty() {
+        const changed = Number(entitled.value) !== item.entitled_days
+          || Number(carried.value) !== item.carried_over_days;
+        saveBtn.disabled = !changed;
+      }
+      entitled.addEventListener('input', markDirty);
+      carried.addEventListener('input', markDirty);
+
+      saveBtn.addEventListener('click', async () => {
+        saveBtn.disabled = true;
+        rowMsg.textContent = '';
+        try {
+          const updated = await api.put('/api/leaves/balances', {
+            employee_id: item.employee_id,
+            leave_type: state.type,
+            year: state.year,
+            entitled_days: Number(entitled.value) || 0,
+            carried_over_days: Number(carried.value) || 0,
+          });
+          item.entitled_days = updated.entitled_days;
+          item.carried_over_days = updated.carried_over_days;
+          item.remaining_days = updated.remaining_days;
+          remainingCell.textContent = fmtDays(updated.remaining_days);
+          saveBtn.textContent = 'Sove ✓';
+          setTimeout(() => { saveBtn.textContent = 'Sove'; }, 1500);
+        } catch (err) {
+          rowMsg.textContent = errorText(err);
+          saveBtn.disabled = false;
+        }
+      });
+
+      return h('tr', {},
+        h('td', {},
+          h('div', { class: 'person' },
+            h('span', { class: 'avatar', 'aria-hidden': 'true' }, shell.initials(item.employee_name)),
+            h('div', {},
+              h('a', { class: 'who plain-link', href: `employee.html?id=${item.employee_id}` }, item.employee_name),
+              h('div', { class: 'num' }, item.employee_number),
+            ),
+          ),
+        ),
+        h('td', { class: 'num-col' }, entitled),
+        h('td', { class: 'num-col hide-sm' }, carried),
+        h('td', { class: 'num-col cell-muted hide-sm' }, fmtDays(item.used_days)),
+        h('td', { class: 'num-col' }, remainingCell),
+        h('td', { class: 'actions' }, saveBtn, rowMsg),
+      );
+    }
+
+    // -----------------------------------------------------------------------
+    // AKSYON AN GWO — mete 15 jou pou tout moun ki nan lis la kounye a
+    // -----------------------------------------------------------------------
+
+    $('bulk-btn').addEventListener('click', async () => {
+      if (!state.items.length) return;
+      const ok = confirm(
+        `Mete 15 jou konje vakans pou ${state.items.length} moun nan ane ${state.year}? ` +
+        'Sa ap ranplase jou definitif yo genyen kounye a (jou yo deja pote ap rete menm jan an).'
+      );
+      if (!ok) return;
+
+      $('bulk-btn').disabled = true;
+      let done = 0;
+      let failed = 0;
+
+      for (const item of state.items) {
+        $('bulk-msg').textContent = `Ap mete jou yo… ${done + failed}/${state.items.length}`;
+        try {
+          await api.put('/api/leaves/balances', {
+            employee_id: item.employee_id,
+            leave_type: 'vacation',
+            year: state.year,
+            entitled_days: 15,
+            carried_over_days: item.carried_over_days,
+          });
+          done += 1;
+        } catch {
+          failed += 1;
+        }
+      }
+
+      $('bulk-btn').disabled = false;
+      $('bulk-msg').textContent = failed
+        ? `${done} moun sove, ${failed} echwe. Eseye ankò pou moun ki echwe yo.`
+        : `${done} moun jwenn 15 jou konje vakans pou ${state.year}.`;
+      await loadList();
+    });
+
+    loadList();
+  })();
+  </script>
+</body>
+</html>

@@ -25,9 +25,9 @@
     { group: 'Jesyon', roles: ADMIN, items: [
       { id: 'employees', label: 'Anplwaye', href: 'employees.html' },
       { id: 'payroll', label: 'Peyòl', href: 'payroll.html' },
-      { id: 'leave-admin', label: 'Balans konje', soon: true },
-      { id: 'hiring', label: 'Rekritman', soon: true },
-      { id: 'training', label: 'Fòmasyon', soon: true },
+      { id: 'leave-admin', label: 'Balans konje', href: 'leave-balances.html' },
+      { id: 'hiring', label: 'Rekritman', href: 'jobs.html' },
+      { id: 'training', label: 'Fòmasyon', href: 'training.html' },
     ] },
     { group: 'Ekip', roles: ['manager'], items: [
       { id: 'team', label: 'Ekip mwen', soon: true },
@@ -37,6 +37,24 @@
   function initials(name) {
     return (name || '?').split(/\s+/).filter(Boolean).slice(0, 2)
       .map((p) => p[0].toUpperCase()).join('');
+  }
+
+  // -------------------------------------------------------------------------
+  // SIDEBAR — sou telefòn ☰ louvri yon tiwa (pa sove, li toujou fèmen lè paj
+  // la chaje). Sou òdinatè ☰ kache/montre sidebar la nèt, epi CHWA a SOVE
+  // (localStorage) pou l rete konsa lè moun nan chanje paj.
+  // -------------------------------------------------------------------------
+
+  const SIDEBAR_KEY = 'konbit.sidebar_collapsed';
+  const isMobileView = () => window.matchMedia('(max-width: 880px)').matches;
+
+  function isSidebarCollapsed() {
+    try { return localStorage.getItem(SIDEBAR_KEY) === '1'; } catch { return false; }
+  }
+
+  /** Aplike chwa sove a sou <body> anvan nou rann anyen — evite yon ti fla. */
+  function applySidebarState() {
+    document.body.classList.toggle('sidebar-collapsed', isSidebarCollapsed());
   }
 
   function renderSidebar(identity, active) {
@@ -84,12 +102,20 @@
       class: 'btn btn-ghost btn-sm menu-btn',
       type: 'button',
       'aria-controls': 'sidebar',
-      'aria-expanded': 'false',
+      'aria-expanded': String(isMobileView() ? false : !isSidebarCollapsed()),
     }, 'Meni');
 
     menuBtn.addEventListener('click', () => {
-      const open = document.body.classList.toggle('nav-open');
-      menuBtn.setAttribute('aria-expanded', String(open));
+      if (isMobileView()) {
+        // Telefòn: tiwa ki louvri sou kontni a, pa gen anyen pou sove.
+        const open = document.body.classList.toggle('nav-open');
+        menuBtn.setAttribute('aria-expanded', String(open));
+        return;
+      }
+      // Òdinatè: kache/montre sidebar la nèt, epi sove chwa a.
+      const collapsed = document.body.classList.toggle('sidebar-collapsed');
+      try { localStorage.setItem(SIDEBAR_KEY, collapsed ? '1' : '0'); } catch { /* ok san sove */ }
+      menuBtn.setAttribute('aria-expanded', String(!collapsed));
     });
 
     const logout = h('button', { class: 'btn btn-quiet btn-sm', type: 'button' }, 'Dekonekte');
@@ -140,6 +166,7 @@
       return null;
     }
 
+    applySidebarState();
     renderSidebar(identity, active);
     renderTopbar(identity);
     return identity;

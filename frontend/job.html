@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Òf travay — KONMBIT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div class="app">
+    <aside id="sidebar"></aside>
+
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+
+      <main class="page">
+        <a class="back-link" href="jobs.html">Tout òf yo</a>
+
+        <div id="content"><p class="loading">Ap chaje…</p></div>
+      </main>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script src="shell.js"></script>
+  <script>
+  (async function () {
+    'use strict';
+    const { api, fmt, h, ApiError, shell } = Konbit;
+
+    const identity = await shell.mount('hiring', shell.ADMIN);
+    if (!identity) return;
+
+    const content = document.getElementById('content');
+    const id = Number(new URLSearchParams(location.search).get('id'));
+
+    if (!Number.isInteger(id) || id <= 0) {
+      content.replaceChildren(h('div', { class: 'alert alert-error' }, 'Pa gen òf chwazi. Retounen nan lis la.'));
+      return;
+    }
+
+    let job = null;
+
+    const JOB_STATUS = {
+      draft: ['Bouyon', 'badge-pending'],
+      published: ['Pibliye', 'badge-approved'],
+      closed: ['Fèmen', 'badge-cancelled'],
+    };
+
+    const EMPLOYMENT_TYPE_LABELS = {
+      full_time: 'Tan plen', part_time: 'Tan pasyèl', contract: 'Kontra',
+      intern: 'Estaj', seasonal: 'Sezon',
+    };
+
+    const STAGE_LABELS = {
+      received: 'Resevwa', screening: 'Seleksyon', interview: 'Antrevi',
+      offer: 'Òf', hired: 'Anboche', rejected: 'Refize', withdrawn: 'Retire',
+    };
+
+    // 'hired' pa nan lis la — backend refize yon chanjman dirèk vè 'hired'
+    // (sa mande yon Offer akepte, gade backend/app/routers/offers.py).
+    const ALLOWED_TRANSITIONS = {
+      received: ['screening', 'rejected', 'withdrawn'],
+      screening: ['interview', 'rejected', 'withdrawn'],
+      interview: ['offer', 'screening', 'rejected', 'withdrawn'],
+      offer: ['rejected', 'withdrawn'],
+      rejected: ['screening'],
+      withdrawn: ['screening'],
+    };
+
+    const ACTIVE_STAGES = ['received', 'screening', 'interview', 'offer'];
+
+    // -------------------------------------------------------------------
+    // ZOUTI
+    // -------------------------------------------------------------------
+
+    function errorMessage(err) {
+      let msg = err instanceof ApiError ? err.message : 'Yon bagay pa mache.';
+      if (err && err.fields && err.fields.length) {
+        msg += ' ' + err.fields.map((f) => `${f.field}: ${f.message}`).join('; ');
+      }
+      return msg;
+    }
+
+    function statusBadge(status) {
+      const [label, cls] = JOB_STATUS[status] || [status, ''];
+      return h('span', { class: `badge ${cls}` }, label);
+    }
+
+    function field(label, inputEl, hint) {
+      return h('div', { class: 'field' },
+        h('label', { for: inputEl.id }, label),
+        inputEl,
+        hint ? h('span', { class: 'hint' }, hint) : null,
+      );
+    }
+
+    function input(id, value, attrs = {}) {
+      const el = h('input', { class: 'input', id, autocomplete: 'off', ...attrs });
+      el.value = value ?? '';
+      return el;
+    }
+
+    function textarea(id, value, attrs = {}) {
+      const el = h('textarea', { class: 'textarea', id, ...attrs });
+      el.value = value ?? '';
+      return el;
+    }
+
+    function centsToInput(cents) {
+      if (cents === null || cents === undefined) return '';
+      return (cents / 100).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+    }
+
+    function toDateInputValue(iso) {
+      return iso ? iso.slice(0, 10) : '';
+    }
+
+    // -------------------------------------------------------------------
+    // CHAJE
+    // -------------------------------------------------------------------
+
+    async function load() {
+      try {
+        job = await api.get(`/api/jobs/${id}`);
+        render();
+      } catch (err) {
+        content.replaceChildren(h('div', { class: 'alert alert-error' }, errorMessage(err)));
+      }
+    }
+
+    // -------------------------------------------------------------------
+    // RANN
+    // -------------------------------------------------------------------
+
+    function render() {
+      document.title = `${job.title} — KONMBIT`;
+      const actionMsg = h('p', { class: 'field-error', role: 'status' });
+
+      // --- Bouton aksyon dapre estati ---
+      const actions = [];
+
+      if (job.status === 'draft') {
+        const publishBtn = h('button', { class: 'btn btn-primary btn-sm', type: 'button' }, 'Pibliye');
+        publishBtn.addEventListener('click', async () => {
+          actionMsg.textContent = '';
+          publishBtn.disabled = true;
+          try {
+            job = await api.post(`/api/jobs/${id}/publish`, {});
+            render();
+          } catch (err) {
+            actionMsg.textContent = errorMessage(err);
+            publishBtn.disabled = false;
+          }
+        });
+        actions.push(publishBtn);
+      }
+
+      if (job.status === 'published') {
+        const closeBtn = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, 'Fèmen');
+        closeBtn.addEventListener('click', async () => {
+          if (!confirm(`Fèmen òf "${job.title}"? Li p ap parèt sou paj karyè a ankò.`)) return;
+          const rejectRest = confirm(
+            'Ou vle refize otomatikman kandida ki poko fini (resevwa, seleksyon, antrevi)?'
+          );
+          const note = rejectRest ? (prompt('Nòt refi (opsyonèl):') || null) : null;
+
+          actionMsg.textContent = '';
+          closeBtn.disabled = true;
+          try {
+            const result = await api.post(`/api/jobs/${id}/close`, {
+              reject_pending: rejectRest,
+              rejection_note: note,
+            });
+            job = result.job;
+            if (result.rejected_applications) {
+              actionMsg.className = 'hint';
+              actionMsg.textContent = `${result.rejected_applications} kandida refize otomatikman.`;
+            }
+            render();
+            loadPipeline();
+          } catch (err) {
+            actionMsg.className = 'field-error';
+            actionMsg.textContent = errorMessage(err);
+            closeBtn.disabled = false;
+          }
+        });
+        actions.push(closeBtn);
+      }
+
+      if (job.status === 'closed') {
+        const reopenBtn = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, 'Louvri ankò');
+        reopenBtn.addEventListener('click', async () => {
+          if (!confirm(`Remèt òf "${job.title}" nan estati Pibliye?`)) return;
+          actionMsg.textContent = '';
+          reopenBtn.disabled = true;
+          try {
+            job = await api.post(`/api/jobs/${id}/reopen`, {});
+            render();
+          } catch (err) {
+            actionMsg.textContent = errorMessage(err);
+            reopenBtn.disabled = false;
+          }
+        });
+        actions.push(reopenBtn);
+      }
+
+      if (job.status === 'draft' && job.application_count === 0) {
+        const deleteBtn = h('button', { class: 'btn btn-danger btn-sm', type: 'button' }, 'Efase');
+        deleteBtn.addEventListener('click', async () => {
+          if (!confirm(`Efase bouyon "${job.title}" nèt? Sa pa ka defèt.`)) return;
+          deleteBtn.disabled = true;
+          try {
+            await api.del(`/api/jobs/${id}`);
+            location.href = 'jobs.html';
+          } catch (err) {
+            actionMsg.textContent = errorMessage(err);
+            deleteBtn.disabled = false;
+          }
+        });
+        actions.push(deleteBtn);
+      }
+
+      const head = h('div', { class: 'emp-head' },
+        h('div', { class: 'emp-head-text' },
+          h('h1', {}, job.title),
+          h('p', { class: 'emp-meta' },
+            statusBadge(job.status),
+            h('span', {}, `${job.application_count} kandida`),
+            h('span', {}, `${job.openings} pòs louvri`),
+            h('span', {}, EMPLOYMENT_TYPE_LABELS[job.employment_type] || job.employment_type),
+            job.location ? h('span', {}, job.is_remote ? `${job.location} · adistans` : job.location) : null,
+          ),
+        ),
+        h('div', { class: 'emp-actions' }, ...actions),
+      );
+
+      content.replaceChildren(
+        head,
+        actionMsg,
+        editPanel(),
+        pipelinePanel(),
+      );
+
+      loadPipeline();
+    }
+
+    // -------------------------------------------------------------------
+    // FÒM MODIFYE
+    // -------------------------------------------------------------------
+
+    function editPanel() {
+      const title = input('e-title', job.title, { required: true, minlength: '3', maxlength: '200' });
+      const location_ = input('e-location', job.location, { maxlength: '200' });
+      const desc = textarea('e-desc', job.description, { rows: '4', maxlength: '4000' });
+      const req = textarea('e-req', job.requirements, { rows: '3', maxlength: '4000' });
+      const resp = textarea('e-resp', job.responsibilities, { rows: '3', maxlength: '4000' });
+      const remote = h('input', { type: 'checkbox', id: 'e-remote' });
+      remote.checked = Boolean(job.is_remote);
+      const salMin = input('e-salmin', centsToInput(job.salary_min), { inputmode: 'decimal' });
+      const salMax = input('e-salmax', centsToInput(job.salary_max), { inputmode: 'decimal' });
+      const showSal = h('input', { type: 'checkbox', id: 'e-showsal' });
+      showSal.checked = Boolean(job.show_salary);
+      const openings = input('e-openings', String(job.openings), { type: 'number', min: '1', max: '999' });
+      const closes = input('e-closes', toDateInputValue(job.closes_at), { type: 'date' });
+
+      const msg = h('p', { class: 'field-error', role: 'status' });
+      const saveBtn = h('button', { class: 'btn btn-primary', type: 'submit' }, 'Sove chanjman yo');
+
+      const form = h('form', { novalidate: true },
+        h('div', { class: 'form-grid' },
+          h('div', { class: 'field span-2' }, field('Tit pòs la', title)),
+          field('Kote', location_),
+          h('div', { class: 'field' },
+            h('label', {}, 'Kalite kontra'),
+            h('p', { style: 'padding-top: 10px; color: var(--muted);' },
+              EMPLOYMENT_TYPE_LABELS[job.employment_type] || job.employment_type,
+              h('span', { class: 'hint', style: 'display: block;' }, 'Pa ka chanje apre kreyasyon.'),
+            ),
+          ),
+          h('div', { class: 'field span-2' },
+            h('label', {}, h('span', { class: 'check' }, remote, ' Travay la ka fèt adistans')),
+          ),
+          h('div', { class: 'field span-2' }, field('Deskripsyon', desc)),
+          h('div', { class: 'field span-2' }, field('Kalifikasyon mande', req)),
+          h('div', { class: 'field span-2' }, field('Responsablite', resp)),
+          field('Salè minimòm (HTG)', salMin),
+          field('Salè maksimòm (HTG)', salMax),
+          h('div', { class: 'field span-2' },
+            h('label', {}, h('span', { class: 'check' }, showSal, ' Montre salè a sou paj karyè piblik la')),
+          ),
+          field('Kantite pòs louvri', openings),
+          field('Dat fèmti (opsyonèl)', closes),
+        ),
+        msg,
+        h('div', { class: 'form-actions' }, saveBtn),
+      );
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        msg.textContent = '';
+
+        const newSalMin = salMin.value.trim() ? fmt.parseMoney(salMin.value) : null;
+        const newSalMax = salMax.value.trim() ? fmt.parseMoney(salMax.value) : null;
+        if ((salMin.value.trim() && newSalMin === null) || (salMax.value.trim() && newSalMax === null)) {
+          msg.textContent = 'Salè a pa yon chif valab.';
+          return;
+        }
+
+        const desired = {
+          title: title.value.trim(),
+          location: location_.value.trim() || null,
+          description: desc.value.trim() || null,
+          requirements: req.value.trim() || null,
+          responsibilities: resp.value.trim() || null,
+          is_remote: remote.checked,
+          salary_min: newSalMin,
+          salary_max: newSalMax,
+          show_salary: showSal.checked,
+          openings: Number(openings.value) || 1,
+          closes_at: closes.value ? `${closes.value}T23:59:59` : null,
+        };
+
+        const current = {
+          title: job.title,
+          location: job.location ?? null,
+          description: job.description ?? null,
+          requirements: job.requirements ?? null,
+          responsibilities: job.responsibilities ?? null,
+          is_remote: Boolean(job.is_remote),
+          salary_min: job.salary_min ?? null,
+          salary_max: job.salary_max ?? null,
+          show_salary: Boolean(job.show_salary),
+          openings: job.openings,
+          closes_at: job.closes_at ? `${toDateInputValue(job.closes_at)}T23:59:59` : null,
+        };
+
+        const changes = {};
+        for (const [k, v] of Object.entries(desired)) {
+          if (current[k] !== v) changes[k] = v;
+        }
+
+        if (!Object.keys(changes).length) {
+          msg.className = 'hint';
+          msg.textContent = 'Pa gen anyen ki chanje.';
+          return;
+        }
+
+        saveBtn.disabled = true;
+        try {
+          job = await api.patch(`/api/jobs/${id}`, changes);
+          msg.className = 'hint';
+          msg.textContent = 'Chanjman yo sove.';
+          render();
+        } catch (err) {
+          msg.className = 'field-error';
+          msg.textContent = errorMessage(err);
+          saveBtn.disabled = false;
+        }
+      });
+
+      return h('section', { class: 'panel', style: 'margin-top: 20px;' },
+        h('div', { class: 'panel-head' }, h('h2', {}, 'Detay òf la')),
+        form,
+      );
+    }
+
+    // -------------------------------------------------------------------
+    // PIPELINE KANDIDA
+    // -------------------------------------------------------------------
+
+    function pipelinePanel() {
+      const body = h('div', {}, h('p', { class: 'loading' }, 'Ap chaje…'));
+      const historyLine = h('p', { class: 'hint', style: 'display: block; margin-top: 14px;' });
+
+      const el = h('section', { class: 'panel', style: 'margin-top: 20px;' },
+        h('div', { class: 'panel-head' },
+          h('h2', {}, 'Kandida yo'),
+          h('span', { class: 'meta' }, 'resevwa → seleksyon → antrevi → òf'),
+        ),
+        body,
+        historyLine,
+      );
+
+      el._body = body;
+      el._historyLine = historyLine;
+      pipelinePanel._el = el;
+      return el;
+    }
+
+    async function loadPipeline() {
+      const el = pipelinePanel._el;
+      if (!el) return;
+
+      try {
+        const data = await api.get(`/api/applications/pipeline/${id}`);
+        const byStage = Object.fromEntries(data.columns.map((c) => [c.stage, c]));
+
+        const board = h('div', {
+          style: 'display: grid; grid-template-columns: repeat(4, minmax(230px, 1fr)); gap: 14px; overflow-x: auto;',
+        }, ...ACTIVE_STAGES.map((stage) => stageColumn(stage, byStage[stage])));
+
+        el._body.replaceChildren(board);
+
+        const done = byStage.hired ? byStage.hired.count : 0;
+        const rej = byStage.rejected ? byStage.rejected.count : 0;
+        const wd = byStage.withdrawn ? byStage.withdrawn.count : 0;
+        el._historyLine.textContent =
+          `Istwa: ${done} anboche · ${rej} refize · ${wd} retire pa yo menm. `
+          + 'Konvèti yon òf an anplwaye fèt nan pwochen paj "Pwopozisyon travay".';
+      } catch (err) {
+        el._body.replaceChildren(h('p', { class: 'empty' }, errorMessage(err)));
+      }
+    }
+
+    function stageColumn(stage, colData) {
+      const items = colData ? colData.items : [];
+      return h('div', {},
+        h('p', { class: 'sub-label' }, `${STAGE_LABELS[stage]} (${items.length})`),
+        h('div', { style: 'display: grid; gap: 10px;' },
+          ...(items.length ? items.map((app) => candidateCard(app)) : [
+            h('p', { class: 'empty', style: 'font-size: 13px;' }, '—'),
+          ]),
+        ),
+      );
+    }
+
+    function candidateCard(app) {
+      const msg = h('p', { class: 'field-error', role: 'status', style: 'margin: 0;' });
+
+      const targets = ALLOWED_TRANSITIONS[app.stage] || [];
+      const moveSelect = h('select', { class: 'select', style: 'font-size: 13px;' },
+        h('option', { value: app.stage }, STAGE_LABELS[app.stage]),
+        ...targets.map((t) => h('option', { value: t }, `→ ${STAGE_LABELS[t]}`)),
+      );
+      const moveBtn = h('button', { class: 'btn btn-ghost btn-sm', type: 'button', disabled: true }, 'Deplase');
+
+      moveSelect.addEventListener('change', () => {
+        moveBtn.disabled = moveSelect.value === app.stage;
+      });
+
+      moveBtn.addEventListener('click', async () => {
+        moveBtn.disabled = true;
+        msg.textContent = '';
+        try {
+          await api.patch(`/api/applications/${app.id}`, { stage: moveSelect.value });
+          await loadPipeline();
+        } catch (err) {
+          msg.textContent = errorMessage(err);
+          moveBtn.disabled = false;
+        }
+      });
+
+      const rejectBtn = h('button', { class: 'btn btn-danger btn-sm', type: 'button' }, 'Refize');
+      rejectBtn.addEventListener('click', async () => {
+        const reason = prompt(`Poukisa ou refize ${app.full_name}?`);
+        if (reason === null) return;
+        if (reason.trim().length < 3) {
+          msg.textContent = 'Mete yon rezon ki gen omwen 3 karaktè.';
+          return;
+        }
+        rejectBtn.disabled = true;
+        try {
+          await api.post(`/api/applications/${app.id}/reject`, { reason: reason.trim() });
+          await loadPipeline();
+        } catch (err) {
+          msg.textContent = errorMessage(err);
+          rejectBtn.disabled = false;
+        }
+      });
+
+      return h('div', {
+        style: 'padding: 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); display: grid; gap: 6px;',
+      },
+        h('div', { style: 'font-weight: 600;' }, app.full_name),
+        h('div', { class: 'sub', style: 'font-size: 12.5px;' }, app.email),
+        app.phone ? h('div', { class: 'sub', style: 'font-size: 12.5px;' }, app.phone) : null,
+        app.resume_url
+          ? h('a', { class: 'plain-link', href: app.resume_url, target: '_blank', rel: 'noopener', style: 'font-size: 12.5px;' }, 'Wè CV')
+          : null,
+        h('div', { class: 'sub', style: 'font-size: 12px;' }, fmt.shortDate(app.created_at)),
+        h('div', { style: 'display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px;' }, moveSelect, moveBtn, rejectBtn),
+        msg,
+      );
+    }
+
+    load();
+  })();
+  </script>
+</body>
+</html>

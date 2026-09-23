@@ -94,16 +94,22 @@ button { font: inherit; color: inherit; }
   font-size: 17px;
   color: var(--text);
   position: relative;
+  overflow: hidden;
 }
 
 .brand-mark::before {
   content: '';
   position: absolute;
-  inset: 5px auto 5px 5px;
-  width: 14px;
-  border: 2px solid var(--gold);
-  border-right: 0;
-  border-radius: 14px 0 0 14px;
+  inset: 4px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: var(--gold);
+  border-right-color: var(--blue);
+  animation: brand-spin 6s linear infinite;
+}
+
+@keyframes brand-spin {
+  to { transform: rotate(360deg); }
 }
 
 .brand-name {
@@ -463,6 +469,7 @@ button { font: inherit; color: inherit; }
 
 @media (prefers-reduced-motion: reduce) {
   .clock.is-on .clock-dot { animation: none; }
+  .brand-mark::before { animation: none; }
   * { transition: none !important; }
 }
 
@@ -705,7 +712,13 @@ a.nav-item:hover { background: var(--surface); color: var(--text); }
 
 .app .topbar-org { padding-left: 0; border-left: 0; }
 
-.menu-btn { display: none; }
+.menu-btn { display: inline-flex; }
+
+/* Òdinatè: ☰ kache/montre sidebar la nèt (chwa a sove, gade shell.js). */
+@media (min-width: 881px) {
+  body.sidebar-collapsed .app { grid-template-columns: minmax(0, 1fr); }
+  body.sidebar-collapsed #sidebar { display: none; }
+}
 
 @media (max-width: 880px) {
   .app { grid-template-columns: 1fr; }

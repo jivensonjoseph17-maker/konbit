@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kou — KONMBIT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div class="app">
+    <aside id="sidebar"></aside>
+
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+
+      <main class="page">
+        <a class="back-link" href="dashboard.html">Tablo de bò</a>
+
+        <div id="content"><p class="loading">Ap chaje…</p></div>
+      </main>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script src="shell.js"></script>
+  <script>
+  (async function () {
+    'use strict';
+    const { api, fmt, h, ApiError, shell } = Konbit;
+
+    // Pa gen restriksyon wòl — nenpòt moun konekte ka gade pwòp kou li.
+    const identity = await shell.mount(null);
+    if (!identity) return;
+
+    const content = document.getElementById('content');
+    const courseId = Number(new URLSearchParams(location.search).get('id'));
+
+    if (!Number.isInteger(courseId) || courseId <= 0) {
+      content.replaceChildren(h('div', { class: 'alert alert-error' }, 'Pa gen kou chwazi.'));
+      return;
+    }
+
+    let data = null;        // MyCourseDetail: enrollment, course, lessons[], next_lesson_id
+    let activeLessonId = null;
+    let saveTimer = null;
+    let videoEl = null;
+
+    function errorMessage(err) {
+      return err instanceof ApiError ? err.message : 'Yon bagay pa mache.';
+    }
+
+    // -------------------------------------------------------------------
+    // DETEKTE KALITE LYEN VIDEYO A
+    // -------------------------------------------------------------------
+
+    function parseVideo(url) {
+      if (!url) return { type: 'none' };
+      const yt = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([\w-]{11})/);
+      if (yt) return { type: 'youtube', embedId: yt[1] };
+      const vimeo = url.match(/vimeo\.com\/(\d+)/);
+      if (vimeo) return { type: 'vimeo', embedId: vimeo[1] };
+      return { type: 'file', url };
+    }
+
+    function embedFrame(src, allow) {
+      return h('div', { style: 'position: relative; padding-top: 56.25%; border-radius: var(--radius); overflow: hidden; background: #000;' },
+        h('iframe', {
+          src, allow, allowfullscreen: true,
+          style: 'position: absolute; inset: 0; width: 100%; height: 100%; border: 0;',
+        }),
+      );
+    }
+
+    // -------------------------------------------------------------------
+    // CHAJE
+    // -------------------------------------------------------------------
+
+    async function load() {
+      try {
+        data = await api.get(`/api/training/me/courses/${courseId}`);
+        activeLessonId = data.next_lesson_id || (data.lessons[0] && data.lessons[0].lesson.id) || null;
+        render();
+      } catch (err) {
+        content.replaceChildren(h('div', { class: 'alert alert-error' }, errorMessage(err)));
+      }
+    }
+
+    // -------------------------------------------------------------------
+    // SOVE PWOGRÈ
+    // -------------------------------------------------------------------
+
+    async function saveProgress(lessonId, secondsWatched, lastPosition, completed) {
+      try {
+        const result = await api.post('/api/training/me/progress', {
+          lesson_id: lessonId,
+          seconds_watched: Math.round(secondsWatched),
+          last_position_seconds: Math.round(lastPosition),
+          completed: Boolean(completed),
+        });
+        data.enrollment.progress_percent = result.course_progress_percent;
+        const item = data.lessons.find((x) => x.lesson.id === lessonId);
+        if (item) item.completed = result.completed;
+        updateProgressUI();
+        return result;
+      } catch {
+        return null;   // pa gen pwoblèm si yon voye rate — pwochen an ap eseye ankò
+      }
+    }
+
+    // -------------------------------------------------------------------
+    // RANN
+    // -------------------------------------------------------------------
+
+    function render() {
+      document.title = `${data.course.title} — KONMBIT`;
+
+      const progressWrap = h('div', {});
+      const lessonListWrap = h('div', {});
+      const playerWrap = h('div', {});
+      const completeMsg = h('p', { class: 'field-error', role: 'status' });
+      const completeBtn = h('button', { class: 'btn btn-primary', type: 'button' }, 'Fini kou a');
+
+      completeBtn.addEventListener('click', async () => {
+        completeMsg.textContent = '';
+        completeBtn.disabled = true;
+        try {
+          const enr = await api.post(`/api/training/me/courses/${courseId}/complete`, {});
+          data.enrollment = enr;
+          updateProgressUI();
+          completeMsg.className = 'hint';
+          completeMsg.textContent = 'Bravo! Ou fini kou a.';
+        } catch (err) {
+          completeMsg.className = 'field-error';
+          completeMsg.textContent = errorMessage(err);
+        } finally {
+          completeBtn.disabled = false;
+        }
+      });
+
+      function updateProgressUI() {
+        const pct = data.enrollment.progress_percent;
+        const done = Boolean(data.enrollment.completed_at);
+        progressWrap.replaceChildren(
+          h('div', { class: done ? 'bar done' : 'bar', style: 'margin-top: 10px;' },
+            h('span', { style: `width: ${pct}%;` }),
+          ),
+          h('p', { class: 'sub', style: 'margin-top: 6px;' },
+            done ? `Fini — ${pct}%` : `${pct}% konplete`),
+        );
+        completeBtn.hidden = done || pct < 100;
+        renderLessonList();
+      }
+
+      function renderLessonList() {
+        lessonListWrap.replaceChildren(
+          h('ul', { class: 'plain-list' }, ...data.lessons.map((item) => {
+            const l = item.lesson;
+            const isActive = l.id === activeLessonId;
+            const link = h('a', {
+              href: '#',
+              class: 'plain-link',
+              style: isActive ? 'font-weight: 700; color: var(--text);' : '',
+            }, `${item.completed ? '✓ ' : ''}${l.title}`);
+            link.addEventListener('click', (e) => {
+              e.preventDefault();
+              selectLesson(l.id);
+            });
+            return h('li', {}, link,
+              l.duration_seconds ? h('span', { class: 'num' }, durationLabel(l.duration_seconds)) : null);
+          })),
+        );
+      }
+
+      function durationLabel(seconds) {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m}:${String(s).padStart(2, '0')}`;
+      }
+
+      function selectLesson(lessonId) {
+        // Sove kote nou te ye nan ansyen leson an anvan nou chanje.
+        if (videoEl && activeLessonId) {
+          clearInterval(saveTimer);
+          saveProgress(activeLessonId, videoEl.currentTime, videoEl.currentTime, false);
+        }
+        activeLessonId = lessonId;
+        renderPlayer();
+        renderLessonList();
+      }
+
+      function renderPlayer() {
+        clearInterval(saveTimer);
+        videoEl = null;
+
+        const item = data.lessons.find((x) => x.lesson.id === activeLessonId);
+        if (!item) {
+          playerWrap.replaceChildren(h('p', { class: 'empty' }, 'Pa gen leson.'));
+          return;
+        }
+        const lesson = item.lesson;
+        const video = parseVideo(lesson.video_url);
+        const blocks = [h('h2', { style: 'font-size: 18px; margin-bottom: 12px;' }, lesson.title)];
+
+        if (video.type === 'youtube') {
+          blocks.push(embedFrame(
+            `https://www.youtube.com/embed/${video.embedId}`,
+            'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture',
+          ));
+          blocks.push(manualWatchedButton(item, lesson));
+        } else if (video.type === 'vimeo') {
+          blocks.push(embedFrame(
+            `https://player.vimeo.com/video/${video.embedId}`,
+            'autoplay; fullscreen; picture-in-picture',
+          ));
+          blocks.push(manualWatchedButton(item, lesson));
+        } else if (video.type === 'file') {
+          const v = h('video', {
+            controls: true, style: 'width: 100%; border-radius: var(--radius); background: #000;',
+            src: video.url,
+          });
+          v.currentTime = item.last_position_seconds || 0;
+          v.addEventListener('loadedmetadata', () => {
+            if (item.last_position_seconds) v.currentTime = item.last_position_seconds;
+          });
+          v.addEventListener('play', () => {
+            clearInterval(saveTimer);
+            saveTimer = setInterval(() => {
+              saveProgress(lesson.id, v.currentTime, v.currentTime, false);
+            }, 20000);
+          });
+          v.addEventListener('pause', () => {
+            clearInterval(saveTimer);
+            saveProgress(lesson.id, v.currentTime, v.currentTime, false);
+          });
+          v.addEventListener('ended', () => {
+            clearInterval(saveTimer);
+            saveProgress(lesson.id, v.duration || v.currentTime, v.currentTime, true);
+          });
+          videoEl = v;
+          blocks.push(v);
+        } else {
+          blocks.push(h('p', { class: 'empty' }, 'Pa gen videyo pou leson sa a.'));
+        }
+
+        if (lesson.description) {
+          blocks.push(h('p', { class: 'sub', style: 'margin-top: 14px; white-space: pre-wrap;' }, lesson.description));
+        }
+
+        playerWrap.replaceChildren(...blocks);
+      }
+
+      function manualWatchedButton(item, lesson) {
+        const btn = h('button', { class: 'btn btn-ghost btn-sm', type: 'button', style: 'margin-top: 12px;' },
+          item.completed ? 'Videyo make fini ✓' : 'Mwen fini gade videyo sa a');
+        btn.disabled = item.completed;
+        btn.addEventListener('click', async () => {
+          btn.disabled = true;
+          await saveProgress(lesson.id, lesson.duration_seconds || 0, lesson.duration_seconds || 0, true);
+          btn.textContent = 'Videyo make fini ✓';
+        });
+        return h('div', {}, btn,
+          h('p', { class: 'hint' }, 'Videyo ki soti sou YouTube/Vimeo pa ka swiv pwogrè otomatikman — klike lè w fini gade l.'));
+      }
+
+      renderLessonList();
+      renderPlayer();
+      updateProgressUI();
+
+      content.replaceChildren(
+        h('div', { class: 'page-head' },
+          h('h1', {}, data.course.title),
+          data.enrollment.due_date ? h('p', {}, `Delè: ${fmt.shortDate(data.enrollment.due_date)}`) : null,
+          progressWrap,
+        ),
+        h('div', { class: 'grid' },
+          h('div', { class: 'col' },
+            h('section', { class: 'panel' }, playerWrap),
+            h('section', { class: 'panel', style: 'margin-top: 16px;' }, completeBtn, completeMsg),
+          ),
+          h('div', { class: 'col' },
+            h('section', { class: 'panel' },
+              h('div', { class: 'panel-head' }, h('h2', {}, 'Leson yo')),
+              lessonListWrap,
+            ),
+          ),
+        ),
+      );
+    }
+
+    load();
+  })();
+  </script>
+</body>
+</html>

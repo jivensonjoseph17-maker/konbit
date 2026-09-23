@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fòmasyon — KONMBIT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div class="app">
+    <aside id="sidebar"></aside>
+
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+
+      <main class="page">
+        <div class="page-head-row">
+          <div class="page-head">
+            <h1>Fòmasyon</h1>
+            <p id="count-label">Ap chaje…</p>
+          </div>
+          <button class="btn btn-primary" type="button" id="add-btn">Nouvo kou</button>
+        </div>
+
+        <!-- Fòm kreye yon kou -->
+        <section class="panel form-panel" id="form-panel" hidden aria-labelledby="form-title">
+          <div class="panel-head">
+            <h2 id="form-title">Nouvo kou</h2>
+          </div>
+
+          <form id="course-form" novalidate>
+            <div class="alert alert-error" id="form-error" role="alert"></div>
+
+            <div class="form-grid" style="margin-top: 12px;">
+              <div class="field span-2">
+                <label for="f-title">Tit kou a</label>
+                <input class="input" id="f-title" required minlength="2" maxlength="200" autocomplete="off" placeholder="Sekirite nan travay la">
+              </div>
+              <div class="field span-2">
+                <label for="f-desc">Deskripsyon</label>
+                <textarea class="textarea" id="f-desc" rows="3" maxlength="4000"></textarea>
+              </div>
+              <div class="field">
+                <label for="f-category">Kategori</label>
+                <input class="input" id="f-category" maxlength="100" autocomplete="off" placeholder="Sekirite, Sèvis kliyan...">
+              </div>
+              <div class="field">
+                <label for="f-lang">Lang</label>
+                <select class="select" id="f-lang">
+                  <option value="ht">Kreyòl</option>
+                  <option value="fr">Fransè</option>
+                  <option value="en">Anglè</option>
+                  <option value="es">Panyòl</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="f-passing">Nòt pou pase (%)</label>
+                <input class="input" id="f-passing" type="number" min="0" max="100" value="70">
+              </div>
+              <div class="field" style="align-self: end;">
+                <label class="check">
+                  <input type="checkbox" id="f-mandatory">
+                  Kou obligatwa
+                </label>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button class="btn btn-primary" type="submit">Kreye kou a</button>
+              <button class="btn btn-ghost" type="button" id="f-cancel">Anile</button>
+            </div>
+          </form>
+        </section>
+
+        <div class="toolbar">
+          <input class="input" id="search-category" type="search" placeholder="Chèche pa kategori">
+          <label class="check">
+            <input type="checkbox" id="f-mandatory-only">
+            Sèlman obligatwa
+          </label>
+          <label class="check">
+            <input type="checkbox" id="f-show-unpublished" checked>
+            Montre bouyon yo
+          </label>
+        </div>
+
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">Kou</th>
+                <th scope="col">Estati</th>
+                <th scope="col" class="num-col hide-sm">Leson</th>
+                <th scope="col" class="num-col hide-sm">Dire</th>
+                <th scope="col"><span class="visually-hidden">Aksyon</span></th>
+              </tr>
+            </thead>
+            <tbody id="rows">
+              <tr><td colspan="5" class="loading">Ap chaje…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script src="shell.js"></script>
+  <script>
+  (async function () {
+    'use strict';
+    const { api, fmt, h, ApiError, shell } = Konbit;
+
+    const identity = await shell.mount('training', shell.ADMIN);
+    if (!identity) return;
+
+    const $ = (id) => document.getElementById(id);
+
+    function errorMessage(err) {
+      let msg = err instanceof ApiError ? err.message : 'Yon bagay pa mache.';
+      if (err && err.fields && err.fields.length) {
+        msg += ' ' + err.fields.map((f) => `${f.field}: ${f.message}`).join('; ');
+      }
+      return msg;
+    }
+
+    function durationLabel(seconds) {
+      if (!seconds) return '—';
+      const h_ = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      if (h_) return `${h_}è ${m}min`;
+      return `${m}min`;
+    }
+
+    // -----------------------------------------------------------------------
+    // FÒM KREYE
+    // -----------------------------------------------------------------------
+
+    const form = $('course-form');
+    const formError = $('form-error');
+
+    function openForm() {
+      $('form-panel').hidden = false;
+      $('add-btn').hidden = true;
+      $('f-title').focus();
+    }
+
+    function closeForm() {
+      $('form-panel').hidden = true;
+      $('add-btn').hidden = false;
+      form.reset();
+      $('f-passing').value = '70';
+      formError.textContent = '';
+    }
+
+    $('add-btn').addEventListener('click', openForm);
+    $('f-cancel').addEventListener('click', closeForm);
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      formError.textContent = '';
+
+      const title = $('f-title').value.trim();
+      if (title.length < 2) {
+        formError.textContent = 'Mete yon tit pou kou a.';
+        return;
+      }
+
+      const payload = {
+        title,
+        description: $('f-desc').value.trim() || null,
+        category: $('f-category').value.trim() || null,
+        language: $('f-lang').value,
+        is_mandatory: $('f-mandatory').checked,
+        passing_score: Number($('f-passing').value) || 70,
+      };
+
+      const submitBtn = form.querySelector('[type="submit"]');
+      submitBtn.disabled = true;
+      try {
+        const course = await api.post('/api/training/courses', payload);
+        location.href = `training-course.html?id=${course.id}`;
+      } catch (err) {
+        formError.textContent = errorMessage(err);
+        submitBtn.disabled = false;
+      }
+    });
+
+    // -----------------------------------------------------------------------
+    // LIS
+    // -----------------------------------------------------------------------
+
+    async function loadList() {
+      const body = $('rows');
+      body.replaceChildren(h('tr', {}, h('td', { colspan: '5', class: 'loading' }, 'Ap chaje…')));
+
+      const params = new URLSearchParams();
+      if ($('search-category').value.trim()) params.set('category', $('search-category').value.trim());
+      if ($('f-mandatory-only').checked) params.set('mandatory_only', 'true');
+      if ($('f-show-unpublished').checked) params.set('include_unpublished', 'true');
+
+      try {
+        const data = await api.get(`/api/training/courses?${params}`);
+        $('count-label').textContent = data.total === 1 ? '1 kou' : `${data.total} kou`;
+
+        if (!data.items.length) {
+          body.replaceChildren(h('tr', {}, h('td', { colspan: '5', class: 'empty' },
+            'Ou poko gen okenn kou. Klike "Nouvo kou" pou kòmanse.')));
+        } else {
+          body.replaceChildren(...data.items.map(row));
+        }
+      } catch (err) {
+        body.replaceChildren(h('tr', {}, h('td', { colspan: '5', class: 'empty' }, errorMessage(err))));
+      }
+    }
+
+    function row(course) {
+      return h('tr', {},
+        h('td', {},
+          h('a', { class: 'who plain-link', href: `training-course.html?id=${course.id}` }, course.title),
+          h('div', { class: 'num' }, [course.category, course.is_mandatory ? 'obligatwa' : null].filter(Boolean).join(' · ') || '—'),
+        ),
+        h('td', {}, h('span', { class: `badge ${course.is_published ? 'badge-approved' : 'badge-pending'}` },
+          course.is_published ? 'Pibliye' : 'Bouyon')),
+        h('td', { class: 'num-col cell-muted hide-sm' }, String(course.lesson_count)),
+        h('td', { class: 'num-col cell-muted hide-sm' }, durationLabel(course.total_duration_seconds)),
+        h('td', { class: 'actions' }, h('a', { class: 'btn btn-ghost btn-sm', href: `training-course.html?id=${course.id}` }, 'Wè')),
+      );
+    }
+
+    let searchTimer;
+    $('search-category').addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(loadList, 300);
+    });
+    $('f-mandatory-only').addEventListener('change', loadList);
+    $('f-show-unpublished').addEventListener('change', loadList);
+
+    loadList();
+  })();
+  </script>
+</body>
+</html>
