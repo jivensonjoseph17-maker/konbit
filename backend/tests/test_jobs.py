@@ -72,3 +72,25 @@ def test_list_jobs_filters_by_status(client, org_admin):
     titles = [j["title"] for j in resp.json()["items"]]
     assert "Pibliye A" in titles
     assert "Bouyon A" not in titles
+
+
+def test_patch_cannot_change_status(client, org_admin):
+    # San pwoteksyon sa a, PATCH ta pibliye yon òf san deskripsyon
+    job = client.post("/api/jobs", json={"title": "Kontoune"},
+                       headers=org_admin["headers"]).json()
+
+    resp = client.patch(f"/api/jobs/{job['id']}", json={"status": "published"},
+                         headers=org_admin["headers"])
+    assert resp.status_code == 400
+
+    again = client.get(f"/api/jobs/{job['id']}", headers=org_admin["headers"]).json()
+    assert again["status"] == "draft"
+
+
+def test_patch_rejects_zero_openings(client, org_admin):
+    job = client.post("/api/jobs", json={"title": "Zewo Pòs"},
+                       headers=org_admin["headers"]).json()
+
+    resp = client.patch(f"/api/jobs/{job['id']}", json={"openings": 0},
+                         headers=org_admin["headers"])
+    assert resp.status_code == 400

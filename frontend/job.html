@@ -115,8 +115,47 @@
       return (cents / 100).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
     }
 
-    function toDateInputValue(iso) {
-      return iso ? iso.slice(0, 10) : '';
+    function pad(n) {
+      return String(n).padStart(2, '0');
+    }
+
+    /**
+     * API a ka retounen yon dat san fizo orè (SQLite). Backend la ekri an
+     * UTC, donk nou ajoute 'Z' anvan nou li l.
+     */
+    function parseApiDate(value) {
+      if (!value) return null;
+      const hasZone = /(Z|[+-]\d{2}:?\d{2})$/.test(value);
+      const d = new Date(hasZone ? value : `${value}Z`);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+
+    /** Dat fèmti API a (UTC) → "AAAA-MM-JJ" nan lè lokal, pou <input type="date">. */
+    function closesToDateInput(value) {
+      const d = parseApiDate(value);
+      return d ? `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` : '';
+    }
+
+    /**
+     * "AAAA-MM-JJ" → fen jounen sa a nan lè LOKAL, an UTC ak 'Z'.
+     * Anvan, nou te voye "AAAA-MM-JJT23:59:59" san fizo orè: backend la te
+     * sere l kòm UTC, kidonk òf la te fèmen 4-5 èdtan twò bonè an Ayiti.
+     */
+    function endOfLocalDayIso(dateValue) {
+      if (!dateValue) return null;
+      const d = new Date(`${dateValue}T23:59:59`);
+      return Number.isNaN(d.getTime()) ? null : d.toISOString();
+    }
+
+    /** Sèlman lyen http/https — pa janm "javascript:" ki soti nan yon kandida. */
+    function safeUrl(value) {
+      if (!value) return null;
+      try {
+        const u = new URL(value);
+        return u.protocol === 'https:' || u.protocol === 'http:' ? u.href : null;
+      } catch {
+        return null;
+      }
     }
 
     // -------------------------------------------------------------------
@@ -265,7 +304,8 @@
       const showSal = h('input', { type: 'checkbox', id: 'e-showsal' });
       showSal.checked = Boolean(job.show_salary);
       const openings = input('e-openings', String(job.openings), { type: 'number', min: '1', max: '999' });
-      const closes = input('e-closes', toDateInputValue(job.closes_at), { type: 'date' });
+      const closesInitial = closesToDateInput(job.closes_at);
+      const closes = input('e-closes', closesInitial, { type: 'date' });
 
       const msg = h('p', { class: 'field-error', role: 'status' });
       const saveBtn = h('button', { class: 'btn btn-primary', type: 'submit' }, 'Sove chanjman yo');
@@ -293,7 +333,7 @@
             h('label', {}, h('span', { class: 'check' }, showSal, ' Montre salè a sou paj karyè piblik la')),
           ),
           field('Kantite pòs louvri', openings),
-          field('Dat fèmti (opsyonèl)', closes),
+          field('Dat fèmti (opsyonèl)', closes, 'Òf la fèmen nan fen jounen sa a, lè lokal.'),
         ),
         msg,
         h('div', { class: 'form-actions' }, saveBtn),
@@ -321,7 +361,6 @@
           salary_max: newSalMax,
           show_salary: showSal.checked,
           openings: Number(openings.value) || 1,
-          closes_at: closes.value ? `${closes.value}T23:59:59` : null,
         };
 
         const current = {
@@ -335,12 +374,16 @@
           salary_max: job.salary_max ?? null,
           show_salary: Boolean(job.show_salary),
           openings: job.openings,
-          closes_at: job.closes_at ? `${toDateInputValue(job.closes_at)}T23:59:59` : null,
         };
 
         const changes = {};
         for (const [k, v] of Object.entries(desired)) {
           if (current[k] !== v) changes[k] = v;
+        }
+
+        // Dat fèmti a: nou konpare JOU a moun nan chwazi a, pa tèks ISO a.
+        if (closes.value !== closesInitial) {
+          changes.closes_at = endOfLocalDayIso(closes.value);
         }
 
         if (!Object.keys(changes).length) {
@@ -410,7 +453,7 @@
         const wd = byStage.withdrawn ? byStage.withdrawn.count : 0;
         el._historyLine.textContent =
           `Istwa: ${done} anboche · ${rej} refize · ${wd} retire pa yo menm. `
-          + 'Konvèti yon òf an anplwaye fèt nan pwochen paj "Pwopozisyon travay".';
+          + 'Klike sou non yon kandida pou planifye antrevi, fè pwopozisyon an epi anboche l.';
       } catch (err) {
         el._body.replaceChildren(h('p', { class: 'empty' }, errorMessage(err)));
       }
@@ -472,18 +515,32 @@
         }
       });
 
+      // Lyen CV a soti nan yon moun deyò (paj karyè piblik la): nou aksepte
+      // sèlman http/https pou yon "javascript:..." pa janm egzekite pou HR.
+      const cv = safeUrl(app.resume_url);
+
       return h('div', {
         style: 'padding: 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); display: grid; gap: 6px;',
       },
-        h('div', { style: 'font-weight: 600;' }, app.full_name),
+        h('a', {
+          class: 'plain-link',
+          href: `application.html?id=${app.id}`,
+          style: 'font-weight: 600;',
+        }, app.full_name),
         h('div', { class: 'sub', style: 'font-size: 12.5px;' }, app.email),
         app.phone ? h('div', { class: 'sub', style: 'font-size: 12.5px;' }, app.phone) : null,
-        app.resume_url
-          ? h('a', { class: 'plain-link', href: app.resume_url, target: '_blank', rel: 'noopener', style: 'font-size: 12.5px;' }, 'Wè CV')
+        app.rating ? h('div', { class: 'sub', style: 'font-size: 12.5px;' }, '★'.repeat(app.rating)) : null,
+        cv
+          ? h('a', { class: 'plain-link', href: cv, target: '_blank', rel: 'noopener noreferrer', style: 'font-size: 12.5px;' }, 'Wè CV')
           : null,
         h('div', { class: 'sub', style: 'font-size: 12px;' }, fmt.shortDate(app.created_at)),
         h('div', { style: 'display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px;' }, moveSelect, moveBtn, rejectBtn),
         msg,
+        h('a', {
+          class: 'btn btn-ghost btn-sm',
+          href: `application.html?id=${app.id}`,
+          style: 'justify-self: start;',
+        }, 'Louvri dosye a'),
       );
     }
 

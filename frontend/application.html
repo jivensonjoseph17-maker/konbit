@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kandida — KONMBIT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div class="app">
+    <aside id="sidebar"></aside>
+
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+
+      <main class="page">
+        <a class="back-link" id="back-link" href="jobs.html">Tout òf yo</a>
+
+        <div id="content"><p class="loading">Ap chaje…</p></div>
+      </main>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script src="shell.js"></script>
+  <script>
+  (async function () {
+    'use strict';
+    const { api, fmt, h, ApiError, shell } = Konbit;
+
+    const identity = await shell.mount('hiring', shell.ADMIN);
+    if (!identity) return;
+
+    const content = document.getElementById('content');
+    const backLink = document.getElementById('back-link');
+    const id = Number(new URLSearchParams(location.search).get('id'));
+
+    if (!Number.isInteger(id) || id <= 0) {
+      content.replaceChildren(h('div', { class: 'alert alert-error' }, 'Pa gen kandida chwazi. Retounen nan òf la.'));
+      return;
+    }
+
+    // -------------------------------------------------------------------
+    // KONSTAN
+    // -------------------------------------------------------------------
+
+    const STAGE_LABELS = {
+      received: 'Resevwa', screening: 'Seleksyon', interview: 'Antrevi',
+      offer: 'Òf', hired: 'Anboche', rejected: 'Refize', withdrawn: 'Retire',
+    };
+    const STAGE_BADGE = {
+      received: 'badge-pending', screening: 'badge-pending', interview: 'badge-pending',
+      offer: 'badge-pending', hired: 'badge-approved', rejected: 'badge-cancelled',
+      withdrawn: 'badge-cancelled',
+    };
+    // 'hired' pa la: se /api/offers/{id}/hire sèlman ki ka anboche.
+    const ALLOWED_TRANSITIONS = {
+      received: ['screening', 'rejected', 'withdrawn'],
+      screening: ['interview', 'rejected', 'withdrawn'],
+      interview: ['offer', 'screening', 'rejected', 'withdrawn'],
+      offer: ['rejected', 'withdrawn'],
+      rejected: ['screening'],
+      withdrawn: ['screening'],
+    };
+    const CLOSED_STAGES = ['hired', 'rejected', 'withdrawn'];
+
+    const OFFER_STATUS = {
+      draft: ['Bouyon', 'badge-pending'],
+      sent: ['Voye', 'badge-pending'],
+      accepted: ['Aksepte', 'badge-approved'],
+      declined: ['Refize', 'badge-cancelled'],
+      expired: ['Ekspire', 'badge-cancelled'],
+    };
+    const EMPLOYMENT_TYPE_LABELS = {
+      full_time: 'Tan plen', part_time: 'Tan pasyèl', contract: 'Kontra',
+      intern: 'Estaj', seasonal: 'Sezon',
+    };
+    const PAYMENT_METHODS = [
+      ['check', 'Chèk'], ['direct_deposit', 'Depo dirèk'], ['moncash', 'MonCash'],
+      ['natcash', 'NatCash'], ['cash', 'Lajan kach'],
+    ];
+
+    let detail = null;       // ApplicationDetail
+    let offers = [];         // OfferRow pou kandida sa a, pi resan an anvan
+    let employees = [];      // pou chwazi moun k ap fè antrevi a
+    let hireResult = null;   // modpas tanporè a parèt yon sèl fwa
+
+    // -------------------------------------------------------------------
+    // ZOUTI
+    // -------------------------------------------------------------------
+
+    function errorMessage(err) {
+      let msg = err instanceof ApiError ? err.message : 'Yon bagay pa mache.';
+      if (err && err.fields && err.fields.length) {
+        msg += ' ' + err.fields.map((f) => `${f.field}: ${f.message}`).join('; ');
+      }
+      return msg;
+    }
+
+    function field(label, inputEl, hint) {
+      return h('div', { class: 'field' },
+        h('label', { for: inputEl.id }, label),
+        inputEl,
+        hint ? h('span', { class: 'hint' }, hint) : null,
+      );
+    }
+
+    function input(id, value, attrs = {}) {
+      const el = h('input', { class: 'input', id, autocomplete: 'off', ...attrs });
+      el.value = value ?? '';
+      return el;
+    }
+
+    function textarea(id, value, attrs = {}) {
+      const el = h('textarea', { class: 'textarea', id, rows: '3', ...attrs });
+      el.value = value ?? '';
+      return el;
+    }
+
+    function select(id, options, value) {
+      const el = h('select', { class: 'select', id },
+        ...options.map(([v, label]) => h('option', { value: v }, label)));
+      if (value !== undefined && value !== null) el.value = String(value);
+      return el;
+    }
+
+    function badge(label, cls) {
+      return h('span', { class: `badge ${cls || ''}` }, label);
+    }
+
+    function panel(title, meta, ...children) {
+      return h('section', { class: 'panel', style: 'margin-top: 20px;' },
+        h('div', { class: 'panel-head' },
+          h('h2', {}, title),
+          meta ? h('span', { class: 'meta' }, meta) : null,
+        ),
+        ...children,
+      );
+    }
+
+    /**
+     * API a retounen dat san fizo orè ("2027-01-15T15:00:00") lè baz
+     * done a se SQLite. Backend la toujou ekri an UTC, donk nou ajoute 'Z'.
+     */
+    function parseApiDate(value) {
+      if (!value) return null;
+      const hasZone = /(Z|[+-]\d{2}:?\d{2})$/.test(value);
+      return new Date(hasZone ? value : `${value}Z`);
+    }
+
+    function formatDateTime(value) {
+      const d = parseApiDate(value);
+      if (!d || Number.isNaN(d.getTime())) return '—';
+      return d.toLocaleString('fr-FR', {
+        weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      });
+    }
+
+    function formatDay(isoDate) {
+      if (!isoDate) return '—';
+      const [y, m, d] = isoDate.split('-').map(Number);
+      return new Date(y, m - 1, d).toLocaleDateString('fr-FR');
+    }
+
+    /**
+     * Valè yon <input type="datetime-local"> ("2027-01-15T10:00") se lè
+     * LOKAL navigatè a. new Date() li l konsa, epi toISOString() bay UTC
+     * ak 'Z' — backend la refize yon dat san fizo orè.
+     */
+    function localInputToIso(value) {
+      const d = new Date(value);
+      return Number.isNaN(d.getTime()) ? null : d.toISOString();
+    }
+
+    /** Sèlman lyen http/https — pa janm "javascript:" ki soti nan yon kandida. */
+    function safeUrl(value) {
+      if (!value) return null;
+      try {
+        const u = new URL(value);
+        return u.protocol === 'https:' || u.protocol === 'http:' ? u.href : null;
+      } catch {
+        return null;
+      }
+    }
+
+    function employeeName(empId) {
+      const e = employees.find((x) => x.id === empId);
+      return e ? `${e.first_name} ${e.last_name}` : '—';
+    }
+
+    function splitName(full) {
+      const parts = (full || '').trim().split(/\s+/);
+      if (parts.length < 2) return [parts[0] || '', ''];
+      return [parts.slice(0, -1).join(' '), parts[parts.length - 1]];
+    }
+
+    // -------------------------------------------------------------------
+    // CHAJE DONE YO
+    // -------------------------------------------------------------------
+
+    async function load() {
+      detail = await api.get(`/api/applications/${id}`);
+      const jobId = detail.application.job_posting_id;
+
+      backLink.href = `job.html?id=${jobId}`;
+      backLink.textContent = detail.job_title || 'Òf la';
+
+      const offerList = await api.get(`/api/offers?job_posting_id=${jobId}`);
+      offers = offerList.items.filter((row) => row.offer.application_id === id);
+    }
+
+    async function loadEmployees() {
+      try {
+        const data = await api.get('/api/employees');
+        employees = Array.isArray(data) ? data : (data.items || []);
+      } catch {
+        employees = [];   // lis la pa obligatwa: antrevi a ka pa gen entèvyouwè
+      }
+    }
+
+    async function refresh() {
+      try {
+        await load();
+        render();
+      } catch (err) {
+        content.replaceChildren(h('div', { class: 'alert alert-error' }, errorMessage(err)));
+      }
+    }
+
+    // -------------------------------------------------------------------
+    // KANDIDA A
+    // -------------------------------------------------------------------
+
+    function candidatePanel() {
+      const app = detail.application;
+      const cv = safeUrl(app.resume_url);
+
+      const facts = h('div', { style: 'display: grid; gap: 6px;' },
+        h('div', { class: 'sub' }, app.email),
+        app.phone ? h('div', { class: 'sub' }, app.phone) : null,
+        h('div', { class: 'sub' }, `Aplike ${formatDateTime(app.created_at)}`
+          + (app.source ? ` · sous: ${app.source}` : '')),
+        cv
+          ? h('a', { href: cv, target: '_blank', rel: 'noopener noreferrer' }, 'Louvri CV a')
+          : (app.resume_url ? h('span', { class: 'hint' }, 'Lyen CV a pa valab.') : null),
+      );
+
+      const letter = app.cover_letter
+        ? h('div', { style: 'margin-top: 14px;' },
+            h('p', { class: 'sub-label' }, 'Lèt motivasyon'),
+            h('p', { style: 'white-space: pre-wrap; margin: 0;' }, app.cover_letter))
+        : null;
+
+      const rejected = app.stage === 'rejected' && detail.rejected_reason
+        ? h('div', { class: 'alert alert-error', style: 'margin-top: 14px;' },
+            `Rezon refi: ${detail.rejected_reason}`)
+        : null;
+
+      return h('section', { class: 'panel' },
+        h('div', { class: 'panel-head' },
+          h('h2', {}, app.full_name),
+          badge(STAGE_LABELS[app.stage] || app.stage, STAGE_BADGE[app.stage]),
+        ),
+        facts, letter, rejected,
+      );
+    }
+
+    // -------------------------------------------------------------------
+    // EVALYASYON AK ETAP
+    // -------------------------------------------------------------------
+
+    function evaluationPanel() {
+      const app = detail.application;
+      const msg = h('p', { class: 'field-error', role: 'status' });
+
+      const rating = select('ev-rating',
+        [['', '—'], ...[1, 2, 3, 4, 5].map((n) => [String(n), '★'.repeat(n)])],
+        app.rating ?? '');
+      const notes = textarea('ev-notes', detail.internal_notes, { rows: '4' });
+      const save = h('button', { class: 'btn btn-primary btn-sm', type: 'submit' }, 'Sove');
+
+      const form = h('form', { novalidate: true, style: 'display: grid; gap: 12px;' },
+        field('Evalyasyon', rating),
+        field('Nòt entèn', notes, 'Kandida a pa janm wè nòt sa yo.'),
+        msg, h('div', {}, save),
+      );
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        msg.className = 'field-error';
+        msg.textContent = '';
+        save.disabled = true;
+        try {
+          await api.patch(`/api/applications/${id}`, {
+            rating: rating.value ? Number(rating.value) : null,
+            internal_notes: notes.value.trim() || null,
+          });
+          msg.className = 'hint';
+          msg.textContent = 'Sove.';
+        } catch (err) {
+          msg.textContent = errorMessage(err);
+        } finally {
+          save.disabled = false;
+        }
+      });
+
+      // --- Deplase / refize ---
+      const targets = ALLOWED_TRANSITIONS[app.stage] || [];
+      let stageBox = null;
+      if (targets.length) {
+        const stageMsg = h('p', { class: 'field-error', role: 'status' });
+        const moveSelect = select('ev-stage',
+          [[app.stage, STAGE_LABELS[app.stage]],
+           ...targets.filter((t) => t !== 'rejected').map((t) => [t, `→ ${STAGE_LABELS[t]}`])],
+          app.stage);
+        const moveBtn = h('button', { class: 'btn btn-ghost btn-sm', type: 'button', disabled: true }, 'Deplase');
+        moveSelect.addEventListener('change', () => { moveBtn.disabled = moveSelect.value === app.stage; });
+        moveBtn.addEventListener('click', async () => {
+          moveBtn.disabled = true;
+          stageMsg.textContent = '';
+          try {
+            await api.patch(`/api/applications/${id}`, { stage: moveSelect.value });
+            await refresh();
+          } catch (err) {
+            stageMsg.textContent = errorMessage(err);
+            moveBtn.disabled = false;
+          }
+        });
+
+        const rejectBtn = targets.includes('rejected')
+          ? h('button', { class: 'btn btn-danger btn-sm', type: 'button' }, 'Refize kandida a')
+          : null;
+        if (rejectBtn) {
+          rejectBtn.addEventListener('click', async () => {
+            const reason = prompt(`Poukisa ou refize ${app.full_name}?`);
+            if (reason === null) return;
+            if (reason.trim().length < 3) {
+              stageMsg.textContent = 'Mete yon rezon ki gen omwen 3 karaktè.';
+              return;
+            }
+            rejectBtn.disabled = true;
+            try {
+              await api.post(`/api/applications/${id}/reject`, { reason: reason.trim() });
+              await refresh();
+            } catch (err) {
+              stageMsg.textContent = errorMessage(err);
+              rejectBtn.disabled = false;
+            }
+          });
+        }
+
+        stageBox = h('div', { style: 'margin-top: 18px; display: grid; gap: 8px;' },
+          h('p', { class: 'sub-label' }, 'Etap'),
+          h('div', { style: 'display: flex; gap: 8px; flex-wrap: wrap; align-items: center;' },
+            moveSelect, moveBtn, rejectBtn),
+          stageMsg,
+        );
+      }
+
+      return panel('Evalyasyon', null, form, stageBox);
+    }
+
+    // -------------------------------------------------------------------
+    // ANTREVI
+    // -------------------------------------------------------------------
+
+    function interviewCard(iv) {
+      const msg = h('p', { class: 'field-error', role: 'status', style: 'margin: 0;' });
+      const place = safeUrl(iv.location);
+
+      const score = select(`iv-score-${iv.id}`,
+        [['', '—'], ...[1, 2, 3, 4, 5].map((n) => [String(n), `${n} / 5`])], iv.score ?? '');
+      const notes = textarea(`iv-notes-${iv.id}`, iv.notes);
+      const done = h('input', { type: 'checkbox', id: `iv-done-${iv.id}` });
+      done.checked = Boolean(iv.completed);
+      const save = h('button', { class: 'btn btn-ghost btn-sm', type: 'submit' }, 'Anrejistre rezilta a');
+
+      const form = h('form', { novalidate: true, style: 'display: grid; gap: 10px; margin-top: 10px;' },
+        h('div', { style: 'display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px;' },
+          field('Nòt', score),
+          h('div', { class: 'field', style: 'align-self: end;' },
+            h('label', { for: done.id, style: 'display: flex; gap: 8px; align-items: center;' },
+              done, 'Antrevi a fèt')),
+        ),
+        field('Kòmantè', notes),
+        msg, h('div', {}, save),
+      );
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        msg.className = 'field-error';
+        msg.textContent = '';
+        save.disabled = true;
+        try {
+          await api.patch(`/api/applications/interviews/${iv.id}`, {
+            score: score.value ? Number(score.value) : null,
+            notes: notes.value.trim() || null,
+            completed: done.checked,
+          });
+          await refresh();
+        } catch (err) {
+          msg.textContent = errorMessage(err);
+          save.disabled = false;
+        }
+      });
+
+      return h('div', {
+        style: 'padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-sm);',
+      },
+        h('div', { style: 'display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap;' },
+          h('strong', {}, `Wonn ${iv.round_number} · ${formatDateTime(iv.scheduled_at)}`),
+          iv.completed ? badge('Fèt', 'badge-approved') : badge('Planifye', 'badge-pending'),
+        ),
+        h('div', { class: 'sub', style: 'margin-top: 4px;' },
+          `${iv.duration_minutes} min · ${iv.interviewer_id ? employeeName(iv.interviewer_id) : 'San entèvyouwè'}`),
+        iv.location
+          ? h('div', { class: 'sub' },
+              place ? h('a', { href: place, target: '_blank', rel: 'noopener noreferrer' }, 'Lyen apèl la')
+                    : iv.location)
+          : null,
+        form,
+      );
+    }
+
+    function scheduleForm() {
+      const msg = h('p', { class: 'field-error', role: 'status' });
+      const nextRound = (detail.interviews.reduce((m, iv) => Math.max(m, iv.round_number), 0)) + 1;
+
+      const when = input('sc-when', '', { type: 'datetime-local', required: true });
+      const duration = input('sc-duration', '45', { type: 'number', min: '5', max: '480', step: '5' });
+      const who = select('sc-who',
+        [['', 'Pa chwazi'], ...employees.map((e) => [String(e.id), `${e.first_name} ${e.last_name}`])], '');
+      const where = input('sc-where', '', { maxlength: '255', placeholder: 'Adrès oswa lyen videyo' });
+      const round = input('sc-round', String(nextRound), { type: 'number', min: '1' });
+      const submit = h('button', { class: 'btn btn-primary btn-sm', type: 'submit' }, 'Planifye');
+
+      const form = h('form', { novalidate: true, style: 'display: grid; gap: 12px; margin-top: 18px;' },
+        h('p', { class: 'sub-label' }, 'Nouvo antrevi'),
+        h('div', { style: 'display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;' },
+          field('Dat ak lè', when, 'Lè lokal ou.'),
+          field('Dire (minit)', duration),
+          field('Wonn', round),
+          field('Kiyès k ap fè l', who),
+        ),
+        field('Kote', where),
+        msg, h('div', {}, submit),
+      );
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        msg.textContent = '';
+
+        const iso = localInputToIso(when.value);
+        if (!iso) { msg.textContent = 'Chwazi dat ak lè antrevi a.'; return; }
+        if (new Date(iso) < new Date()) { msg.textContent = 'Dat la deja pase.'; return; }
+
+        submit.disabled = true;
+        try {
+          await api.post(`/api/applications/${id}/interviews`, {
+            application_id: id,
+            scheduled_at: iso,
+            duration_minutes: Number(duration.value) || 45,
+            round_number: Number(round.value) || nextRound,
+            interviewer_id: who.value ? Number(who.value) : null,
+            location: where.value.trim() || null,
+          });
+          await refresh();
+        } catch (err) {
+          msg.textContent = errorMessage(err);
+          submit.disabled = false;
+        }
+      });
+
+      return form;
+    }
+
+    function interviewsPanel() {
+      const list = detail.interviews.length
+        ? h('div', { style: 'display: grid; gap: 12px;' }, ...detail.interviews.map(interviewCard))
+        : h('p', { class: 'empty' }, 'Poko gen antrevi.');
+
+      const canSchedule = !CLOSED_STAGES.includes(detail.application.stage);
+      return panel('Antrevi', `${detail.interviews.length}`, list, canSchedule ? scheduleForm() : null);
+    }
+
+    // -------------------------------------------------------------------
+    // PWOPOZISYON
+    // -------------------------------------------------------------------
+
+    function offerSummary(row) {
+      const o = row.offer;
+      const [label, cls] = OFFER_STATUS[o.status] || [o.status, ''];
+      return h('div', { style: 'display: grid; gap: 4px;' },
+        h('div', { style: 'display: flex; gap: 10px; align-items: center; flex-wrap: wrap;' },
+          h('strong', { style: 'font-size: 18px;' }, fmt.money(o.salary, o.currency)),
+          badge(label, cls),
+          row.is_expired && o.status !== 'expired' ? badge('Dat la pase', 'badge-cancelled') : null,
+        ),
+        h('div', { class: 'sub' },
+          `${EMPLOYMENT_TYPE_LABELS[o.employment_type] || o.employment_type}`
+          + ` · antre ${formatDay(o.start_date)}`
+          + (o.expires_at ? ` · ekspire ${formatDateTime(o.expires_at)}` : '')),
+      );
+    }
+
+    function createOfferForm() {
+      const msg = h('p', { class: 'field-error', role: 'status' });
+      const salary = input('of-salary', '', { inputmode: 'decimal', placeholder: 'Egz: 45 000' });
+      const currency = select('of-currency', [['HTG', 'HTG'], ['USD', 'USD']], 'HTG');
+      const type = select('of-type', Object.entries(EMPLOYMENT_TYPE_LABELS), 'full_time');
+      const start = input('of-start', '', { type: 'date' });
+      const expires = input('of-expires', '', { type: 'date' });
+      const submit = h('button', { class: 'btn btn-primary btn-sm', type: 'submit' }, 'Kreye bouyon an');
+
+      const form = h('form', { novalidate: true, style: 'display: grid; gap: 12px;' },
+        h('div', { style: 'display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;' },
+          field('Salè pa mwa', salary),
+          field('Lajan', currency),
+          field('Kalite kontra', type),
+          field('Dat antre', start),
+          field('Repons avan', expires, 'Jouk nan fen jounen sa a.'),
+        ),
+        msg, h('div', {}, submit),
+      );
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        msg.textContent = '';
+        const cents = fmt.parseMoney(salary.value);
+        if (cents === null || cents <= 0) { msg.textContent = 'Mete yon salè valab.'; return; }
+
+        let expiresIso = null;
+        if (expires.value) {
+          expiresIso = localInputToIso(`${expires.value}T23:59:59`);
+          if (new Date(expiresIso) < new Date()) { msg.textContent = 'Dat repons lan deja pase.'; return; }
+        }
+
+        submit.disabled = true;
+        try {
+          await api.post('/api/offers', {
+            application_id: id,
+            salary: cents,
+            currency: currency.value,
+            employment_type: type.value,
+            start_date: start.value || null,
+            expires_at: expiresIso,
+          });
+          await refresh();
+        } catch (err) {
+          msg.textContent = errorMessage(err);
+          submit.disabled = false;
+        }
+      });
+
+      return form;
+    }
+
+    function actionButton(label, cls, handler, msg) {
+      const btn = h('button', { class: `btn ${cls} btn-sm`, type: 'button' }, label);
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        msg.textContent = '';
+        try {
+          await handler();
+          await refresh();
+        } catch (err) {
+          msg.textContent = errorMessage(err);
+          btn.disabled = false;
+        }
+      });
+      return btn;
+    }
+
+    function draftActions(row) {
+      const msg = h('p', { class: 'field-error', role: 'status' });
+      const oid = row.offer.id;
+      return h('div', { style: 'display: grid; gap: 8px; margin-top: 14px;' },
+        h('p', { class: 'hint' },
+          'Sistèm lan pa voye imel. Voye dokiman an bay kandida a, epi make l "voye" isit la.'),
+        h('div', { style: 'display: flex; gap: 8px; flex-wrap: wrap;' },
+          actionButton('Make l voye', 'btn-primary', () => api.post(`/api/offers/${oid}/send`), msg),
+          actionButton('Efase bouyon an', 'btn-danger', async () => {
+            if (!confirm('Efase bouyon pwopozisyon sa a?')) throw new ApiError(0, 'Anile.');
+            await api.del(`/api/offers/${oid}`);
+          }, msg),
+        ),
+        msg,
+      );
+    }
+
+    function sentActions(row) {
+      const msg = h('p', { class: 'field-error', role: 'status' });
+      const oid = row.offer.id;
+      const note = input('of-note', '', { maxlength: '500', placeholder: 'Egz: Li aksepte pa telefòn' });
+      const respond = (accept) => () => api.post(`/api/offers/${oid}/respond`, {
+        accept, note: note.value.trim() || null,
+      });
+      return h('div', { style: 'display: grid; gap: 10px; margin-top: 14px;' },
+        field('Nòt sou repons lan', note),
+        h('div', { style: 'display: flex; gap: 8px; flex-wrap: wrap;' },
+          actionButton('Kandida a aksepte', 'btn-primary', respond(true), msg),
+          actionButton('Kandida a refize', 'btn-danger', respond(false), msg),
+        ),
+        msg,
+      );
+    }
+
+    function hireForm(row) {
+      const app = detail.application;
+      const msg = h('p', { class: 'field-error', role: 'status' });
+      const [first, last] = splitName(app.full_name);
+
+      const firstName = input('hi-first', first, { maxlength: '100' });
+      const lastName = input('hi-last', last, { maxlength: '100' });
+      const pay = select('hi-pay', PAYMENT_METHODS, 'check');
+      const makeLogin = h('input', { type: 'checkbox', id: 'hi-login' });
+      makeLogin.checked = true;
+      const loginEmail = input('hi-email', app.email, { type: 'email' });
+      const role = select('hi-role', [['employee', 'Anplwaye'], ['manager', 'Manadjè']], 'employee');
+      const loginBox = h('div', { style: 'display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;' },
+        field('Imel koneksyon', loginEmail), field('Wòl', role));
+      makeLogin.addEventListener('change', () => { loginBox.hidden = !makeLogin.checked; });
+
+      const submit = h('button', { class: 'btn btn-primary', type: 'submit' }, 'Anboche');
+
+      const form = h('form', { novalidate: true, style: 'display: grid; gap: 12px; margin-top: 16px;' },
+        h('p', { class: 'sub-label' }, 'Anboche kandida a'),
+        h('p', { class: 'hint' },
+          'Salè, dat antre ak kalite kontra a soti nan pwopozisyon an. HR ka konplete rès dosye a apre.'),
+        h('div', { style: 'display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;' },
+          field('Prenon', firstName), field('Non', lastName), field('Peman', pay)),
+        h('label', { for: makeLogin.id, style: 'display: flex; gap: 8px; align-items: center;' },
+          makeLogin, 'Kreye yon kont koneksyon'),
+        loginBox,
+        msg, h('div', {}, submit),
+      );
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        msg.textContent = '';
+        if (!firstName.value.trim() || !lastName.value.trim()) {
+          msg.textContent = 'Prenon ak non obligatwa.';
+          return;
+        }
+        if (!confirm(`Anboche ${firstName.value.trim()} ${lastName.value.trim()}? Sa kreye dosye anplwaye a.`)) return;
+
+        submit.disabled = true;
+        try {
+          hireResult = await api.post(`/api/offers/${row.offer.id}/hire`, {
+            first_name: firstName.value.trim(),
+            last_name: lastName.value.trim(),
+            preferred_payment_method: pay.value,
+            create_login: makeLogin.checked,
+            login_email: makeLogin.checked ? (loginEmail.value.trim() || null) : null,
+            login_role: role.value,
+          });
+          await refresh();
+        } catch (err) {
+          msg.textContent = errorMessage(err);
+          submit.disabled = false;
+        }
+      });
+
+      return form;
+    }
+
+    function hireResultBox() {
+      if (!hireResult) return null;
+      const emp = hireResult.employee;
+      const copyMsg = h('span', { class: 'hint', role: 'status' });
+
+      let credentials = null;
+      if (hireResult.temporary_password) {
+        const copy = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, 'Kopye');
+        copy.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(hireResult.temporary_password);
+            copyMsg.textContent = 'Kopye.';
+          } catch {
+            copyMsg.textContent = 'Kopye l alamen.';
+          }
+        });
+        credentials = h('div', { style: 'display: grid; gap: 6px; margin-top: 10px;' },
+          h('div', {}, `Imel: ${hireResult.login_email}`),
+          h('div', { style: 'display: flex; gap: 10px; align-items: center; flex-wrap: wrap;' },
+            h('code', { style: 'font-size: 16px; padding: 6px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm);' },
+              hireResult.temporary_password),
+            copy, copyMsg),
+        );
+      }
+
+      return h('div', {
+        style: 'padding: 16px; border: 2px solid var(--line); border-radius: var(--radius-sm); margin-top: 14px;',
+      },
+        h('strong', {}, `${emp.first_name} ${emp.last_name} anboche (${emp.employee_number}).`),
+        credentials,
+        h('p', { class: 'hint', style: 'display: block; margin-top: 10px;' }, hireResult.note),
+        hireResult.job_closed ? h('p', { class: 'hint', style: 'display: block;' },
+          'Tout pòs yo ranpli: òf la fèmen otomatikman.') : null,
+        h('a', { href: `employee.html?id=${emp.id}`, class: 'btn btn-primary btn-sm', style: 'margin-top: 10px;' },
+          'Louvri dosye anplwaye a'),
+      );
+    }
+
+    function offersPanel() {
+      const stage = detail.application.stage;
+      const current = offers.find((r) => ['draft', 'sent', 'accepted'].includes(r.offer.status));
+      const past = offers.filter((r) => r !== current);
+      const body = [];
+
+      if (current) {
+        body.push(offerSummary(current));
+        if (current.offer.status === 'draft') body.push(draftActions(current));
+        if (current.offer.status === 'sent') body.push(sentActions(current));
+        if (current.offer.status === 'accepted' && stage !== 'hired') body.push(hireForm(current));
+      } else if (['interview', 'offer'].includes(stage)) {
+        body.push(createOfferForm());
+      } else if (!CLOSED_STAGES.includes(stage)) {
+        body.push(h('p', { class: 'empty' }, 'Fè omwen yon antrevi anvan ou fè yon pwopozisyon.'));
+      } else if (!offers.length) {
+        body.push(h('p', { class: 'empty' }, 'Pa gen pwopozisyon.'));
+      }
+
+      body.push(hireResultBox());
+
+      if (past.length) {
+        body.push(h('div', { style: 'margin-top: 18px; display: grid; gap: 10px;' },
+          h('p', { class: 'sub-label' }, 'Ansyen pwopozisyon'),
+          ...past.map(offerSummary)));
+      }
+
+      return panel('Pwopozisyon travay', null, ...body);
+    }
+
+    // -------------------------------------------------------------------
+    // AFICHAJ
+    // -------------------------------------------------------------------
+
+    function render() {
+      document.title = `${detail.application.full_name} — KONMBIT`;
+      content.replaceChildren(
+        candidatePanel(),
+        h('div', {
+          style: 'display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 0 20px; align-items: start;',
+        }, evaluationPanel(), interviewsPanel()),
+        offersPanel(),
+      );
+    }
+
+    await loadEmployees();
+    await refresh();
+  })();
+  </script>
+</body>
+</html>

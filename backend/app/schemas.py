@@ -420,7 +420,7 @@ class JobPostingCreate(BaseModel):
     currency: Currency = Currency.HTG
     show_salary: bool = False
     openings: int = Field(default=1, ge=1)
-    closes_at: Optional[datetime] = None
+    closes_at: Optional[UtcDatetime] = None
 
 
 class JobPostingUpdate(BaseModel):
@@ -435,7 +435,7 @@ class JobPostingUpdate(BaseModel):
     show_salary: Optional[bool] = None
     openings: Optional[int] = None
     status: Optional[JobStatus] = None
-    closes_at: Optional[datetime] = None
+    closes_at: Optional[UtcDatetime] = None
 
 
 class JobPostingPublic(BaseModel):

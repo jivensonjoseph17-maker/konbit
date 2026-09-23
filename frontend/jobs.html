@@ -101,6 +101,7 @@
               <div class="field">
                 <label for="f-closes">Dat fèmti (opsyonèl)</label>
                 <input class="input" id="f-closes" type="date">
+                <span class="hint">Òf la fèmen nan fen jounen sa a, lè lokal.</span>
               </div>
             </div>
 
@@ -174,6 +175,17 @@
       return h('span', { class: `badge ${cls}` }, label);
     }
 
+    /**
+     * "AAAA-MM-JJ" → fen jounen sa a nan lè LOKAL, an UTC ak 'Z'.
+     * Backend la refize yon dat san fizo orè: "…T23:59:59" poukont li
+     * ta sere kòm UTC, epi òf la ta fèmen vè 8è diswa lè Ayiti.
+     */
+    function endOfLocalDayIso(dateValue) {
+      if (!dateValue) return null;
+      const d = new Date(`${dateValue}T23:59:59`);
+      return Number.isNaN(d.getTime()) ? null : d.toISOString();
+    }
+
     // -----------------------------------------------------------------------
     // FÒM KREYE
     // -----------------------------------------------------------------------
@@ -214,6 +226,12 @@
         return;
       }
 
+      const closesAt = endOfLocalDayIso($('f-closes').value);
+      if (closesAt && new Date(closesAt) < new Date()) {
+        formError.textContent = 'Dat fèmti a deja pase.';
+        return;
+      }
+
       const payload = {
         title,
         description: $('f-desc').value.trim() || null,
@@ -226,7 +244,7 @@
         salary_max: salMax,
         show_salary: $('f-showsal').checked,
         openings: Number($('f-openings').value) || 1,
-        closes_at: $('f-closes').value ? `${$('f-closes').value}T23:59:59` : null,
+        closes_at: closesAt,
       };
 
       const submitBtn = form.querySelector('[type="submit"]');

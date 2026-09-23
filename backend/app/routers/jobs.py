@@ -20,6 +20,11 @@ ATANSYON SOU ENDPOINT PIBLIK YO: yo pa gen otantifikasyon, donk yo PA KA
 sèvi ak `get_tenant`. Izolasyon an fèt sou `org_slug` nan URL la, epi yo
 retounen SÈLMAN òf ki pibliye. Pa janm ajoute yon chan entèn
 (`internal_notes`, `salary_min` lè `show_salary=False`) nan repons piblik la.
+
+ESTATI A chanje SÈLMAN pa /publish, /close ak /reopen — pa pa PATCH.
+Chak nan yo gen pwòp règ pa l (deskripsyon obligatwa, refi otomatik...).
+
+DAT: `closes_at` dwe gen yon fizo orè (UtcDatetime) — li sere an UTC.
 """
 
 import logging
@@ -48,6 +53,7 @@ from ..schemas import (
     JobPostingPublic,
     JobPostingUpdate,
     Message,
+    UtcDatetime,
 )
 
 logger = logging.getLogger("konbit")
@@ -317,6 +323,18 @@ def update_job(
     job = _get_job_or_404(db, org_id, job_id)
     data = payload.model_dump(exclude_unset=True)
 
+    # Estati a pa chanje isit. San sa, yon PATCH {"status": "published"}
+    # ta pibliye yon òf san deskripsyon, oswa fèmen l san refize kandida yo.
+    if "status" in data and data["status"] != job.status:
+        raise HTTPException(
+            status_code=400,
+            detail="Pou chanje estati a, sèvi ak Pibliye, Fèmen oswa Louvri ankò.",
+        )
+    data.pop("status", None)
+
+    if "openings" in data and (data["openings"] is None or data["openings"] < 1):
+        raise HTTPException(status_code=400, detail="Dwe gen omwen yon pòs louvri.")
+
     # Si tit la chanje, slug la swiv — men sèlman pandan li bouyon.
     # Chanje slug yon òf ki pibliye kase lyen moun deja pataje yo.
     if "title" in data and data["title"] != job.title and job.status == JobStatus.DRAFT:
@@ -337,7 +355,7 @@ def update_job(
 
 
 class PublishJobRequest(BaseModel):
-    closes_at: Optional[datetime] = None
+    closes_at: Optional[UtcDatetime] = None
 
 
 @router.post(
