@@ -13,6 +13,7 @@ Endpoint yo:
     GET    /api/leaves/employee/{id}       Demann yon anplwaye
     GET    /api/leaves/employee/{id}/balances
     PUT    /api/leaves/balances            HR mete balans yo (chak ane)
+    GET    /api/leaves/balances            Lis balans TOUT anplwaye pou HR (paj Balans konje)
 
 RÈG APWOBASYON: se manadjè dirèk la ki apwouve. HR ak ORG_ADMIN ka apwouve
 nenpòt demann. Yon moun pa ka apwouve pwòp demann pa l.
@@ -56,6 +57,7 @@ from ..schemas import (
     LeaveRequestOut,
     Message,
 )
+from ..timezone_utils import get_local_today
 
 logger = logging.getLogger("konbit")
 
@@ -333,7 +335,7 @@ def cancel_my_request(
         raise HTTPException(status_code=403, detail="Se pa demann ou.")
     if req.status == RequestStatus.CANCELLED:
         raise HTTPException(status_code=400, detail="Demann lan deja anile.")
-    if req.start_date < date.today() and req.status == RequestStatus.APPROVED:
+    if req.start_date < get_local_today(db, org_id) and req.status == RequestStatus.APPROVED:
         raise HTTPException(
             status_code=400,
             detail="Ou pa ka anile yon konje ki deja kòmanse. Pale ak HR.",
@@ -490,7 +492,7 @@ def leave_calendar(
     Kiyès ki an konje nan yon peryòd. Tout anplwaye ka wè l — li ede moun
     planifye. Rezon konje a PA parèt (li ka medikal oswa prive).
     """
-    start = start_date or date.today()
+    start = start_date or get_local_today(db, org_id)
     end = end_date or (start + timedelta(days=30))
 
     q = (
@@ -573,7 +575,7 @@ def my_balances(
     db: DbSession,
     year: Optional[int] = None,
 ):
-    return _balances_for(db, org_id, emp.id, year or date.today().year)
+    return _balances_for(db, org_id, emp.id, year or get_local_today(db, org_id).year)
 
 
 @router.get("/employee/{employee_id}/balances", response_model=BalanceList)
@@ -586,7 +588,7 @@ def employee_balances(
 ):
     target = _get_employee_or_404(db, org_id, employee_id)
     ensure_can_view_employee(user, target, db)
-    return _balances_for(db, org_id, employee_id, year or date.today().year)
+    return _balances_for(db, org_id, employee_id, year or get_local_today(db, org_id).year)
 
 
 @router.get("/employee/{employee_id}", response_model=LeaveList)
@@ -650,3 +652,80 @@ def set_balance(
         used_days=used,
         remaining_days=entitled + carried - used,
     )
+
+
+class OrgBalanceItem(BaseModel):
+    employee_id: int
+    employee_name: str
+    employee_number: str
+    entitled_days: float
+    carried_over_days: float
+    used_days: float
+    remaining_days: float
+
+
+class OrgBalanceList(BaseModel):
+    total: int
+    leave_type: LeaveType
+    year: int
+    items: list[OrgBalanceItem]
+
+
+@router.get("/balances", response_model=OrgBalanceList, dependencies=[Depends(require_hr)])
+def list_org_balances(
+    org_id: TenantId,
+    db: DbSession,
+    leave_type: LeaveType = LeaveType.VACATION,
+    year: Optional[int] = None,
+    q: Annotated[Optional[str], Query(description="Rechèch sou non oswa nimewo")] = None,
+    include_inactive: bool = False,
+):
+    """
+    Lis balans TOUT anplwaye pou yon kalite konje ak yon ane — pou paj
+    "Balans konje" HR la. Nou fè sa an de rekèt sèlman (anplwaye, epi
+    balans yo), pa yon rekèt pa moun, menm jan ak /hierarchy/tree, pou
+    evite N+1 sou yon biznis ak anpil anplwaye.
+
+    Si yon anplwaye poko gen yon ranje LeaveBalance pou (kalite, ane) sa
+    a, li parèt ak 0 jou — HR ka kreye l lè li sove yon valè nan paj la.
+    """
+    yr = year or get_local_today(db, org_id).year
+
+    emp_q = db.query(Employee).filter(Employee.organization_id == org_id)
+    if not include_inactive:
+        emp_q = emp_q.filter(Employee.is_active.is_(True))
+    if q:
+        pattern = f"%{q.strip()}%"
+        emp_q = emp_q.filter(or_(
+            Employee.first_name.ilike(pattern),
+            Employee.last_name.ilike(pattern),
+            Employee.employee_number.ilike(pattern),
+        ))
+    employees = emp_q.order_by(Employee.last_name, Employee.first_name).all()
+
+    bal_by_emp = {
+        b.employee_id: b
+        for b in db.query(LeaveBalance).filter(
+            LeaveBalance.organization_id == org_id,
+            LeaveBalance.leave_type == leave_type,
+            LeaveBalance.year == yr,
+        ).all()
+    }
+
+    items = []
+    for emp in employees:
+        b = bal_by_emp.get(emp.id)
+        entitled = float(b.entitled_days or 0) if b else 0.0
+        carried = float(b.carried_over_days or 0) if b else 0.0
+        used = float(b.used_days or 0) if b else 0.0
+        items.append(OrgBalanceItem(
+            employee_id=emp.id,
+            employee_name=f"{emp.first_name} {emp.last_name}",
+            employee_number=emp.employee_number,
+            entitled_days=entitled,
+            carried_over_days=carried,
+            used_days=used,
+            remaining_days=entitled + carried - used,
+        ))
+
+    return OrgBalanceList(total=len(items), leave_type=leave_type, year=yr, items=items)

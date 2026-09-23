@@ -66,6 +66,8 @@ from ..schemas import (
     ProgressUpdate,
 )
 
+from ..timezone_utils import get_local_today
+
 logger = logging.getLogger("konbit")
 
 router = APIRouter()
@@ -542,7 +544,7 @@ def my_courses(emp: CurrentEmployee, org_id: TenantId, db: DbSession):
         .all()
     )
 
-    today = date.today()
+    today = get_local_today(db, org_id)
     items = []
     for enr, course in rows:
         overdue = bool(
@@ -829,7 +831,7 @@ def course_report(
     elif user.role not in (UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.HR):
         raise HTTPException(status_code=403, detail="Ou pa gen dwa pou rapò sa a.")
 
-    today = date.today()
+    today = get_local_today(db, org_id)
     rows = []
     for enr, emp in q.order_by(Employee.last_name).all():
         rows.append(ReportRow(
@@ -881,7 +883,7 @@ class OverdueResponse(BaseModel):
 @router.get("/overdue", response_model=OverdueResponse, dependencies=[Depends(require_hr)])
 def overdue_training(org_id: TenantId, db: DbSession):
     """Tout fòmasyon ki depase delè yo epi ki poko fini."""
-    today = date.today()
+    today = get_local_today(db, org_id)
 
     rows = (
         db.query(Enrollment, Employee, Course)

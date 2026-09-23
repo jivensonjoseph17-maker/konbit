@@ -1,0 +1,74 @@
+"""
+Konbit — Tès Rekritman (òf travay)
+Chemen: backend/tests/test_jobs.py
+"""
+
+
+def test_create_job_starts_as_draft(client, org_admin):
+    resp = client.post("/api/jobs", json={"title": "Kesye"}, headers=org_admin["headers"])
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["status"] == "draft"
+    assert body["slug"]
+
+
+def test_cannot_publish_without_description(client, org_admin):
+    job = client.post("/api/jobs", json={"title": "San Deskripsyon"},
+                       headers=org_admin["headers"]).json()
+
+    resp = client.post(f"/api/jobs/{job['id']}/publish", json={},
+                        headers=org_admin["headers"])
+    assert resp.status_code == 400
+
+
+def test_publish_after_adding_description(client, org_admin):
+    job = client.post("/api/jobs", json={"title": "Enjenyè"},
+                       headers=org_admin["headers"]).json()
+
+    client.patch(f"/api/jobs/{job['id']}", json={"description": "Yon bon travay."},
+                 headers=org_admin["headers"])
+
+    resp = client.post(f"/api/jobs/{job['id']}/publish", json={},
+                        headers=org_admin["headers"])
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "published"
+
+
+def test_close_then_reopen_job(client, org_admin):
+    job = client.post("/api/jobs", json={
+        "title": "Kòmi", "description": "Deskripsyon.",
+    }, headers=org_admin["headers"]).json()
+    client.post(f"/api/jobs/{job['id']}/publish", json={}, headers=org_admin["headers"])
+
+    closed = client.post(f"/api/jobs/{job['id']}/close", json={"reject_pending": False},
+                          headers=org_admin["headers"])
+    assert closed.status_code == 200
+    assert closed.json()["job"]["status"] == "closed"
+
+    reopened = client.post(f"/api/jobs/{job['id']}/reopen", json={},
+                            headers=org_admin["headers"])
+    assert reopened.status_code == 200
+    assert reopened.json()["status"] == "published"
+
+
+def test_cannot_reopen_a_job_that_is_not_closed(client, org_admin):
+    job = client.post("/api/jobs", json={"title": "Bouyon"},
+                       headers=org_admin["headers"]).json()
+
+    resp = client.post(f"/api/jobs/{job['id']}/reopen", json={},
+                        headers=org_admin["headers"])
+    assert resp.status_code == 400
+
+
+def test_list_jobs_filters_by_status(client, org_admin):
+    client.post("/api/jobs", json={"title": "Bouyon A"}, headers=org_admin["headers"])
+    published = client.post("/api/jobs", json={
+        "title": "Pibliye A", "description": "OK",
+    }, headers=org_admin["headers"]).json()
+    client.post(f"/api/jobs/{published['id']}/publish", json={}, headers=org_admin["headers"])
+
+    resp = client.get("/api/jobs", params={"status": "published"}, headers=org_admin["headers"])
+    assert resp.status_code == 200
+    titles = [j["title"] for j in resp.json()["items"]]
+    assert "Pibliye A" in titles
+    assert "Bouyon A" not in titles

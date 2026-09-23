@@ -13,6 +13,7 @@ ENTÈN (HR):
     PATCH  /api/jobs/{id}            Modifye
     POST   /api/jobs/{id}/publish    Pibliye
     POST   /api/jobs/{id}/close      Fèmen
+    POST   /api/jobs/{id}/reopen     Louvri ankò yon òf ki fèmen
     DELETE /api/jobs/{id}            Efase yon bouyon
 
 ATANSYON SOU ENDPOINT PIBLIK YO: yo pa gen otantifikasyon, donk yo PA KA
@@ -420,6 +421,32 @@ def close_job(
     db.commit()
     db.refresh(job)
     return CloseJobResult(job=_to_out(db, job), rejected_applications=rejected)
+
+
+@router.post(
+    "/{job_id}/reopen",
+    response_model=JobPostingOut,
+    dependencies=[Depends(require_hr)],
+)
+def reopen_job(job_id: int, org_id: TenantId, db: DbSession):
+    """
+    Remèt yon òf FÈMEN tounen PIBLIYE.
+
+    Sèlman yon òf ki nan estati FÈMEN ka louvri ankò — yon bouyon dwe
+    toujou pase pa /publish (li mande yon deskripsyon anvan). Nou pa
+    manyen `closes_at`: si dat fèmti a deja pase, òf la ap parèt fèmen
+    ankò sou paj karyè a jouk HR ajiste dat la nan panèl "Detay òf la".
+    """
+    job = _get_job_or_404(db, org_id, job_id)
+    if job.status != JobStatus.CLOSED:
+        raise HTTPException(
+            status_code=400,
+            detail="Sèlman yon òf ki FÈMEN ka louvri ankò.",
+        )
+    job.status = JobStatus.PUBLISHED
+    db.commit()
+    db.refresh(job)
+    return _to_out(db, job)
 
 
 @router.delete("/{job_id}", response_model=Message, dependencies=[Depends(require_hr)])
