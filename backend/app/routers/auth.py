@@ -162,7 +162,7 @@ def signup(payload: SignupRequest, request: Request, db: DbSession):
     problems = validate_password_strength(payload.admin_password)
     if problems:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=422,
             detail=problems,
         )
 
@@ -298,7 +298,7 @@ def change_password(
     problems = validate_password_strength(payload.new_password)
     if problems:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=422,
             detail=problems,
         )
 

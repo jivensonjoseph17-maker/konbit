@@ -13,11 +13,14 @@ ENTÈN (HR / manadjè):
     POST   /api/applications/{id}/reject          Refize ak yon rezon
 
     POST   /api/applications/{id}/interviews      Planifye yon antrevi
-    PATCH  /api/interviews/{id}                   Rezilta antrevi a
+    PATCH  /api/applications/interviews/{id}      Rezilta antrevi a
     GET    /api/applications/interviews/upcoming  Antrevi ki ap vini
 
 ETAP YO: received → screening → interview → offer → hired
          (rejected ak withdrawn ka rive nenpòt moman)
+
+DAT: `scheduled_at` dwe gen yon fizo orè (UtcDatetime). Li sere an UTC,
+epi nou konvèti l nan lè biznis la sèlman pou sa moun li (notifikasyon).
 """
 
 import logging
@@ -46,7 +49,9 @@ from ..schemas import (
     InterviewCreate,
     InterviewOut,
     Message,
+    UtcDatetime,
 )
+from ..timezone_utils import get_org_timezone
 
 logger = logging.getLogger("konbit")
 
@@ -113,6 +118,17 @@ def _get_interview_or_404(db: Session, org_id: int, interview_id: int) -> Interv
     if iv is None:
         raise HTTPException(status_code=404, detail="Antrevi a pa jwenn.")
     return iv
+
+
+def _format_local(db: Session, org_id: int, when_utc: datetime) -> str:
+    """
+    Montre yon lè UTC nan lè biznis la, pou moun li l.
+
+    Nou resevwa `when_utc` dirèkteman nan payload la (ki gen fizo orè),
+    PA nan objè a apre db.refresh(): SQLite retounen l san fizo orè, epi
+    .astimezone() ta konsidere l kòm lè òdinatè sèvè a — sa ta bay yon fo lè.
+    """
+    return f"{when_utc.astimezone(get_org_timezone(db, org_id)):%d/%m/%Y %H:%M}"
 
 
 # ---------------------------------------------------------------------------
@@ -505,7 +521,7 @@ def schedule_interview(
                 title="Antrevi planifye",
                 body=(
                     f"Ou gen yon antrevi ak {app.full_name} "
-                    f"nan {iv.scheduled_at:%d/%m/%Y %H:%M}."
+                    f"nan {_format_local(db, org_id, payload.scheduled_at)}."
                 ),
                 link=f"/applications/{app.id}",
             )
@@ -514,7 +530,7 @@ def schedule_interview(
 
 
 class InterviewResult(BaseModel):
-    scheduled_at: Optional[datetime] = None
+    scheduled_at: Optional[UtcDatetime] = None
     location: Optional[str] = None
     notes: Optional[str] = None
     score: Optional[int] = Field(default=None, ge=1, le=5)

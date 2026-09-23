@@ -17,6 +17,8 @@ aplikasyon ki aksepte epi li kreye:
   - yon kont User ak modpas tanporè
   - li make aplikasyon an HIRED
   - li diminye kantite pòs ki louvri nan òf la
+
+DAT: `expires_at` dwe gen yon fizo orè (UtcDatetime) — li sere an UTC.
 """
 
 import logging
@@ -45,8 +47,16 @@ from ..models import (
     User,
     UserRole,
 )
-from ..schemas import EmployeeOut, Message, OfferCreate, OfferOut, OfferResponse
+from ..schemas import (
+    EmployeeOut,
+    Message,
+    OfferCreate,
+    OfferOut,
+    OfferResponse,
+    UtcDatetime,
+)
 from ..security import generate_temp_password, hash_password
+from ..timezone_utils import get_local_today
 
 logger = logging.getLogger("konbit")
 
@@ -231,7 +241,7 @@ class OfferUpdate(BaseModel):
     currency: Optional[Currency] = None
     employment_type: Optional[EmploymentType] = None
     start_date: Optional[date] = None
-    expires_at: Optional[datetime] = None
+    expires_at: Optional[UtcDatetime] = None
     document_url: Optional[str] = None
     notes: Optional[str] = None
 
@@ -437,6 +447,9 @@ def hire_candidate(
             detail=f"Nimewo '{emp_number}' la deja pran.",
         )
 
+    # Dat antre pa defo: jodi a nan lè LOKAL biznis la, pa dat sèvè a.
+    hire_date = offer.start_date or get_local_today(db, org_id)
+
     login_email = None
     temp_password = None
     new_user = None
@@ -483,7 +496,7 @@ def hire_candidate(
             manager_id=payload.manager_id,
             employment_type=offer.employment_type,
             status=EmploymentStatus.ACTIVE,
-            hire_date=offer.start_date or date.today(),
+            hire_date=hire_date,
             base_salary=offer.salary,
             currency=offer.currency,
             preferred_payment_method=payload.preferred_payment_method,
@@ -510,12 +523,14 @@ def hire_candidate(
     except HTTPException:
         db.rollback()
         raise
-    except Exception as exc:
+    except Exception:
         db.rollback()
+        # Detay erè a ale nan lòg sèvè a sèlman. Nou pa voye l bay navigatè
+        # a: li ka gen non tab, kolòn oswa moso SQL ladan.
         logger.exception("Anbochaj echwe")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"{type(exc).__name__}: {exc}",
+            detail="Anbochaj la pa pase. Anyen pa sere. Eseye ankò oswa kontakte sipò.",
         )
 
     db.refresh(emp)

@@ -12,12 +12,23 @@ Li soti nan token an (deps.get_tenant). Si ou aksepte l nan kò rekèt la,
 nenpòt moun ka ekri done nan yon lòt biznis.
 
 Lajan: tout chan `*_amount`, `salary`, `rate` se an SANTIM (Integer).
+
+Dat ak lè: chan ki itilize `UtcDatetime` REFIZE dat san fizo orè, epi
+konvèti tout lòt yo an UTC anvan yo rive nan baz done a.
 """
 
-from datetime import date, datetime
-from typing import Optional
+from datetime import date, datetime, timezone
+from typing import Annotated, Optional
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    field_validator,
+    model_validator,
+)
 
 from .models import (
     ApplicationStage,
@@ -36,6 +47,26 @@ from .models import (
 )
 
 ORM = ConfigDict(from_attributes=True)
+
+
+# ---------------------------------------------------------------------------
+# DAT AK FIZO ORÈ
+# ---------------------------------------------------------------------------
+
+def _require_utc(v: datetime) -> datetime:
+    """
+    Refize dat san fizo orè, epi konvèti tout lòt yo an UTC.
+
+    Yon <input type="datetime-local"> voye "2026-10-01T10:00", san fizo orè.
+    Si nou sere sa, frontend la li l tounen kòm UTC epi lè a deplase 4-5 èdtan.
+    SQLite pa sere fizo orè a non plis, kidonk nou toujou sere an UTC.
+    """
+    if v.tzinfo is None or v.utcoffset() is None:
+        raise ValueError("Dat la dwe gen fizo orè (egz: 2026-10-01T14:00:00Z).")
+    return v.astimezone(timezone.utc)
+
+
+UtcDatetime = Annotated[datetime, AfterValidator(_require_utc)]
 
 
 # ---------------------------------------------------------------------------
@@ -475,7 +506,7 @@ class ApplicationOut(BaseModel):
 class InterviewCreate(BaseModel):
     application_id: int
     interviewer_id: Optional[int] = None
-    scheduled_at: datetime
+    scheduled_at: UtcDatetime
     duration_minutes: int = Field(default=45, ge=5, le=480)
     location: Optional[str] = None
     round_number: int = Field(default=1, ge=1)
@@ -501,7 +532,7 @@ class OfferCreate(BaseModel):
     currency: Currency = Currency.HTG
     employment_type: EmploymentType = EmploymentType.FULL_TIME
     start_date: Optional[date] = None
-    expires_at: Optional[datetime] = None
+    expires_at: Optional[UtcDatetime] = None
     notes: Optional[str] = None
 
 
