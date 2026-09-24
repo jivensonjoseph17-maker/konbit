@@ -19,7 +19,7 @@ from .database import engine
 from .routers import (
     auth, employees, hierarchy, attendance, leaves,
     payroll, training, feedback,
-    jobs, applications, offers,
+    jobs, applications, offers, application_questions,
 )
 
 # --- Router ki poko pare ---
@@ -155,6 +155,17 @@ app.include_router(feedback.router,   prefix="/api/feedback",   tags=["Fidbak"])
 app.include_router(jobs.router,         prefix="/api/jobs",         tags=["Òf travay"])
 app.include_router(applications.router, prefix="/api/applications", tags=["Aplikasyon"])
 app.include_router(offers.router,       prefix="/api/offers",       tags=["Pwopozisyon"])
+app.include_router(
+    application_questions.router,
+    prefix="/api/application-questions",
+    tags=["Kesyon aplikasyon"],
+)
 
 # --- Poko pare ---
 # app.include_router(companies.router,    prefix="/api/companies",    tags=["Biznis"])
+
+app.include_router(
+    application_questions.router,
+    prefix="/api/application-questions",
+    tags=["Kesyon aplikasyon"],
+)

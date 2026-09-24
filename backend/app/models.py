@@ -753,3 +753,75 @@ class Professional(Base, TimestampMixin):
     avatar = Column(String(500))
     order_index = Column(Integer, default=0)
     is_visible = Column(Boolean, default=True, nullable=False)
+
+    # ---------------------------------------------------------------------------
+# REKRITMAN — KESYON FÒM APLIKASYON
+#
+# Chak biznis gen pwòp kesyon li. Kesyon "pa defo" yo (system_key pa vid)
+# kreye otomatikman; HR ka modifye oswa dezaktive yo, men pa efase yo.
+# Repons yo sere yon KOPI tèks kesyon an: si HR chanje kesyon an pita,
+# ansyen aplikasyon yo toujou montre sa kandida a te vrèman wè.
+# ---------------------------------------------------------------------------
+
+from sqlalchemy import JSON  # noqa: E402
+
+
+class QuestionType(str, enum.Enum):
+    SHORT_TEXT = "short_text"
+    LONG_TEXT = "long_text"
+    YES_NO = "yes_no"
+    SINGLE_CHOICE = "single_choice"
+    MULTI_CHOICE = "multi_choice"
+    NUMBER = "number"
+    DATE = "date"
+    URL = "url"
+
+
+class ApplicationQuestion(Base, TimestampMixin):
+    __tablename__ = "application_questions"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "system_key", name="uq_question_org_key"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), index=True, nullable=False)
+    # Vid = kesyon an parèt pou TOUT òf biznis la. Sinon, sèlman pou òf sa a.
+    job_posting_id = Column(Integer, ForeignKey("job_postings.id"), index=True)
+
+    system_key = Column(String(50))              # "city", "worked_here_before"... (kesyon pa defo)
+    section = Column(String(30), nullable=False, default="other")
+    label = Column(String(300), nullable=False)
+    help_text = Column(String(500))
+    question_type = Column(SQLEnum(QuestionType), nullable=False)
+    options = Column(JSON)                        # lis chwa pou single/multi_choice
+    is_required = Column(Boolean, default=False, nullable=False)
+    is_sensitive = Column(Boolean, default=False, nullable=False)   # HR/admin sèlman
+    is_active = Column(Boolean, default=True, nullable=False)
+    order_index = Column(Integer, default=0, nullable=False)
+
+    # Kesyon an parèt sèlman si yon lòt kesyon gen yon sèten repons.
+    # Egz: "Poukisa w te kite?" parèt sèlman si "Te deja travay isit?" = wi.
+    condition_question_id = Column(Integer, ForeignKey("application_questions.id"))
+    condition_value = Column(String(100))
+
+    condition_question = relationship("ApplicationQuestion", remote_side=[id])
+
+
+class ApplicationAnswer(Base, TimestampMixin):
+    __tablename__ = "application_answers"
+    __table_args__ = (
+        UniqueConstraint("application_id", "question_id", name="uq_answer_app_question"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), index=True, nullable=False)
+    application_id = Column(Integer, ForeignKey("applications.id"), index=True, nullable=False)
+    question_id = Column(Integer, ForeignKey("application_questions.id"), index=True, nullable=False)
+
+    # Kopi kesyon an nan moman kandida a te reponn
+    question_label = Column(String(300), nullable=False)
+    question_type = Column(SQLEnum(QuestionType), nullable=False)
+    section = Column(String(30), nullable=False)
+    is_sensitive = Column(Boolean, default=False, nullable=False)
+
+    value = Column(JSON)                          # tèks, bool, chif, lis...

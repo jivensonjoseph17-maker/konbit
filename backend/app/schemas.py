@@ -69,6 +69,31 @@ def _require_utc(v: datetime) -> datetime:
 UtcDatetime = Annotated[datetime, AfterValidator(_require_utc)]
 
 
+def _require_http_url(v: str) -> Optional[str]:
+    """
+    Aksepte SÈLMAN lyen http:// oswa https://.
+
+    Lyen sa yo soti nan moun deyò (paj karyè piblik la). Yon lyen
+    "javascript:..." ta egzekite kòd nan navigatè HR la si yon paj
+    ta mete l nan yon <a href>. Frontend la deja bloke sa, men nou
+    refize l isit tou pou li pa janm antre nan baz done a.
+    """
+    v = (v or "").strip()
+    if not v:
+        return None
+    if not v.lower().startswith(("http://", "https://")) or len(v) < 11:
+        raise ValueError("Lyen an dwe kòmanse ak https:// (oswa http://).")
+    # Longè a tcheke ISIT, pa ak Field(max_length=...): Pydantic aplike
+    # max_length APRE validatè sa a, epi li pa ka mezire yon None
+    # (lyen vid la) — sa te bay yon erè 500.
+    if len(v) > 500:
+        raise ValueError("Lyen an twò long (500 karaktè maksimòm).")
+    return v
+
+
+HttpUrlStr = Annotated[str, AfterValidator(_require_http_url)]
+
+
 # ---------------------------------------------------------------------------
 # JENERIK
 # ---------------------------------------------------------------------------
@@ -476,7 +501,7 @@ class ApplicationCreate(BaseModel):
     full_name: str = Field(min_length=2, max_length=200)
     email: EmailStr
     phone: Optional[str] = None
-    resume_url: Optional[str] = None
+    resume_url: Optional[HttpUrlStr] = None
     cover_letter: Optional[str] = None
     source: Optional[str] = None
 

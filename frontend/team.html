@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ekip mwen — KONMBIT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div class="app">
+    <aside id="sidebar"></aside>
+
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+
+      <main class="page">
+        <div class="page-head">
+          <h1>Ekip mwen</h1>
+          <p id="subtitle">Apwouve demann yo epi evalye travay ekip ou.</p>
+        </div>
+
+        <div id="leaves"></div>
+        <div id="reviews"></div>
+      </main>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script src="shell.js"></script>
+  <script>
+  (async function () {
+    'use strict';
+    const { api, fmt, h, ApiError, shell } = Konbit;
+
+    const identity = await shell.mount('team', shell.MANAGERS);
+    if (!identity) return;
+
+    const isHr = ['super_admin', 'org_admin', 'hr'].includes(identity.user.role);
+    const leavesBox = document.getElementById('leaves');
+    const reviewsBox = document.getElementById('reviews');
+
+    let people = [];         // moun mwen ka wè (ekip mwen, oswa tout moun pou HR)
+
+    // -------------------------------------------------------------------
+    // ZOUTI
+    // -------------------------------------------------------------------
+
+    function errorMessage(err) {
+      let msg = err instanceof ApiError ? err.message : 'Yon bagay pa mache.';
+      if (err && err.fields && err.fields.length) {
+        msg += ' ' + err.fields.map((f) => `${f.field}: ${f.message}`).join('; ');
+      }
+      return msg;
+    }
+
+    function panel(title, meta, ...children) {
+      return h('section', { class: 'panel', style: 'margin-top: 20px;' },
+        h('div', { class: 'panel-head' },
+          h('h2', {}, title),
+          meta !== null && meta !== undefined ? h('span', { class: 'meta' }, String(meta)) : null,
+        ),
+        ...children,
+      );
+    }
+
+    function field(label, inputEl, hint) {
+      return h('div', { class: 'field' },
+        h('label', { for: inputEl.id }, label),
+        inputEl,
+        hint ? h('span', { class: 'hint' }, hint) : null,
+      );
+    }
+
+    function input(id, value, attrs = {}) {
+      const el = h('input', { class: 'input', id, autocomplete: 'off', ...attrs });
+      el.value = value ?? '';
+      return el;
+    }
+
+    function textarea(id, value, attrs = {}) {
+      const el = h('textarea', { class: 'textarea', id, rows: '3', ...attrs });
+      el.value = value ?? '';
+      return el;
+    }
+
+    function select(id, options, value) {
+      const el = h('select', { class: 'select', id },
+        ...options.map(([v, label]) => h('option', { value: v }, label)));
+      if (value !== undefined && value !== null) el.value = String(value);
+      return el;
+    }
+
+    function personName(id) {
+      const p = people.find((e) => e.id === id);
+      return p ? `${p.first_name} ${p.last_name}` : `Anplwaye #${id}`;
+    }
+
+    // -------------------------------------------------------------------
+    // DEMANN KONJE K AP TANN
+    // -------------------------------------------------------------------
+
+    function leaveCard(item) {
+      const r = item.request;
+      const msg = h('p', { class: 'field-error', role: 'status', style: 'margin: 0;' });
+      const note = input(`note-${r.id}`, '', { maxlength: '500', placeholder: 'Nòt (opsyonèl)' });
+
+      async function decide(approve, btn) {
+        if (!approve && !note.value.trim()
+            && !confirm('Refize san nòt? Li pi bon pou di moun nan poukisa.')) return;
+        btn.disabled = true;
+        msg.textContent = '';
+        try {
+          await api.post(`/api/leaves/${r.id}/decide`, {
+            approve, note: note.value.trim() || null,
+          });
+          await loadLeaves();
+        } catch (err) {
+          msg.textContent = errorMessage(err);
+          btn.disabled = false;
+        }
+      }
+
+      const approveBtn = h('button', { class: 'btn btn-primary btn-sm', type: 'button' }, 'Apwouve');
+      const rejectBtn = h('button', { class: 'btn btn-danger btn-sm', type: 'button' }, 'Refize');
+      approveBtn.addEventListener('click', () => decide(true, approveBtn));
+      rejectBtn.addEventListener('click', () => decide(false, rejectBtn));
+
+      const days = Number(r.total_days);
+      return h('div', {
+        style: 'padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); display: grid; gap: 8px;',
+      },
+        h('div', { style: 'display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap;' },
+          h('strong', {}, `${item.employee_name} · ${item.employee_number}`),
+          h('span', { class: 'badge badge-pending' }, fmt.leaveType(r.leave_type)),
+        ),
+        h('div', { class: 'sub' },
+          `${fmt.date(r.start_date)} → ${fmt.date(r.end_date)} · ${days} jou travay`),
+        r.reason ? h('div', { style: 'white-space: pre-wrap;' }, r.reason) : null,
+        h('div', { style: 'display: flex; gap: 8px; flex-wrap: wrap; align-items: center;' },
+          note, approveBtn, rejectBtn),
+        msg,
+      );
+    }
+
+    async function loadLeaves() {
+      try {
+        const data = await api.get('/api/leaves/pending');
+        leavesBox.replaceChildren(panel('Demann konje k ap tann', data.total,
+          data.items.length
+            ? h('div', { style: 'display: grid; gap: 12px;' }, ...data.items.map(leaveCard))
+            : h('p', { class: 'empty' }, 'Pa gen okenn demann k ap tann ou. 👍'),
+        ));
+      } catch (err) {
+        leavesBox.replaceChildren(panel('Demann konje k ap tann', null,
+          h('p', { class: 'empty' }, errorMessage(err))));
+      }
+    }
+
+    // -------------------------------------------------------------------
+    // EVALYASYON
+    // -------------------------------------------------------------------
+
+    function reviewRow(r) {
+      const msg = h('span', { class: 'field-error', role: 'status' });
+      const done = Boolean(r.finalized_at);
+      let action = null;
+
+      if (!done) {
+        action = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, 'Finalize');
+        action.addEventListener('click', async () => {
+          if (!confirm(`Finalize evalyasyon ${personName(r.employee_id)} an? `
+            + 'Apre sa, li p ap ka chanje ankò, e anplwaye a ap ka wè l.')) return;
+          action.disabled = true;
+          try {
+            await api.post(`/api/feedback/reviews/${r.id}/finalize`);
+            await loadReviews();
+          } catch (err) {
+            msg.textContent = errorMessage(err);
+            action.disabled = false;
+          }
+        });
+      }
+
+      return h('div', {
+        style: 'padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); display: grid; gap: 6px;',
+      },
+        h('div', { style: 'display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap;' },
+          h('strong', {}, `${personName(r.employee_id)} · ${r.period_label || ''}`),
+          done ? h('span', { class: 'badge badge-approved' }, 'Finalize')
+               : h('span', { class: 'badge badge-pending' }, 'Bouyon'),
+        ),
+        h('div', { class: 'sub' },
+          r.overall_score ? `Nòt jeneral: ${'★'.repeat(r.overall_score)} (${r.overall_score}/5)` : 'Poko gen nòt'),
+        r.strengths ? h('div', {}, h('span', { class: 'sub' }, 'Fòs: '), r.strengths) : null,
+        r.improvements ? h('div', {}, h('span', { class: 'sub' }, 'Pou amelyore: '), r.improvements) : null,
+        r.goals ? h('div', {}, h('span', { class: 'sub' }, 'Objektif: '), r.goals) : null,
+        r.employee_comment ? h('div', {}, h('span', { class: 'sub' }, 'Repons anplwaye a: '), r.employee_comment) : null,
+        h('div', { style: 'display: flex; gap: 8px; align-items: center;' }, action, msg),
+      );
+    }
+
+    function reviewForm() {
+      const msg = h('p', { class: 'field-error', role: 'status' });
+      // Pèsonn pa evalye tèt li: nou retire moun ki konekte a nan lis la.
+      const myEmpId = identity.employee ? identity.employee.id : null;
+      const choices = people.filter((p) => p.status === 'active' && p.id !== myEmpId);
+      const who = select('rv-who',
+        [['', 'Chwazi yon moun…'], ...choices.map((p) => [String(p.id), `${p.first_name} ${p.last_name}`])], '');
+      const label = input('rv-label', '', { maxlength: '100', placeholder: 'Egz: 2026 — 2yèm semès' });
+      const start = input('rv-start', '', { type: 'date' });
+      const end = input('rv-end', '', { type: 'date' });
+      const score = select('rv-score',
+        [['', '—'], ...[1, 2, 3, 4, 5].map((n) => [String(n), `${'★'.repeat(n)} (${n}/5)`])], '');
+      const strengths = textarea('rv-strengths', '');
+      const improvements = textarea('rv-improvements', '');
+      const goals = textarea('rv-goals', '');
+      const submit = h('button', { class: 'btn btn-primary btn-sm', type: 'submit' }, 'Sove bouyon an');
+
+      const form = h('form', { novalidate: true, style: 'display: grid; gap: 12px; margin-top: 18px;' },
+        h('p', { class: 'sub-label' }, 'Nouvo evalyasyon'),
+        h('div', { style: 'display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;' },
+          field('Anplwaye', who),
+          field('Peryòd', label),
+          field('Kòmansman', start),
+          field('Fen', end),
+          field('Nòt jeneral', score, 'Obligatwa pou finalize.'),
+        ),
+        field('Fòs li', strengths),
+        field('Sa pou l amelyore', improvements),
+        field('Objektif pou pwochen peryòd la', goals),
+        msg, h('div', {}, submit),
+      );
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        msg.textContent = '';
+        if (!who.value) { msg.textContent = 'Chwazi anplwaye a.'; return; }
+        if (!label.value.trim()) { msg.textContent = 'Bay peryòd la yon non.'; return; }
+        if (start.value && end.value && end.value < start.value) {
+          msg.textContent = 'Fen peryòd la pa ka anvan kòmansman an.';
+          return;
+        }
+        submit.disabled = true;
+        try {
+          await api.post('/api/feedback/reviews', {
+            employee_id: Number(who.value),
+            period_label: label.value.trim(),
+            period_start: start.value || null,
+            period_end: end.value || null,
+            overall_score: score.value ? Number(score.value) : null,
+            strengths: strengths.value.trim() || null,
+            improvements: improvements.value.trim() || null,
+            goals: goals.value.trim() || null,
+          });
+          await loadReviews();
+        } catch (err) {
+          msg.textContent = errorMessage(err);
+          submit.disabled = false;
+        }
+      });
+
+      return form;
+    }
+
+    async function loadReviews() {
+      try {
+        const data = await api.get('/api/feedback/reviews/team');
+        const list = data.items.length
+          ? h('div', { style: 'display: grid; gap: 12px;' }, ...data.items.map(reviewRow))
+          : h('p', { class: 'empty' }, 'Poko gen evalyasyon.');
+        reviewsBox.replaceChildren(panel('Evalyasyon', data.total,
+          h('p', { class: 'hint', style: 'display: block; margin: 0 0 14px;' },
+            'Yon bouyon rete prive. Lè w finalize l, anplwaye a resevwa yon notifikasyon epi li ka reponn.'),
+          list,
+          people.length ? reviewForm() : null,
+        ));
+      } catch (err) {
+        reviewsBox.replaceChildren(panel('Evalyasyon', null, h('p', { class: 'empty' }, errorMessage(err))));
+      }
+    }
+
+    // -------------------------------------------------------------------
+    // DEMARAJ
+    // -------------------------------------------------------------------
+
+    try {
+      // Pou yon manadjè, API a retounen sèlman moun ki anba l (+ li menm).
+      const data = await api.get('/api/employees?size=100');
+      people = data.items;
+    } catch {
+      people = [];
+    }
+
+    if (isHr) {
+      document.getElementById('subtitle').textContent =
+        'Tout demann ki ap tann nan biznis la, ak evalyasyon yo.';
+    }
+
+    await Promise.all([loadLeaves(), loadReviews()]);
+  })();
+  </script>
+</body>
+</html>

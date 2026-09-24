@@ -136,3 +136,36 @@ def make_employee_login(client, make_employee):
             "headers": {"Authorization": f"Bearer {token}"},
         }
     return _make
+
+
+# Yon repons valab pou chak kalite kesyon
+_SAMPLE_ANSWERS = {
+    "short_text": lambda q: "Tès",
+    "long_text": lambda q: "Yon repons tès.",
+    "yes_no": lambda q: False,
+    "single_choice": lambda q: q["options"][0],
+    "multi_choice": lambda q: [q["options"][0]],
+    "number": lambda q: 1,
+    "date": lambda q: "2026-10-01",
+    "url": lambda q: "https://example.com/tes",
+}
+
+
+@pytest.fixture()
+def application_answers(client):
+    """
+    Bati repons pou fòm aplikasyon piblik yon òf: tout kesyon obligatwa
+    ki pa gen kondisyon resevwa yon repons valab. Pase `key=valè` pou
+    chwazi repons yon kesyon pa defo (egz: worked_here_before=True).
+    """
+    def _make(org_slug, job_slug, **by_key):
+        resp = client.get(f"/api/application-questions/public/{org_slug}/{job_slug}")
+        assert resp.status_code == 200, resp.text
+        answers = {}
+        for q in resp.json()["items"]:
+            if q["key"] in by_key:
+                answers[str(q["id"])] = by_key[q["key"]]
+            elif q["is_required"] and q["condition_question_id"] is None:
+                answers[str(q["id"])] = _SAMPLE_ANSWERS[q["question_type"]](q)
+        return answers
+    return _make

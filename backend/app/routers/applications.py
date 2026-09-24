@@ -16,6 +16,9 @@ ENTÈN (HR / manadjè):
     PATCH  /api/applications/interviews/{id}      Rezilta antrevi a
     GET    /api/applications/interviews/upcoming  Antrevi ki ap vini
 
+KESYON FÒM NAN: gade routers/application_questions.py. Aplikasyon piblik la
+voye `answers` ({id kesyon: repons}); nou valide yo ANVAN nou kreye anyen.
+
 ETAP YO: received → screening → interview → offer → hired
          (rejected ak withdrawn ka rive nenpòt moman)
 
@@ -25,7 +28,7 @@ epi nou konvèti l nan lè biznis la sèlman pou sa moun li (notifikasyon).
 
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Annotated, Optional
+from typing import Annotated, Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, EmailStr, Field
@@ -42,16 +45,26 @@ from ..models import (
     JobStatus,
     Notification,
     Organization,
+    UserRole,
 )
 from ..schemas import (
     ApplicationOut,
     ApplicationUpdate,
+    HttpUrlStr,
     InterviewCreate,
     InterviewOut,
     Message,
     UtcDatetime,
 )
 from ..timezone_utils import get_org_timezone
+from .application_questions import (
+    AnswerOut,
+    answers_for,
+    applicable_questions,
+    ensure_default_questions,
+    save_answers,
+    validate_answers,
+)
 
 logger = logging.getLogger("konbit")
 
@@ -138,10 +151,12 @@ def _format_local(db: Session, org_id: int, when_utc: datetime) -> str:
 class PublicApplicationCreate(BaseModel):
     full_name: str = Field(min_length=2, max_length=200)
     email: EmailStr
-    phone: Optional[str] = None
-    resume_url: Optional[str] = None
-    cover_letter: Optional[str] = None
-    source: Optional[str] = None
+    phone: Optional[str] = Field(default=None, max_length=50)
+    resume_url: Optional[HttpUrlStr] = None
+    cover_letter: Optional[str] = Field(default=None, max_length=5000)
+    source: Optional[str] = Field(default=None, max_length=100)
+    # {"12": "Pòtoprens", "15": false, ...} — kle a se id kesyon an
+    answers: dict[str, Any] = Field(default_factory=dict)
 
 
 class ApplicationReceipt(BaseModel):
@@ -192,6 +207,11 @@ def apply_public(
         if closes <= datetime.now(timezone.utc):
             raise HTTPException(status_code=400, detail="Òf travay la fèmen.")
 
+    # Repons yo valide AVAN nou ekri anyen: yon kesyon obligatwa ki manke
+    # pa dwe kite yon aplikasyon mwatye ranpli nan baz done a.
+    ensure_default_questions(db, org.id)
+    answer_pairs = validate_answers(applicable_questions(db, org.id, job.id), payload.answers)
+
     email = payload.email.lower().strip()
     existing = db.query(Application).filter(
         Application.job_posting_id == job.id,
@@ -205,6 +225,7 @@ def apply_public(
         existing.phone = payload.phone or existing.phone
         existing.resume_url = payload.resume_url or existing.resume_url
         existing.cover_letter = payload.cover_letter or existing.cover_letter
+        save_answers(db, org.id, existing.id, answer_pairs)
         db.commit()
         app = existing
     else:
@@ -220,6 +241,8 @@ def apply_public(
             stage=ApplicationStage.RECEIVED,
         )
         db.add(app)
+        db.flush()                      # pou nou gen app.id
+        save_answers(db, org.id, app.id, answer_pairs)
         db.commit()
         db.refresh(app)
 
@@ -364,6 +387,11 @@ class ApplicationDetail(BaseModel):
     internal_notes: Optional[str] = None
     rejected_reason: Optional[str] = None
     interviews: list[InterviewOut]
+    answers: list[AnswerOut] = []
+
+
+# Moun ki ka wè repons sansib yo. Manadjè k ap fè antrevi yo pa ladan.
+SENSITIVE_ROLES = {UserRole.HR, UserRole.ORG_ADMIN, UserRole.SUPER_ADMIN}
 
 
 @router.get(
@@ -371,7 +399,7 @@ class ApplicationDetail(BaseModel):
     response_model=ApplicationDetail,
     dependencies=[Depends(require_manager)],
 )
-def read_application(application_id: int, org_id: TenantId, db: DbSession):
+def read_application(application_id: int, user: CurrentUser, org_id: TenantId, db: DbSession):
     app = _get_application_or_404(db, org_id, application_id)
     job = db.query(JobPosting).filter(JobPosting.id == app.job_posting_id).first()
 
@@ -385,6 +413,7 @@ def read_application(application_id: int, org_id: TenantId, db: DbSession):
         internal_notes=app.internal_notes,
         rejected_reason=app.rejected_reason,
         interviews=[InterviewOut.model_validate(i) for i in interviews],
+        answers=answers_for(db, org_id, app.id, include_sensitive=user.role in SENSITIVE_ROLES),
     )
 
 

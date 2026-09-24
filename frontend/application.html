@@ -253,6 +253,55 @@
     }
 
     // -------------------------------------------------------------------
+    // REPONS FÒM APLIKASYON AN
+    // -------------------------------------------------------------------
+
+    /** Montre yon repons dapre kalite kesyon an. */
+    function answerValue(a) {
+      const v = a.value;
+      if (v === null || v === undefined || v === '') return h('span', { class: 'sub' }, '—');
+      if (a.question_type === 'yes_no') return v ? 'Wi' : 'Non';
+      if (Array.isArray(v)) return v.join(', ');
+      if (a.question_type === 'date') return fmt.date(v);
+      if (a.question_type === 'number') return Number(v).toLocaleString('fr-FR').replace(/[\u202F\u2009]/g, '\u00A0');
+      if (a.question_type === 'url') {
+        const link = safeUrl(v);
+        return link ? h('a', { href: link, target: '_blank', rel: 'noopener noreferrer' }, link) : String(v);
+      }
+      return h('span', { style: 'white-space: pre-wrap;' }, String(v));
+    }
+
+    function answersPanel() {
+      const answers = detail.answers || [];
+      if (!answers.length) {
+        return panel('Repons fòm nan', null,
+          h('p', { class: 'empty' }, 'Kandida sa a pa t reponn okenn kesyon (li te aplike anvan nouvo fòm nan).'));
+      }
+
+      const groups = [];
+      for (const a of answers) {
+        let g = groups.find((x) => x.section === a.section);
+        if (!g) { g = { section: a.section, label: a.section_label, items: [] }; groups.push(g); }
+        g.items.push(a);
+      }
+
+      return panel('Repons fòm nan', `${answers.length}`,
+        ...groups.map((g) => h('div', { style: 'margin-top: 14px;' },
+          h('p', { class: 'sub-label' }, g.label),
+          h('dl', {
+            style: 'display: grid; grid-template-columns: minmax(180px, 1fr) 2fr; gap: 8px 18px; margin: 0;',
+          },
+            ...g.items.flatMap((a) => [
+              h('dt', { class: 'sub', style: 'margin: 0;' },
+                a.label,
+                a.is_sensitive ? h('span', { class: 'badge badge-pending', style: 'margin-left: 8px; font-size: 11px;' }, 'Sansib') : null),
+              h('dd', { style: 'margin: 0; overflow-wrap: anywhere;' }, answerValue(a)),
+            ]),
+          ))),
+      );
+    }
+
+    // -------------------------------------------------------------------
     // EVALYASYON AK ETAP
     // -------------------------------------------------------------------
 
@@ -790,6 +839,7 @@
       document.title = `${detail.application.full_name} — KONMBIT`;
       content.replaceChildren(
         candidatePanel(),
+        answersPanel(),
         h('div', {
           style: 'display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 0 20px; align-items: start;',
         }, evaluationPanel(), interviewsPanel()),

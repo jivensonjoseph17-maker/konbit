@@ -20,7 +20,7 @@ from app.models import Notification
 # ---------------------------------------------------------------------------
 
 @pytest.fixture()
-def make_application(client):
+def make_application(client, application_answers):
     """Pibliye yon òf epi fè yon kandida aplike sou paj piblik la."""
     def _make(org, openings=1):
         h = org["headers"]
@@ -35,7 +35,10 @@ def make_application(client):
         email = f"kandida-{uuid.uuid4().hex[:8]}@konbit-test.ht"
         resp = client.post(
             f"/api/applications/public/{org['org_slug']}/{job['slug']}",
-            json={"full_name": "Jak Pòl", "email": email},
+            json={
+                "full_name": "Jak Pòl", "email": email,
+                "answers": application_answers(org["org_slug"], job["slug"]),
+            },
         )
         assert resp.status_code == 201, resp.text
         return {"id": resp.json()["application_id"], "job_id": job["id"], "email": email}
@@ -209,3 +212,49 @@ def test_other_org_cannot_see_offer(client, make_org, make_application):
     }, headers=org_a["headers"]).json()["id"]
 
     assert client.get(f"/api/offers/{oid}", headers=org_b["headers"]).status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# PAJ KARYÈ PIBLIK — SEKIRITE
+# ---------------------------------------------------------------------------
+
+def _published_job(client, org):
+    job = client.post("/api/jobs", json={
+        "title": f"Pòs {uuid.uuid4().hex[:6]}", "description": "Deskripsyon.",
+    }, headers=org["headers"]).json()
+    client.post(f"/api/jobs/{job['id']}/publish", json={}, headers=org["headers"])
+    return job
+
+
+@pytest.mark.parametrize("bad_url", [
+    "javascript:alert(1)",
+    "JavaScript:alert(document.cookie)",
+    "data:text/html,<script>alert(1)</script>",
+    "cv.pdf",
+])
+def test_public_apply_rejects_dangerous_cv_links(client, org_admin, application_answers, bad_url):
+    job = _published_job(client, org_admin)
+    resp = client.post(
+        f"/api/applications/public/{org_admin['org_slug']}/{job['slug']}",
+        json={"full_name": "Kandida B", "email": "b@konbit-test.ht", "resume_url": bad_url,
+              "answers": application_answers(org_admin["org_slug"], job["slug"])},
+    )
+    assert resp.status_code == 422
+
+
+def test_public_apply_accepts_https_cv_and_empty_cv(client, org_admin, application_answers):
+    job = _published_job(client, org_admin)
+    url = f"/api/applications/public/{org_admin['org_slug']}/{job['slug']}"
+    answers = application_answers(org_admin["org_slug"], job["slug"])
+
+    ok = client.post(url, json={
+        "full_name": "Kandida A", "email": "a@konbit-test.ht",
+        "resume_url": "https://example.com/cv.pdf", "answers": answers,
+    })
+    assert ok.status_code == 201, ok.text
+
+    empty = client.post(url, json={
+        "full_name": "Kandida C", "email": "c@konbit-test.ht", "resume_url": "",
+        "answers": answers,
+    })
+    assert empty.status_code == 201, empty.text

@@ -16,7 +16,8 @@ Endpoint yo:
     GET    /api/leaves/balances            Lis balans TOUT anplwaye pou HR (paj Balans konje)
 
 RÈG APWOBASYON: se manadjè dirèk la ki apwouve. HR ak ORG_ADMIN ka apwouve
-nenpòt demann. Yon moun pa ka apwouve pwòp demann pa l.
+nenpòt demann — EKSEPTE pa yo. PÈSONN pa ka apwouve pwòp demann pa l,
+menm HR: se yon règ kontwòl entèn (separasyon travay).
 """
 
 import logging
@@ -181,17 +182,19 @@ def _has_overlap(db: Session, org_id: int, employee_id: int,
 
 
 def _can_decide(db: Session, user: User, req: LeaveRequest) -> bool:
-    """HR ak admin ka apwouve tout. Yon manadjè sèlman moun ki anba l."""
-    if user.role in (UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.HR):
-        return True
-    if user.role != UserRole.MANAGER:
+    """
+    HR ak admin ka apwouve tout demann — EKSEPTE pa yo. Yon manadjè sèlman
+    moun ki anba l. PÈSONN pa ka apwouve pwòp demann pa l: nou verifye sa
+    AVAN wòl la, pou HR pa ka pase anlè règ la.
+    """
+    approver = db.query(Employee).filter(Employee.user_id == user.id).first()
+    if approver is not None and approver.id == req.employee_id:
         return False
 
-    approver = db.query(Employee).filter(Employee.user_id == user.id).first()
-    if approver is None:
+    if user.role in (UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.HR):
+        return True
+    if user.role != UserRole.MANAGER or approver is None:
         return False
-    if approver.id == req.employee_id:
-        return False        # pa ka apwouve pwòp demann ou
 
     target = db.query(Employee).filter(Employee.id == req.employee_id).first()
     if target is None:
@@ -389,6 +392,10 @@ def pending_for_me(user: CurrentUser, org_id: TenantId, db: DbSession):
         q = q.filter(Employee.manager_id == approver.id)
     elif user.role not in (UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.HR):
         return PendingList(total=0, items=[])
+
+    # Pwòp demann mwen pa parèt nan lis la: mwen pa ka deside sou yo.
+    # (user_id ka NULL pou yon anplwaye san kont — `!=` poukont li ta kache l.)
+    q = q.filter(or_(Employee.user_id.is_(None), Employee.user_id != user.id))
 
     rows = q.order_by(LeaveRequest.start_date).all()
     items = [
