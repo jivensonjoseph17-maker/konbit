@@ -443,7 +443,7 @@
         const byStage = Object.fromEntries(data.columns.map((c) => [c.stage, c]));
 
         const board = h('div', {
-          style: 'display: grid; grid-template-columns: repeat(4, minmax(230px, 1fr)); gap: 14px; overflow-x: auto;',
+          style: 'display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;',
         }, ...ACTIVE_STAGES.map((stage) => stageColumn(stage, byStage[stage])));
 
         el._body.replaceChildren(board);
@@ -520,7 +520,7 @@
       const cv = safeUrl(app.resume_url);
 
       return h('div', {
-        style: 'padding: 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); display: grid; gap: 6px;',
+        style: 'padding: 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); display: grid; gap: 6px; min-width: 0; overflow-wrap: anywhere;',
       },
         h('a', {
           class: 'plain-link',

@@ -88,6 +88,10 @@
     let employees = [];      // pou chwazi moun k ap fè antrevi a
     let hireResult = null;   // modpas tanporè a parèt yon sèl fwa
 
+    // Sa moun nan tape men li poko sove. refresh() rebati tout paj la depi
+    // sèvè a: san sa, klike "Deplase" ta efase nòt entèn li t ap ekri yo.
+    const drafts = {};
+
     // -------------------------------------------------------------------
     // ZOUTI
     // -------------------------------------------------------------------
@@ -141,30 +145,9 @@
       );
     }
 
-    /**
-     * API a retounen dat san fizo orè ("2027-01-15T15:00:00") lè baz
-     * done a se SQLite. Backend la toujou ekri an UTC, donk nou ajoute 'Z'.
-     */
-    function parseApiDate(value) {
-      if (!value) return null;
-      const hasZone = /(Z|[+-]\d{2}:?\d{2})$/.test(value);
-      return new Date(hasZone ? value : `${value}Z`);
-    }
-
-    function formatDateTime(value) {
-      const d = parseApiDate(value);
-      if (!d || Number.isNaN(d.getTime())) return '—';
-      return d.toLocaleString('fr-FR', {
-        weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric',
-        hour: '2-digit', minute: '2-digit',
-      });
-    }
-
-    function formatDay(isoDate) {
-      if (!isoDate) return '—';
-      const [y, m, d] = isoDate.split('-').map(Number);
-      return new Date(y, m - 1, d).toLocaleDateString('fr-FR');
-    }
+    // Dat an kreyòl: fmt nan api.js konnen dat san fizo orè yo se UTC.
+    const formatDateTime = (value) => fmt.dateTime(value);
+    const formatDay = (value) => fmt.date(value);
 
     /**
      * Valè yon <input type="datetime-local"> ("2027-01-15T10:00") se lè
@@ -280,11 +263,35 @@
       const rating = select('ev-rating',
         [['', '—'], ...[1, 2, 3, 4, 5].map((n) => [String(n), '★'.repeat(n)])],
         app.rating ?? '');
-      const notes = textarea('ev-notes', detail.internal_notes, { rows: '4' });
-      const save = h('button', { class: 'btn btn-primary btn-sm', type: 'submit' }, 'Sove');
+      const ratingMsg = h('span', { class: 'hint', role: 'status' });
+      const notes = textarea('ev-notes', drafts.notes ?? detail.internal_notes, { rows: '4' });
+      const save = h('button', { class: 'btn btn-primary btn-sm', type: 'submit' }, 'Sove nòt yo');
+
+      // ★ yo sove menm kote a: pa gen bouton pou moun bliye klike.
+      rating.addEventListener('change', async () => {
+        ratingMsg.className = 'hint';
+        ratingMsg.textContent = 'Ap sove…';
+        rating.disabled = true;
+        try {
+          const updated = await api.patch(`/api/applications/${id}`, {
+            rating: rating.value ? Number(rating.value) : null,
+          });
+          detail.application.rating = updated.rating;
+          ratingMsg.textContent = 'Sove.';
+        } catch (err) {
+          ratingMsg.className = 'field-error';
+          ratingMsg.textContent = errorMessage(err);
+          rating.value = detail.application.rating ?? '';
+        } finally {
+          rating.disabled = false;
+        }
+      });
+
+      notes.addEventListener('input', () => { drafts.notes = notes.value; });
 
       const form = h('form', { novalidate: true, style: 'display: grid; gap: 12px;' },
-        field('Evalyasyon', rating),
+        h('div', { class: 'field' },
+          h('label', { for: rating.id }, 'Evalyasyon'), rating, ratingMsg),
         field('Nòt entèn', notes, 'Kandida a pa janm wè nòt sa yo.'),
         msg, h('div', {}, save),
       );
@@ -296,9 +303,10 @@
         save.disabled = true;
         try {
           await api.patch(`/api/applications/${id}`, {
-            rating: rating.value ? Number(rating.value) : null,
             internal_notes: notes.value.trim() || null,
           });
+          detail.internal_notes = notes.value.trim() || null;
+          delete drafts.notes;
           msg.className = 'hint';
           msg.textContent = 'Sove.';
         } catch (err) {
@@ -430,7 +438,12 @@
       const msg = h('p', { class: 'field-error', role: 'status' });
       const nextRound = (detail.interviews.reduce((m, iv) => Math.max(m, iv.round_number), 0)) + 1;
 
-      const when = input('sc-when', '', { type: 'datetime-local', required: true });
+      // De jaden separe: ak yon sèl "datetime-local", lè a te konn antre
+      // nan ane a ("202610") lè moun nan tape san l pa klike nan pati lè a.
+      const day = input('sc-day', drafts.scDay || '', { type: 'date', required: true });
+      const time = input('sc-time', drafts.scTime || '10:00', { type: 'time', step: '300', required: true });
+      day.addEventListener('input', () => { drafts.scDay = day.value; });
+      time.addEventListener('input', () => { drafts.scTime = time.value; });
       const duration = input('sc-duration', '45', { type: 'number', min: '5', max: '480', step: '5' });
       const who = select('sc-who',
         [['', 'Pa chwazi'], ...employees.map((e) => [String(e.id), `${e.first_name} ${e.last_name}`])], '');
@@ -441,7 +454,8 @@
       const form = h('form', { novalidate: true, style: 'display: grid; gap: 12px; margin-top: 18px;' },
         h('p', { class: 'sub-label' }, 'Nouvo antrevi'),
         h('div', { style: 'display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;' },
-          field('Dat ak lè', when, 'Lè lokal ou.'),
+          field('Dat', day),
+          field('Lè', time, 'Lè lokal ou.'),
           field('Dire (minit)', duration),
           field('Wonn', round),
           field('Kiyès k ap fè l', who),
@@ -454,8 +468,9 @@
         e.preventDefault();
         msg.textContent = '';
 
-        const iso = localInputToIso(when.value);
-        if (!iso) { msg.textContent = 'Chwazi dat ak lè antrevi a.'; return; }
+        if (!day.value || !time.value) { msg.textContent = 'Chwazi dat ak lè antrevi a.'; return; }
+        const iso = localInputToIso(`${day.value}T${time.value}`);
+        if (!iso) { msg.textContent = 'Dat oswa lè a pa valab.'; return; }
         if (new Date(iso) < new Date()) { msg.textContent = 'Dat la deja pase.'; return; }
 
         submit.disabled = true;
@@ -468,6 +483,8 @@
             interviewer_id: who.value ? Number(who.value) : null,
             location: where.value.trim() || null,
           });
+          delete drafts.scDay;
+          delete drafts.scTime;
           await refresh();
         } catch (err) {
           msg.textContent = errorMessage(err);
@@ -617,6 +634,22 @@
       const firstName = input('hi-first', first, { maxlength: '100' });
       const lastName = input('hi-last', last, { maxlength: '100' });
       const pay = select('hi-pay', PAYMENT_METHODS, 'check');
+
+      // Detay peman yo parèt dapre metòd la. San yo, yon "Depo dirèk" san
+      // nimewo kont te fini pa peye pa chèk san pèsonn pa remake.
+      const bankName = input('hi-bank', '', { maxlength: '150' });
+      const bankAccount = input('hi-account', '', { maxlength: '50', inputmode: 'numeric' });
+      const mobile = input('hi-mobile', app.phone || '', { type: 'tel', maxlength: '30' });
+      const bankBox = h('div', { style: 'display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;' },
+        field('Bank', bankName), field('Nimewo kont', bankAccount));
+      const mobileBox = h('div', { style: 'display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;' },
+        field('Nimewo telefòn peman an', mobile, 'Nimewo kont MonCash oswa NatCash la.'));
+      function syncPayFields() {
+        bankBox.hidden = pay.value !== 'direct_deposit';
+        mobileBox.hidden = !['moncash', 'natcash'].includes(pay.value);
+      }
+      pay.addEventListener('change', syncPayFields);
+      syncPayFields();
       const makeLogin = h('input', { type: 'checkbox', id: 'hi-login' });
       makeLogin.checked = true;
       const loginEmail = input('hi-email', app.email, { type: 'email' });
@@ -633,6 +666,8 @@
           'Salè, dat antre ak kalite kontra a soti nan pwopozisyon an. HR ka konplete rès dosye a apre.'),
         h('div', { style: 'display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;' },
           field('Prenon', firstName), field('Non', lastName), field('Peman', pay)),
+        bankBox,
+        mobileBox,
         h('label', { for: makeLogin.id, style: 'display: flex; gap: 8px; align-items: center;' },
           makeLogin, 'Kreye yon kont koneksyon'),
         loginBox,
@@ -646,6 +681,14 @@
           msg.textContent = 'Prenon ak non obligatwa.';
           return;
         }
+        if (pay.value === 'direct_deposit' && (!bankName.value.trim() || !bankAccount.value.trim())) {
+          msg.textContent = 'Pou depo dirèk, mete non bank lan ak nimewo kont lan.';
+          return;
+        }
+        if (['moncash', 'natcash'].includes(pay.value) && !mobile.value.trim()) {
+          msg.textContent = 'Mete nimewo telefòn kote l ap resevwa peman an.';
+          return;
+        }
         if (!confirm(`Anboche ${firstName.value.trim()} ${lastName.value.trim()}? Sa kreye dosye anplwaye a.`)) return;
 
         submit.disabled = true;
@@ -654,6 +697,9 @@
             first_name: firstName.value.trim(),
             last_name: lastName.value.trim(),
             preferred_payment_method: pay.value,
+            bank_name: pay.value === 'direct_deposit' ? bankName.value.trim() : null,
+            bank_account_number: pay.value === 'direct_deposit' ? bankAccount.value.trim() : null,
+            mobile_money_number: ['moncash', 'natcash'].includes(pay.value) ? mobile.value.trim() : null,
             create_login: makeLogin.checked,
             login_email: makeLogin.checked ? (loginEmail.value.trim() || null) : null,
             login_role: role.value,

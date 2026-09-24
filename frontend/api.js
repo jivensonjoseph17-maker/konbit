@@ -2,7 +2,7 @@
  * Konbit — kliyan API
  * Chemen: frontend/api.js
  *
- * Tout paj aplikasyon an pase pa fichye sa a pou pale ak backend la.
+ * Tout paj aplikasyon an pase nan fichye sa a pou pale ak backend la.
  * Li jere: token nan chak rekèt, refresh otomatik lè li ekspire,
  * erè an kreyòl, ak fòma lajan / dat / èdtan.
  *
@@ -208,18 +208,38 @@
 
   // -------------------------------------------------------------------------
   // FÒMA
+  //
+  // Dat yo an KREYÒL. Nou pa sèvi ak toLocaleDateString('fr-FR') pou mo yo:
+  // li bay "octobre", "lun.", "sept." — franse, pa kreyòl. Chif yo menm
+  // (jou, lè) rete an fòma nimerik.
   // -------------------------------------------------------------------------
+
+  const MONTHS = ['janvye', 'fevriye', 'mas', 'avril', 'me', 'jen',
+                  'jiyè', 'out', 'septanm', 'oktòb', 'novanm', 'desanm'];
+  const MONTHS_SHORT = ['jan.', 'fev.', 'mas', 'avr.', 'me', 'jen',
+                        'jiy.', 'out', 'sept.', 'okt.', 'nov.', 'des.'];
+  const DAYS = ['dimanch', 'lendi', 'madi', 'mèkredi', 'jedi', 'vandredi', 'samdi'];
+  const DAYS_SHORT = ['dim.', 'len.', 'mad.', 'mèk.', 'jed.', 'van.', 'sam.'];
 
   const numberFmt = new Intl.NumberFormat('fr-FR', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
 
+  const pad2 = (n) => String(n).padStart(2, '0');
+
   const fmt = {
+    MONTHS,
+    DAYS,
+
     /** 4500000 → "45 000,00 HTG". Tout montan nan API a an santim. */
     money(cents, currency = 'HTG') {
       if (cents === null || cents === undefined) return '—';
-      return `${numberFmt.format(cents / 100)} ${currency}`;
+      // fr-FR separe milye yo ak yon espas TRÈ etwat (U+202F) ki parèt
+      // envizib nan kèk polis ("41000,00"). Nou mete yon espas nòmal
+      // ki pa kase liy (U+00A0) olye.
+      const text = numberFmt.format(cents / 100).replace(/[\u202F\u2009]/g, '\u00A0');
+      return `${text} ${currency}`;
     },
 
     /**
@@ -236,22 +256,33 @@
       return new Date(hasZone ? value : `${value}Z`);
     },
 
+    /** "21 oktòb 2026" */
     date(value) {
       const d = fmt.parseDate(value);
       if (!d || isNaN(d)) return '—';
-      return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+      return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
     },
 
+    /** "23 sept." */
     shortDate(value) {
       const d = fmt.parseDate(value);
       if (!d || isNaN(d)) return '—';
-      return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+      return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
     },
 
+    /** "22:45" */
     time(value) {
       const d = fmt.parseDate(value);
       if (!d || isNaN(d)) return '—';
-      return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+      return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+    },
+
+    /** "sam. 10 okt. 2026 · 22:45" */
+    dateTime(value) {
+      const d = fmt.parseDate(value);
+      if (!d || isNaN(d)) return '—';
+      return `${DAYS_SHORT[d.getDay()]} ${d.getDate()} ${MONTHS_SHORT[d.getMonth()]} `
+        + `${d.getFullYear()} · ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
     },
 
     /**
