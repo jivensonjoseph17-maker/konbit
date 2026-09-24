@@ -16,6 +16,10 @@ Endpoint yo:
 
 DESIZYON: nou pa efase yon antre ki gen erè. HR korije l epi antre a pran
 estati ADJUSTED, ak rezon an ekri. Se konsa yon kontab ka verifye peyòl la.
+
+BLOKAJ: lè yon manadjè apwouve èdtan yon moun pou yon peryòd (gade
+timesheets.py), pwentaj peryòd sa a BLOKE. HR dwe retire apwobasyon an
+anvan li korije yon lè — sinon èdtan yo ta ka chanje apre siyati a.
 """
 
 import logging
@@ -54,6 +58,7 @@ from ..schemas import (
     TimeEntryAdjust,
     TimeEntryOut,
 )
+from .timesheets import timesheet_locked
 
 logger = logging.getLogger("konbit")
 
@@ -542,6 +547,15 @@ def adjust_entry(
     ).first()
     if entry is None:
         raise HTTPException(status_code=404, detail="Antre a pa jwenn.")
+
+    if timesheet_locked(db, org_id, entry.employee_id, entry.work_date):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Manadjè a deja apwouve èdtan peryòd sa a. Retire apwobasyon an "
+                "anvan ou korije l — manadjè a ap dwe apwouve ankò."
+            ),
+        )
 
     before = (
         f"in={entry.clock_in_at}, out={entry.clock_out_at}, "

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tan travay — KONMBIT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div class="app">
+    <aside id="sidebar"></aside>
+
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+
+      <main class="page">
+        <div class="page-head-row">
+          <div class="page-head">
+            <h1>Tan travay</h1>
+            <p>Verifye epi apwouve èdtan ekip ou pou chak peryòd peyòl.</p>
+          </div>
+          <div class="field" style="min-width: 240px;">
+            <label for="period">Peryòd</label>
+            <select class="select" id="period"></select>
+          </div>
+        </div>
+
+        <div id="content"><p class="loading">Ap chaje…</p></div>
+      </main>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script src="shell.js"></script>
+  <script>
+  (async function () {
+    'use strict';
+    const { api, fmt, h, ApiError, shell } = Konbit;
+
+    const identity = await shell.mount('timesheets', shell.MANAGERS);
+    if (!identity) return;
+
+    const isHr = ['super_admin', 'org_admin', 'hr'].includes(identity.user.role);
+    const content = document.getElementById('content');
+    const periodSelect = document.getElementById('period');
+
+    const STATUS = {
+      pending: ['Ap tann', 'badge-pending'],
+      approved: ['Apwouve', 'badge-approved'],
+      returned: ['Voye bay HR', 'badge-cancelled'],
+    };
+    const ENTRY_STATUS = {
+      open: ['Louvri', 'badge-cancelled'],
+      missing_out: ['San lè sòti', 'badge-cancelled'],
+      closed: ['Fèmen', 'badge-approved'],
+      adjusted: ['Korije pa HR', 'badge-pending'],
+    };
+
+    // -------------------------------------------------------------------
+    // ZOUTI
+    // -------------------------------------------------------------------
+
+    function errorMessage(err) {
+      let msg = err instanceof ApiError ? err.message : 'Yon bagay pa mache.';
+      if (err && err.fields && err.fields.length) {
+        msg += ' ' + err.fields.map((f) => `${f.field}: ${f.message}`).join('; ');
+      }
+      return msg;
+    }
+
+    function badge([label, cls]) {
+      return h('span', { class: `badge ${cls}` }, label);
+    }
+
+    function stat(label, value) {
+      return h('div', { class: 'stat' }, h('div', { class: 'n' }, String(value)), h('div', { class: 't' }, label));
+    }
+
+    // -------------------------------------------------------------------
+    // PWENTAJ YON MOUN (detay)
+    // -------------------------------------------------------------------
+
+    async function loadEntries(box, row, period) {
+      box.replaceChildren(h('p', { class: 'loading' }, 'Ap chaje…'));
+      try {
+        const q = new URLSearchParams({
+          start_date: period.start_date, end_date: period.end_date, limit: '200',
+        });
+        const data = await api.get(`/api/attendance/employee/${row.employee_id}?${q}`);
+        if (!data.items.length) {
+          box.replaceChildren(h('p', { class: 'empty' }, 'Pa gen pwentaj nan peryòd sa a.'));
+          return;
+        }
+        const items = [...data.items].sort((a, b) => a.work_date.localeCompare(b.work_date));
+        box.replaceChildren(h('div', { class: 'table-wrap', style: 'margin-top: 10px;' },
+          h('table', { class: 'table' },
+            h('thead', {}, h('tr', {},
+              h('th', {}, 'Jou'), h('th', {}, 'Antre'), h('th', {}, 'Sòti'),
+              h('th', { class: 'num-col' }, 'Poz'), h('th', { class: 'num-col' }, 'Travay'),
+              h('th', { class: 'num-col' }, 'Siplemantè'), h('th', {}, 'Estati'),
+            )),
+            h('tbody', {}, ...items.map((e) => h('tr', {},
+              h('td', {}, fmt.shortDate(e.work_date)),
+              h('td', {}, fmt.time(e.clock_in_at)),
+              h('td', {}, e.clock_out_at ? fmt.time(e.clock_out_at) : '—'),
+              h('td', { class: 'num-col' }, `${e.break_minutes || 0} min`),
+              h('td', { class: 'num-col' }, fmt.duration(e.worked_minutes)),
+              h('td', { class: 'num-col' }, e.overtime_minutes ? fmt.duration(e.overtime_minutes) : '—'),
+              h('td', {},
+                badge(ENTRY_STATUS[e.status] || [e.status, '']),
+                e.adjustment_reason ? h('div', { class: 'sub', style: 'font-size: 12px;' }, e.adjustment_reason) : null),
+            ))),
+          )));
+      } catch (err) {
+        box.replaceChildren(h('p', { class: 'field-error' }, errorMessage(err)));
+      }
+    }
+
+    // -------------------------------------------------------------------
+    // YON LIY (yon anplwaye)
+    // -------------------------------------------------------------------
+
+    function rowCard(row, data) {
+      const { period, period_ended: ended, payroll_locked: locked } = data;
+      const msg = h('p', { class: 'field-error', role: 'status', style: 'margin: 0;' });
+      const detail = h('div', { hidden: true });
+      const base = `/api/timesheets/${period.id}/employees/${row.employee_id}`;
+
+      async function act(btn, fn) {
+        btn.disabled = true;
+        msg.textContent = '';
+        try {
+          await fn();
+          await loadPeriod();
+        } catch (err) {
+          msg.textContent = errorMessage(err);
+          btn.disabled = false;
+        }
+      }
+
+      const actions = [];
+      if (row.can_decide && !locked) {
+        if (row.status !== 'approved') {
+          const why = !ended ? 'Peryòd la poko fini.'
+            : row.open_entries ? 'Gen pwentaj pou HR korije anvan.' : null;
+          const approve = h('button', {
+            class: 'btn btn-primary btn-sm', type: 'button', disabled: Boolean(why), title: why || '',
+          }, 'Apwouve');
+          approve.addEventListener('click', () => act(approve,
+            () => api.post(`${base}/approve`, {})));
+          actions.push(approve);
+        }
+        if (row.status !== 'returned') {
+          const ret = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, 'Voye bay HR');
+          ret.addEventListener('click', () => {
+            const note = prompt(`Kisa HR dwe korije pou ${row.employee_name}?`);
+            if (note === null) return;
+            if (note.trim().length < 5) { msg.textContent = 'Ekri omwen 5 karaktè pou HR konprann.'; return; }
+            act(ret, () => api.post(`${base}/return`, { note: note.trim() }));
+          });
+          actions.push(ret);
+        }
+      }
+      if (isHr && !locked && row.status !== 'pending') {
+        const reset = h('button', { class: 'btn btn-danger btn-sm', type: 'button' }, 'Retire desizyon an');
+        reset.addEventListener('click', () => {
+          if (!confirm('Retire desizyon an? Pwentaj yo ap debloke pou w korije yo, '
+            + 'e manadjè a ap dwe apwouve ankò.')) return;
+          act(reset, () => api.del(base));
+        });
+        actions.push(reset);
+      }
+
+      const toggle = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, 'Wè pwentaj yo');
+      toggle.addEventListener('click', () => {
+        detail.hidden = !detail.hidden;
+        toggle.textContent = detail.hidden ? 'Wè pwentaj yo' : 'Kache pwentaj yo';
+        if (!detail.hidden && !detail.dataset.loaded) {
+          detail.dataset.loaded = '1';
+          loadEntries(detail, row, period);
+        }
+      });
+
+      const decided = row.status !== 'pending' && row.decided_by
+        ? h('div', { class: 'sub', style: 'font-size: 13px;' },
+            `${STATUS[row.status][0]} pa ${row.decided_by} · ${fmt.dateTime(row.decided_at)}`,
+            row.note ? h('div', { style: 'white-space: pre-wrap; color: var(--text);' }, `« ${row.note} »`) : null)
+        : null;
+
+      return h('div', {
+        style: 'padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); display: grid; gap: 8px;',
+      },
+        h('div', { style: 'display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center;' },
+          h('strong', {}, `${row.employee_name} · ${row.employee_number}`),
+          badge(STATUS[row.status] || [row.status, '']),
+        ),
+        h('div', { style: 'display: flex; gap: 18px; flex-wrap: wrap;' },
+          h('span', {}, h('span', { class: 'sub' }, 'Jou: '), String(row.days_present)),
+          h('span', {}, h('span', { class: 'sub' }, 'Travay: '), fmt.duration(row.worked_minutes)),
+          h('span', {}, h('span', { class: 'sub' }, 'Siplemantè: '),
+            row.overtime_minutes ? fmt.duration(row.overtime_minutes) : '—'),
+          row.adjusted_entries ? h('span', { class: 'sub' }, `${row.adjusted_entries} korije pa HR`) : null,
+          row.open_entries ? badge([`${row.open_entries} pwentaj pou korije`, 'badge-cancelled']) : null,
+        ),
+        decided,
+        h('div', { style: 'display: flex; gap: 8px; flex-wrap: wrap;' }, ...actions, toggle),
+        msg,
+        detail,
+      );
+    }
+
+    // -------------------------------------------------------------------
+    // PERYÒD LA
+    // -------------------------------------------------------------------
+
+    async function loadPeriod() {
+      const id = periodSelect.value;
+      if (!id) return;
+      try {
+        const data = await api.get(`/api/timesheets/${id}`);
+        const p = data.period;
+        const count = (s) => data.items.filter((r) => r.status === s).length;
+
+        const notices = [];
+        if (!data.period_ended) {
+          notices.push(h('div', { class: 'notice' },
+            `Peryòd la fini ${fmt.date(p.end_date)}. Ou ka revize èdtan yo kounye a, `
+            + 'men ou ka apwouve yo sèlman apre dènye jou a.'));
+        }
+        if (data.payroll_locked) {
+          notices.push(h('div', { class: 'notice' },
+            'Peyòl peryòd sa a deja apwouve oswa peye. Èdtan yo pa ka chanje ankò.'));
+        }
+
+        content.replaceChildren(
+          ...notices,
+          h('div', { class: 'stats', style: 'display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin: 16px 0;' },
+            stat('Apwouve', count('approved')),
+            stat('Ap tann', count('pending')),
+            stat('Voye bay HR', count('returned')),
+          ),
+          h('p', { class: 'sub', style: 'margin: 0 0 12px;' },
+            `${fmt.date(p.start_date)} → ${fmt.date(p.end_date)} · peman ${fmt.date(p.pay_date)}`),
+          data.items.length
+            ? h('div', { style: 'display: grid; gap: 12px;' }, ...data.items.map((r) => rowCard(r, data)))
+            : h('p', { class: 'empty' }, isHr
+                ? 'Pa gen anplwaye nan peryòd sa a.'
+                : 'Pa gen okenn moun ki rapòte ba ou dirèkteman.'),
+          h('p', { class: 'hint', style: 'display: block; margin-top: 16px;' },
+            'Èdtan ki pa apwouve yo: peyòl la peye salè de baz la, men PA èdtan siplemantè yo.'),
+        );
+      } catch (err) {
+        content.replaceChildren(h('div', { class: 'alert alert-error' }, errorMessage(err)));
+      }
+    }
+
+    // -------------------------------------------------------------------
+    // DEMARAJ
+    // -------------------------------------------------------------------
+
+    try {
+      const { items } = await api.get('/api/timesheets/periods');
+      if (!items.length) {
+        content.replaceChildren(h('p', { class: 'empty' },
+          isHr ? 'Poko gen peryòd peyòl. Kreye youn nan paj Peyòl la.'
+               : 'Poko gen peryòd peyòl. HR dwe kreye youn anvan.'));
+        periodSelect.disabled = true;
+        return;
+      }
+      periodSelect.replaceChildren(...items.map((p) =>
+        h('option', { value: String(p.id) }, `${p.name} (${fmt.shortDate(p.start_date)} – ${fmt.shortDate(p.end_date)})`)));
+
+      // Pa defo: dènye peryòd ki FINI (se li ki bezwen apwobasyon)
+      const today = new Date().toISOString().slice(0, 10);
+      const ended = items.find((p) => p.end_date < today);
+      periodSelect.value = String((ended || items[0]).id);
+      periodSelect.addEventListener('change', loadPeriod);
+      await loadPeriod();
+    } catch (err) {
+      content.replaceChildren(h('div', { class: 'alert alert-error' }, errorMessage(err)));
+    }
+  })();
+  </script>
+</body>
+</html>

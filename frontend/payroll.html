@@ -325,6 +325,63 @@
       );
     }
 
+    /**
+     * Kalkile fich peye yo. Si backend la reponn 409 (gen moun ki poko gen
+     * èdtan apwouve pa manadjè yo), nou montre lis la ak de chwa: ale
+     * apwouve yo, oswa kontinye — moun sa yo p ap touche èdtan siplemantè.
+     */
+    async function runPayroll(period, confirmUnapproved) {
+      const query = confirmUnapproved ? '?confirm_unapproved=true' : '';
+      const r = await api.post(`/api/payroll/periods/${period.id}/run${query}`, {
+        pay_period_id: period.id,
+        include_overtime: true,
+      });
+      lastWarnings = r.warnings || [];
+      if (r.unapproved && r.unapproved.length) {
+        lastWarnings.unshift(
+          `Kalkile san èdtan apwouve (salè de baz sèlman, pa èdtan siplemantè): ${r.unapproved.join(', ')}.`);
+      }
+      if (r.created === 0 && r.skipped > 0 && !lastWarnings.length) {
+        lastWarnings = ['Tout anplwaye aktif yo gen fich yo deja.'];
+      }
+      await refresh();
+    }
+
+    function unapprovedBox(period, message, runBtn, msg) {
+      const box = h('div', { class: 'alert alert-warn', role: 'alertdialog', style: 'margin-top: 14px;' });
+      const go = h('button', { class: 'btn btn-primary btn-sm', type: 'button' },
+        'Kontinye san èdtan siplemantè yo');
+      const review = h('a', { class: 'btn btn-ghost btn-sm', href: 'timesheets.html' },
+        'Ale nan Tan travay');
+      const cancel = h('button', { class: 'btn btn-quiet btn-sm', type: 'button' }, 'Anile');
+
+      go.addEventListener('click', async () => {
+        go.disabled = true; cancel.disabled = true;
+        go.textContent = 'Ap kalkile…';
+        try {
+          await runPayroll(period, true);
+        } catch (err) {
+          box.remove();
+          msg.textContent = errorMessage(err);
+          runBtn.disabled = false;
+        }
+      });
+      cancel.addEventListener('click', () => {
+        box.remove();
+        runBtn.disabled = false;
+      });
+
+      box.append(
+        h('strong', {}, 'Èdtan kèk moun poko apwouve.'),
+        h('p', { style: 'margin: 6px 0 0;' }, message),
+        h('p', { class: 'hint', style: 'display: block; margin: 6px 0 0;' },
+          'Manadjè a dwe apwouve èdtan yo nan paj "Tan travay". Si w kontinye kounye a, '
+          + 'ou ka toujou ajoute èdtan siplemantè yo pita kòm bonis sou fich la.'),
+        h('div', { class: 'form-actions', style: 'margin-top: 12px;' }, go, review, cancel),
+      );
+      return box;
+    }
+
     function renderDetail(period, rows) {
       const box = $('detail');
       const msg = h('p', { class: 'field-error', role: 'status' });
@@ -344,26 +401,25 @@
       if (period.status === 'draft') {
         const runBtn = h('button', { class: 'btn btn-primary', type: 'button' },
           slips.length ? 'Ajoute moun ki manke yo' : 'Kalkile fich peye yo');
+        const label = runBtn.textContent;
         runBtn.addEventListener('click', async () => {
           runBtn.disabled = true;
           runBtn.textContent = 'Ap kalkile…';
           msg.textContent = '';
           try {
-            const r = await api.post(`/api/payroll/periods/${period.id}/run`, {
-              pay_period_id: period.id,
-              include_overtime: true,
-            });
-            lastWarnings = r.warnings || [];
-            if (r.created === 0 && r.skipped > 0 && !lastWarnings.length) {
-              lastWarnings = ['Tout anplwaye aktif yo gen fich yo deja.'];
-            }
-            await refresh();
+            await runPayroll(period, false);
           } catch (err) {
-            msg.textContent = errorMessage(err);
-            runBtn.disabled = false;
+            runBtn.textContent = label;
+            if (err instanceof ApiError && err.status === 409) {
+              actions.after(unapprovedBox(period, err.message, runBtn, msg));
+            } else {
+              msg.textContent = errorMessage(err);
+              runBtn.disabled = false;
+            }
           }
         });
         actions.append(runBtn);
+        actions.append(h('a', { class: 'btn btn-ghost', href: 'timesheets.html' }, 'Tan travay'));
 
         if (slips.length) {
           actions.append(confirmButton(
@@ -476,11 +532,16 @@
           toggle.setAttribute('aria-expanded', String(!detailRow.hidden));
         });
 
+        // Èdtan siplemantè ki pa t peye paske yo pa t apwouve
+        const unpaidOt = s.overtime_hours > 0 && !s.overtime_amount;
+
         tbody.append(
           h('tr', {},
             h('td', {},
               h('div', { class: 'who' }, employee_name),
               h('div', { class: 'num' }, employee_number),
+              unpaidOt ? h('span', { class: 'badge badge-pending', style: 'font-size: 11px;' },
+                `${s.overtime_hours} è siplemantè pa peye`) : null,
             ),
             h('td', { class: 'num-col hide-sm' }, fmt.money(s.gross_amount)),
             h('td', { class: 'num-col hide-sm cell-muted' }, `−${fmt.money(deductionsOf(s))}`),
@@ -517,6 +578,11 @@
       const rowsBox = h('div', { class: 'rows' },
         line('Salè debaz', s.base_amount),
         line('Èdtan siplemantè', s.overtime_amount),
+        s.overtime_hours > 0 && !s.overtime_amount
+          ? h('div', { class: 'row' },
+              h('span', { class: 'k' }, `Èdtan siplemantè pa apwouve (${s.overtime_hours} è)`),
+              h('span', { class: 'v' }, 'pa peye'))
+          : null,
         line('Bonis', s.bonus_amount),
         h('div', { class: 'row' }, h('span', { class: 'k' }, 'Brit'), h('span', {}, fmt.money(s.gross_amount))),
         line('IRI', s.tax_amount, true),

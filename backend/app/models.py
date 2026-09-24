@@ -825,3 +825,36 @@ class ApplicationAnswer(Base, TimestampMixin):
     is_sensitive = Column(Boolean, default=False, nullable=False)
 
     value = Column(JSON)                          # tèks, bool, chif, lis...
+
+    # ---------------------------------------------------------------------------
+# APWOBASYON TAN TRAVAY
+#
+# Manadjè a apwouve èdtan chak moun nan ekip li pou yon peryòd peyòl.
+# San apwobasyon: peyòl la peye salè de baz la, men PA èdtan siplemantè.
+# Yon apwobasyon BLOKE pwentaj peryòd la: HR dwe retire l anvan li korije.
+# ---------------------------------------------------------------------------
+
+class TimesheetStatus(str, enum.Enum):
+    APPROVED = "approved"
+    RETURNED = "returned"      # manadjè a voye l bay HR pou koreksyon
+
+
+class TimesheetApproval(Base, TimestampMixin):
+    __tablename__ = "timesheet_approvals"
+    __table_args__ = (
+        UniqueConstraint("employee_id", "pay_period_id", name="uq_timesheet_emp_period"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), index=True, nullable=False)
+    employee_id = Column(Integer, ForeignKey("employees.id"), index=True, nullable=False)
+    pay_period_id = Column(Integer, ForeignKey("pay_periods.id"), index=True, nullable=False)
+
+    status = Column(SQLEnum(TimesheetStatus), nullable=False)
+    decided_by_id = Column(Integer, ForeignKey("users.id"))
+    decided_at = Column(DateTime(timezone=True))
+    note = Column(Text)
+
+    # Sa manadjè a te wè lè l te apwouve (pou odit)
+    worked_minutes = Column(Integer, default=0)
+    overtime_minutes = Column(Integer, default=0)

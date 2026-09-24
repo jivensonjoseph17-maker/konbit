@@ -29,8 +29,9 @@
       { id: 'hiring', label: 'Rekritman', href: 'jobs.html' },
       { id: 'training', label: 'Fòmasyon', href: 'training.html' },
     ] },
-        { group: 'Ekip', roles: MANAGERS, items: [
+    { group: 'Ekip', roles: MANAGERS, items: [
       { id: 'team', label: 'Ekip mwen', href: 'team.html' },
+      { id: 'timesheets', label: 'Tan travay', href: 'timesheets.html' },
     ] },
   ];
 

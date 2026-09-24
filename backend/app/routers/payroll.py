@@ -22,6 +22,11 @@ DEDIKSYON AYITI (valè pa defo — chak biznis ka gen pwòp to pa l):
   - OFATMA : 3% sou salè brit (pati anplwaye a)
   - Enpo sou salè: baremn pwogresif DGI
 
+ÈDTAN APWOUVE (gade timesheets.py): manadjè a prepare, HR peye.
+  - Yon moun ki gen pwentaj nan peryòd la dwe gen èdtan APWOUVE.
+  - Si non, /run refize (409) jiskaske HR konfime ak `confirm_unapproved=true`.
+    Lè sa a, moun sa yo touche salè de baz yo, men PA èdtan siplemantè.
+
 ATANSYON: to sa yo se yon pwen depa. Yon kontab ayisyen dwe verifye yo
 anvan ou sèvi ak sistèm lan pou vrè peyòl.
 """
@@ -68,6 +73,7 @@ from ..schemas import (
     PayslipAdjust,
     PayslipOut,
 )
+from .timesheets import approved_employee_ids, has_time_entries
 
 logger = logging.getLogger("konbit")
 
@@ -341,6 +347,8 @@ def _compute_payslip(db: Session, org_id: int, emp: Employee,
 
     Salarye (base_salary): montan fiks pa peryòd, mwens jou san peye.
     Moun pa lè (hourly_rate): kalkil sou minit yo travay reyèlman.
+    `include_overtime=False`: èdtan siplemantè yo parèt sou fich la
+    (overtime_hours) men yo pa peye — egz: èdtan yo poko apwouve.
     """
     periods = _periods_per_year(period)
     normal_min, overtime_min = _worked_minutes_in_period(
@@ -509,6 +517,7 @@ class PayrollRunResult(BaseModel):
     total_net: int
     total_deductions: int
     warnings: list[str] = []
+    unapproved: list[str] = []      # moun ki touche san èdtan siplemantè
 
 
 @router.post(
@@ -523,6 +532,10 @@ def run_payroll(
     org_id: TenantId,
     request: Request,
     db: DbSession,
+    confirm_unapproved: Annotated[bool, Query(
+        description="Kontinye menm si gen moun ki poko gen èdtan apwouve "
+                    "(yo p ap touche èdtan siplemantè).",
+    )] = False,
 ):
     """
     Jenere fich peye pou tout anplwaye aktif (oswa yon lis presi).
@@ -558,16 +571,41 @@ def run_payroll(
 
     employees = q.all()
 
+    # --- Èdtan apwouve: nou tcheke ANVAN nou kreye okenn fich ---
+    # Sèlman moun ki gen pwentaj nan peryòd la bezwen yon apwobasyon:
+    # yon salarye ki pa janm pwente pa gen anyen pou manadjè a verifye.
+    approved = approved_employee_ids(db, org_id, period.id)
+    already = {
+        r[0] for r in db.query(Payslip.employee_id).filter(Payslip.pay_period_id == period.id).all()
+    }
+    unapproved_emps = [
+        emp for emp in employees
+        if emp.id not in already
+        and emp.id not in approved
+        and employment_window(emp, period)[0] is not None
+        and has_time_entries(db, org_id, emp.id, period.start_date, period.end_date)
+    ]
+    unapproved_ids = {e.id for e in unapproved_emps}
+    unapproved_names = [
+        f"{e.first_name} {e.last_name} ({e.employee_number})" for e in unapproved_emps
+    ]
+
+    if unapproved_emps and not confirm_unapproved:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"Èdtan {len(unapproved_emps)} moun poko apwouve pa manadjè yo: "
+                f"{', '.join(unapproved_names)}. Si ou kontinye, yo ap touche salè "
+                "de baz yo men PA èdtan siplemantè."
+            ),
+        )
+
     created = skipped = 0
     total_gross = total_net = total_deductions = 0
     warnings: list[str] = []
 
     for emp in employees:
-        exists = db.query(Payslip).filter(
-            Payslip.pay_period_id == period.id,
-            Payslip.employee_id == emp.id,
-        ).first()
-        if exists:
+        if emp.id in already:
             skipped += 1
             continue
 
@@ -601,7 +639,14 @@ def run_payroll(
             skipped += 1
             continue
 
-        data = _compute_payslip(db, org_id, emp, period, payload.include_overtime)
+        pay_overtime = payload.include_overtime and emp.id not in unapproved_ids
+        data = _compute_payslip(db, org_id, emp, period, pay_overtime)
+
+        if emp.id in unapproved_ids and data["overtime_hours"]:
+            warnings.append(
+                f"{full_name}: èdtan poko apwouve — {data['overtime_hours']} èdtan "
+                "siplemantè PA peye."
+            )
 
         method = data["payment_method"]
         if method == PaymentMethod.DIRECT_DEPOSIT and not emp.bank_account_number:
@@ -636,7 +681,8 @@ def run_payroll(
 
     db.commit()
     _audit(db, request, user, "run_payroll", "pay_period", period.id,
-           changes=f"{created} fich kreye, {skipped} sote.")
+           changes=f"{created} fich kreye, {skipped} sote. "
+                   f"San apwobasyon (konfime): {', '.join(unapproved_names) or '—'}.")
 
     return PayrollRunResult(
         period_id=period.id,
@@ -646,6 +692,7 @@ def run_payroll(
         total_net=total_net,
         total_deductions=total_deductions,
         warnings=warnings,
+        unapproved=unapproved_names,
     )
 
 
