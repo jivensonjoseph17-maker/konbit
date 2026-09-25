@@ -21,8 +21,17 @@ import re
 from http import HTTPStatus
 from typing import Any, Optional
 
+# Lang backend la gen mesaj erè pou yo (katalòg ki anba a).
 SUPPORTED = ("ht", "fr", "en")
 DEFAULT = "ht"
+
+# Lang yon itilizatè ka chwazi pou kont li (frontend/i18n/*.json).
+# Si backend la pa gen katalòg pou lang lan, api.js voye angle kòm rezèv
+# ("es, en;q=0.5"), kidonk mesaj erè yo parèt an angle.
+UI_LANGUAGES = (
+    "ht", "fr", "en", "es", "pt", "zh", "ar", "hi", "bn", "ru",
+    "ja", "de", "it", "ko", "tr", "vi", "id", "sw", "nl", "pl",
+)
 
 
 def resolve_language(header: Optional[str]) -> str:
@@ -32,6 +41,17 @@ def resolve_language(header: Optional[str]) -> str:
     for part in header.split(","):
         code = part.split(";")[0].strip().lower()[:2]
         if code in SUPPORTED:
+            return code
+    return DEFAULT
+
+
+def requested_language(header: Optional[str]) -> str:
+    """Premye lang nan header la ki pami UI_LANGUAGES — pou sere nan kont lan."""
+    if not header:
+        return DEFAULT
+    for part in header.split(","):
+        code = part.split(";")[0].strip().lower()[:2]
+        if code in UI_LANGUAGES:
             return code
     return DEFAULT
 
@@ -97,9 +117,9 @@ _ROWS: list[tuple[str, str, str]] = [
     ("Nouvo modpas la dwe diferan de ansyen an.",
      "Le nouveau mot de passe doit être différent de l'ancien.",
      "The new password must be different from the old one."),
-    ("Lang lan dwe youn nan: ht, fr, en.",
-     "La langue doit être l'une de : ht, fr, en.",
-     "The language must be one of: ht, fr, en."),
+    ("Lang sa a pa disponib.",
+     "Cette langue n'est pas disponible.",
+     "This language is not available."),
 
     # --- app/auth.py (ansyen fichye) ---
     ("Imèl oswa modpas la pa kòrèk",

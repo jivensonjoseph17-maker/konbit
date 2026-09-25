@@ -4,16 +4,15 @@
  *
  * Chak paj aplikasyon an chaje api.js, apre sa shell.js, epi li rele:
  *
- *     Konbit.i18n.add([...]);          // tradiksyon paj la (si l genyen)
  *     const identity = await Konbit.shell.mount('employees');
  *
  * Paj la dwe gen: <aside id="sidebar"></aside> ak <header id="topbar"></header>.
  * Meni an chanje dapre wòl moun nan. Pou ajoute yon nouvo paj, ajoute yon
- * liy nan NAV anba a (ak tradiksyon l nan NAV_TRANSLATIONS) epi retire `soon: true`.
+ * liy nan NAV anba a (ak tradiksyon l nan frontend/i18n/*.json) epi retire `soon: true`.
  *
- * mount() mete lang kont lan an plas (Konbit.i18n.sync) epi tradui tèks fiks
- * HTML la (data-i18n) ANVAN li retounen — kidonk tout sa paj la rann apre
- * `await mount()` deja nan bon lang lan.
+ * mount() tann tradiksyon yo, mete lang kont lan an plas (Konbit.i18n.sync)
+ * epi tradui tèks fiks HTML la (data-i18n) ANVAN li retounen — kidonk tout
+ * sa paj la rann apre `await mount()` deja nan bon lang lan.
  */
 (function () {
   'use strict';
@@ -42,26 +41,6 @@
     ] },
   ];
 
-  i18n.add([
-    // --- Meni ---
-    ['Akèy', 'Accueil', 'Home'],
-    ['Jesyon', 'Gestion', 'Management'],
-    ['Anplwaye|meni', 'Employés', 'Employees'],
-    ['Peyòl', 'Paie', 'Payroll'],
-    ['Balans konje', 'Soldes de congés', 'Leave balances'],
-    ['Rekritman', 'Recrutement', 'Recruiting'],
-    ['Fòmasyon', 'Formation', 'Training'],
-    ['Ekip', 'Équipe', 'Team'],
-    ['Ekip mwen', 'Mon équipe', 'My team'],
-    ['Tan travay', 'Temps de travail', 'Timesheets'],
-    ['byento', 'bientôt', 'soon'],
-
-    // --- Kad la ---
-    ['KONMBIT — akèy', 'KONMBIT — accueil', 'KONMBIT — home'],
-    ['Meni aplikasyon an', "Menu de l'application", 'App menu'],
-    ['Meni', 'Menu', 'Menu'],
-    ['Dekonekte', 'Se déconnecter', 'Log out'],
-  ]);
 
   function initials(name) {
     return (name || '?').split(/\s+/).filter(Boolean).slice(0, 2)
@@ -151,9 +130,7 @@
     logout.addEventListener('click', () => auth.logout());
 
     // Chwa lang: sove nan kont lan (PATCH /api/auth/me) epi paj la rechaje.
-    const langSelect = i18n.switcher();
-    langSelect.style.width = 'auto';
-    langSelect.style.minWidth = '0';
+    const langPicker = i18n.switcher();
 
     bar.replaceChildren(
       h('div', { class: 'topbar-left' },
@@ -166,7 +143,7 @@
           h('div', { class: 'role' }, fmt.role(user.role)),
         ),
         h('span', { class: 'avatar', 'aria-hidden': 'true' }, initials(user.full_name)),
-        langSelect,
+        langPicker,
         logout,
       ),
     );
@@ -186,6 +163,7 @@
    */
   async function mount(active, allowedRoles) {
     if (!auth.requireLogin()) return null;
+    await i18n.ready;
 
     let identity;
     try {
@@ -201,7 +179,7 @@
       return null;
     }
 
-    // Lang kont lan, epi tèks fiks HTML la (ak tradiksyon paj la te ajoute).
+    // Lang kont lan, epi tèks fiks HTML la.
     await i18n.sync(identity.user.preferred_language);
     i18n.apply(document);
 

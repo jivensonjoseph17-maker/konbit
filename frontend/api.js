@@ -29,34 +29,58 @@
   // Tèks yo ekri an KREYÒL nan kòd la, epi tèks kreyòl la sèvi kòm KLE:
   //
   //     t('Ap chaje…')                  → "Chargement…" an franse
-  //     t('Bonjou {name}', {name})      → valè yo ranplase {name}
+  //     t('Bonjou, {name}', {name})     → valè yo ranplase {name}
   //     t('Anile|aksyon')               → pati apre | a se KONTÈKS: li separe
   //                                       "Anile" (estati: Annulé) ak
   //                                       "Anile" (bouton: Annuler). An kreyòl
   //                                       sèlman pati anvan | a parèt.
   //
-  // Yon tèks ki pa gen tradiksyon rete an kreyòl — paj la pa janm kase.
-  // Sou 127.0.0.1/localhost, konsòl la montre sa ki manke (Konbit.i18n.missing()).
+  // Tradiksyon yo nan frontend/i18n/<kòd>.json: { "tèks kreyòl": "tradiksyon" }.
+  // Paj la chaje SÈLMAN lang moun nan chwazi a (+ angle kòm rezèv).
+  // Si yon fraz manke: angle, epi si l manke an angle tou: kreyòl.
+  // Pou verifye sa ki manke:  python frontend/i18n/check_i18n.py
   //
-  // Tradiksyon yon paj: Konbit.i18n.add([['Kreyòl', 'Français', 'English'], ...])
+  // Paj ki pa sèvi ak shell.js (login, karyè, akèy) dwe tann:
+  //     await Konbit.i18n.ready;
+  // shell.mount() fè sa pou lòt paj yo.
   //
   // Tèks fiks nan HTML la:
   //     <h1 data-i18n>Balans konje</h1>
   //     <input data-i18n-attr="placeholder aria-label" placeholder="Chèche…">
-  //     <title data-i18n>Peyòl — KONMBIT</title>
   // `data-i18n` sèlman sou yon eleman ki gen TÈKS SÈLMAN (pa lòt eleman
   // anndan l) — sinon mete tèks la nan yon <span data-i18n>.
+  //
+  // POU AJOUTE YON LANG: mete fichye i18n/<kòd>.json la, epi yon liy nan LANGS.
   // =========================================================================
 
+  // `locale`: pou dat ak chif (Intl). `-u-nu-latn` = chif 0-9 nòmal, menm an
+  // arab oswa bengali — sa enpòtan pou montan peyòl yo.
   const LANGS = [
-    { code: 'ht', label: 'Kreyòl' },
-    { code: 'fr', label: 'Français' },
-    { code: 'en', label: 'English' },
+    { code: 'ht', label: 'Kreyòl ayisyen', locale: 'fr-FR' },
+    { code: 'fr', label: 'Français', locale: 'fr-FR' },
+    { code: 'en', label: 'English', locale: 'en-US' },
+    { code: 'es', label: 'Español', locale: 'es-ES' },
+    // Pwochen lang yo (fichye yo ap vini youn apre lòt):
+    // pt Português · zh 中文 · ar العربية · hi हिन्दी · bn বাংলা · ru Русский
+    // ja 日本語 · de Deutsch · it Italiano · ko 한국어 · tr Türkçe · vi Tiếng Việt
+    // id Bahasa Indonesia · sw Kiswahili · nl Nederlands · pl Polski
   ];
+  const RTL = new Set(['ar', 'ur', 'fa', 'he']);
   const DEFAULT_LANG = 'ht';
-  const isSupported = (code) => LANGS.some((l) => l.code === code);
+  const FALLBACK_LANG = 'en';
+  const langInfo = (code) => LANGS.find((l) => l.code === code);
+  const isSupported = (code) => Boolean(langInfo(code));
 
-  const DICT = { fr: Object.create(null), en: Object.create(null) };
+  // Kote fichye tradiksyon yo ye: bò kote api.js, nan dosye i18n/.
+  const I18N_BASE = (() => {
+    try {
+      return new URL('i18n/', document.currentScript.src).href;
+    } catch {
+      return 'i18n/';
+    }
+  })();
+
+  const DICT = Object.create(null);          // { fr: {...}, en: {...} }
   const missingKeys = new Set();
   const isDev = ['127.0.0.1', 'localhost'].includes(location.hostname);
 
@@ -82,32 +106,53 @@
   }
 
   let lang = initialLang();
-  document.documentElement.lang = lang;
+
+  function applyDocumentLang() {
+    document.documentElement.lang = lang;
+    document.documentElement.dir = RTL.has(lang) ? 'rtl' : 'ltr';
+  }
+  applyDocumentLang();
+
+  /** Chaje yon fichye lang yon sèl fwa. Si l echwe, paj la kontinye san li. */
+  const loading = Object.create(null);
+  function loadDict(code) {
+    if (code === DEFAULT_LANG || DICT[code]) return Promise.resolve();
+    if (!loading[code]) {
+      loading[code] = fetch(`${I18N_BASE}${code}.json`, { cache: 'no-cache' })
+        .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+        .then((data) => { DICT[code] = data; })
+        .catch((err) => {
+          console.warn(`[i18n] nou pa t ka chaje ${code}.json:`, err.message);
+          DICT[code] = Object.create(null);
+        });
+    }
+    return loading[code];
+  }
+
+  function loadLang(code) {
+    if (code === DEFAULT_LANG) return Promise.resolve();
+    return Promise.all([loadDict(code), loadDict(FALLBACK_LANG)]);
+  }
 
   function t(key, vars) {
-    const display = key.split('|')[0];
-    let text = display;
+    let text = key.split('|')[0];
     if (lang !== DEFAULT_LANG) {
-      const found = DICT[lang][key];
-      if (found !== undefined) {
-        text = found;
-      } else if (isDev && !missingKeys.has(`${lang}:${key}`)) {
-        missingKeys.add(`${lang}:${key}`);
-        console.debug(`[i18n] ${lang} manke: "${key}"`);
+      const own = DICT[lang] && DICT[lang][key];
+      const fallback = DICT[FALLBACK_LANG] && DICT[FALLBACK_LANG][key];
+      if (own) {
+        text = own;
+      } else {
+        if (fallback) text = fallback;
+        if (isDev && !missingKeys.has(`${lang}:${key}`)) {
+          missingKeys.add(`${lang}:${key}`);
+          console.debug(`[i18n] ${lang} manke: "${key}"`);
+        }
       }
     }
     if (vars) {
       text = text.replace(/\{(\w+)\}/g, (m, name) => (name in vars ? String(vars[name]) : m));
     }
     return text;
-  }
-
-  /** rows: [['Kreyòl', 'Français', 'English'], ...] */
-  function addTranslations(rows) {
-    for (const [ht, fr, en] of rows) {
-      if (fr) DICT.fr[ht] = fr;
-      if (en) DICT.en[ht] = en;
-    }
   }
 
   const camel = (attr) => attr.replace(/-(\w)/g, (m, c) => c.toUpperCase());
@@ -142,15 +187,78 @@
     if (!isSupported(code)) return false;
     lang = code;
     storageSet(KEYS.lang, code);
-    document.documentElement.lang = code;
+    applyDocumentLang();
     return true;
   }
+
+  /** Header Accept-Language: lang moun nan, ak angle kòm rezèv pou backend la. */
+  const acceptLanguage = () => (lang === FALLBACK_LANG ? lang : `${lang}, ${FALLBACK_LANG};q=0.5`);
+
+  /** Ikòn glòb an SVG — kreye ak DOM, pa ak innerHTML. */
+  function globeIcon() {
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(NS, 'svg');
+    for (const [k, v] of Object.entries({
+      viewBox: '0 0 24 24', width: '18', height: '18', fill: 'none',
+      stroke: 'currentColor', 'stroke-width': '1.8', 'aria-hidden': 'true',
+    })) svg.setAttribute(k, v);
+    const shapes = [
+      ['circle', { cx: '12', cy: '12', r: '9.5' }],
+      ['ellipse', { cx: '12', cy: '12', rx: '4', ry: '9.5' }],
+      ['path', { d: 'M2.5 12h19M4.2 7h15.6M4.2 17h15.6' }],
+    ];
+    for (const [tag, attrs] of shapes) {
+      const el = document.createElementNS(NS, tag);
+      for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+      svg.append(el);
+    }
+    return svg;
+  }
+
+  /** Stil bouton lang lan, mete yon sèl fwa. Sèvi ak koulè app.css yo si yo la. */
+  function ensurePickerStyles() {
+    if (document.getElementById('konbit-lang-picker-css')) return;
+    const style = document.createElement('style');
+    style.id = 'konbit-lang-picker-css';
+    style.textContent = `
+      .lang-picker { position: relative; display: inline-block; }
+      .lang-picker-btn {
+        display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px;
+        border-radius: 999px; border: 1px solid var(--line, #1f2937); background: transparent;
+        color: var(--text, #f3f4f6); font: inherit; font-size: 13px; font-weight: 700;
+        letter-spacing: 0.04em; cursor: pointer;
+      }
+      .lang-picker-btn:hover { background: var(--surface, rgba(255, 255, 255, 0.06)); }
+      .lang-picker-menu {
+        position: absolute; inset-inline-end: 0; top: calc(100% + 6px); min-width: 200px;
+        max-height: min(70vh, 460px); overflow-y: auto; padding: 6px;
+        display: grid; gap: 2px; z-index: 3000; border-radius: 12px;
+        border: 1px solid var(--line, #1f2937); background: var(--bg, #0b0f19);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      }
+      .lang-picker-menu[hidden] { display: none; }
+      .lang-picker-option {
+        display: flex; justify-content: space-between; gap: 12px; padding: 9px 10px;
+        border: 0; border-radius: 8px; background: none; color: var(--text, #f3f4f6);
+        font: inherit; font-size: 14px; text-align: start; cursor: pointer;
+      }
+      .lang-picker-option:hover, .lang-picker-option:focus-visible {
+        background: var(--surface, rgba(255, 255, 255, 0.06));
+      }
+      .lang-picker-option[aria-checked="true"] { font-weight: 700; }
+    `;
+    document.head.append(style);
+  }
+
+  // Tradiksyon lang moun nan chwazi a. Tout paj dwe tann sa anvan yo rann tèks.
+  const ready = loadLang(lang).then(() => applyTranslations(document));
 
   const i18n = {
     LANGS,
     get lang() { return lang; },
+    get locale() { return (langInfo(lang) || LANGS[0]).locale; },
+    ready,
     t,
-    add: addTranslations,
     apply: applyTranslations,
     missing: () => [...missingKeys],
 
@@ -180,6 +288,7 @@
      * Retounen true si lang lan chanje.
      */
     async sync(accountLang) {
+      await ready;
       const pending = storageGet(KEYS.langPending) === '1';
       if (pending) {
         if (accountLang !== lang) {
@@ -189,110 +298,91 @@
         return false;
       }
       if (accountLang && accountLang !== lang && setLang(accountLang)) {
+        await loadLang(accountLang);
         applyTranslations(document);
         return true;
       }
       return false;
     },
 
-    /** <select> pou chwazi lang. Non lang yo rete nan pwòp lang yo. */
+    /**
+     * Bouton glòb 🌐 ak kòd lang lan (HT / FR / EN…) ki louvri yon meni.
+     * Non lang yo rete nan pwòp lang yo, pou moun nan rekonèt pa l.
+     * Sèvi ak li nenpòt kote: parent.append(Konbit.i18n.switcher())
+     */
     switcher() {
-      const select = document.createElement('select');
-      select.className = 'select lang-select';
-      select.setAttribute('aria-label', t('Lang'));
+      ensurePickerStyles();
+
+      const wrap = document.createElement('div');
+      wrap.className = 'lang-picker';
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'lang-picker-btn';
+      btn.setAttribute('aria-haspopup', 'true');
+      btn.setAttribute('aria-expanded', 'false');
+      btn.setAttribute('aria-label', t('Chwazi lang'));
+      btn.title = t('Chwazi lang');
+      const code = document.createElement('span');
+      code.textContent = lang.toUpperCase();
+      btn.append(globeIcon(), code);
+
+      const menu = document.createElement('div');
+      menu.className = 'lang-picker-menu';
+      menu.hidden = true;
+
+      const close = () => {
+        menu.hidden = true;
+        btn.setAttribute('aria-expanded', 'false');
+      };
+      const open = () => {
+        menu.hidden = false;
+        btn.setAttribute('aria-expanded', 'true');
+        const current = menu.querySelector('[aria-checked="true"]');
+        if (current) current.focus();
+      };
+
       for (const l of LANGS) {
-        const opt = document.createElement('option');
-        opt.value = l.code;
-        opt.textContent = l.label;
+        const isCurrent = l.code === lang;
+        const opt = document.createElement('button');
+        opt.type = 'button';
+        opt.className = 'lang-picker-option';
         opt.lang = l.code;
-        select.append(opt);
+        opt.dir = RTL.has(l.code) ? 'rtl' : 'ltr';
+        opt.setAttribute('role', 'menuitemradio');
+        opt.setAttribute('aria-checked', String(isCurrent));
+        const name = document.createElement('span');
+        name.textContent = l.label;
+        opt.append(name);
+        if (isCurrent) {
+          const mark = document.createElement('span');
+          mark.setAttribute('aria-hidden', 'true');
+          mark.textContent = '✓';
+          opt.append(mark);
+        }
+        opt.addEventListener('click', () => {
+          if (isCurrent) { close(); return; }
+          menu.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+          i18n.change(l.code);
+        });
+        menu.append(opt);
       }
-      select.value = lang;
-      select.addEventListener('change', () => {
-        select.disabled = true;
-        i18n.change(select.value);
+
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (menu.hidden) open(); else close();
       });
-      return select;
+      document.addEventListener('click', (e) => {
+        if (!wrap.contains(e.target)) close();
+      });
+      wrap.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !menu.hidden) { close(); btn.focus(); }
+      });
+
+      wrap.append(btn, menu);
+      return wrap;
     },
   };
-
-  // Tradiksyon pataje: erè, meni, fòma, estati. Chak paj ajoute pa l yo.
-  addTranslations([
-    // --- Erè rezo / HTTP ---
-    ['Nou pa ka rive jwenn sèvè a. Verifye koneksyon entènèt ou.',
-      'Impossible de joindre le serveur. Vérifiez votre connexion Internet.',
-      'We cannot reach the server. Check your internet connection.'],
-    ['Sesyon w lan fini. Konekte ankò.',
-      'Votre session a expiré. Reconnectez-vous.',
-      'Your session has ended. Please sign in again.'],
-    ['Ou pa gen dwa pou aksyon sa a.',
-      "Vous n'avez pas le droit d'effectuer cette action.",
-      'You are not allowed to perform this action.'],
-    ['Sa ou chèche a pa egziste.',
-      "Ce que vous cherchez n'existe pas.",
-      'What you are looking for does not exist.'],
-    ['Gen yon konfli ak done ki deja la.',
-      'Conflit avec des données existantes.',
-      'There is a conflict with existing data.'],
-    ['Kèk enfòmasyon pa valab.',
-      'Certaines informations ne sont pas valides.',
-      'Some information is not valid.'],
-    ['Sèvè a gen yon pwoblèm. Eseye ankò nan kèk minit.',
-      'Le serveur rencontre un problème. Réessayez dans quelques minutes.',
-      'The server has a problem. Try again in a few minutes.'],
-    ['Yon bagay pa mache.', "Quelque chose n'a pas fonctionné.", 'Something went wrong.'],
-
-    // --- Mo ki repete sou tout paj yo ---
-    ['Ap chaje…', 'Chargement…', 'Loading…'],
-    ['Sove', 'Enregistrer', 'Save'],
-    ['Anile|aksyon', 'Annuler', 'Cancel'],
-    ['Efase', 'Supprimer', 'Delete'],
-    ['Modifye', 'Modifier', 'Edit'],
-    ['Fèmen', 'Fermer', 'Close'],
-    ['Anvan', 'Précédent', 'Previous'],
-    ['Apre', 'Suivant', 'Next'],
-    ['Wi', 'Oui', 'Yes'],
-    ['Non|repons', 'Non', 'No'],
-    ['Aksyon', 'Actions', 'Actions'],
-    ['Estati', 'Statut', 'Status'],
-    ['Lang', 'Langue', 'Language'],
-
-    // --- Estati anplwaye ---
-    ['Aktif', 'Actif', 'Active'],
-    ['An konje', 'En congé', 'On leave'],
-    ['Sispann', 'Suspendu', 'Suspended'],
-    ['Pa nan biznis la ankò', "N'est plus dans l'entreprise", 'No longer with the company'],
-
-    // --- Mwayen peman ---
-    ['Chèk nimewo {n}', 'Chèque numéro {n}', 'Check number {n}'],
-    ['Chèk', 'Chèque', 'Check'],
-    ['Depo dirèk', 'Virement direct', 'Direct deposit'],
-    ['kont ••{last4}', 'compte ••{last4}', 'account ••{last4}'],
-    ['Lajan kach', 'Espèces', 'Cash'],
-
-    // --- Kalite konje ---
-    ['Vakans', 'Congé annuel', 'Vacation'],
-    ['Maladi', 'Maladie', 'Sick leave'],
-    ['Matènite', 'Maternité', 'Maternity'],
-    ['Patènite', 'Paternité', 'Paternity'],
-    ['Lanmò nan fanmi', 'Deuil', 'Bereavement'],
-    ['San peye', 'Sans solde', 'Unpaid'],
-    ['Lòt', 'Autre', 'Other'],
-
-    // --- Estati demann (adjektif; bouton yo sèvi ak |aksyon) ---
-    ['Ap tann', 'En attente', 'Pending'],
-    ['Apwouve', 'Approuvé', 'Approved'],
-    ['Refize', 'Refusé', 'Rejected'],
-    ['Anile', 'Annulé', 'Cancelled'],
-
-    // --- Wòl ---
-    ['Administratè Konbit', 'Administrateur Konbit', 'Konbit administrator'],
-    ['Administratè', 'Administrateur', 'Administrator'],
-    ['Resous imèn', 'Ressources humaines', 'Human resources'],
-    ['Manadjè', 'Manager', 'Manager'],
-    ['Anplwaye', 'Employé', 'Employee'],
-    ['Kandida', 'Candidat', 'Candidate'],
-  ]);
 
   // -------------------------------------------------------------------------
   // ERÈ
@@ -369,7 +459,7 @@
       try {
         const res = await fetch(`${API_URL}/api/auth/refresh`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Accept-Language': lang },
+          headers: { 'Content-Type': 'application/json', 'Accept-Language': acceptLanguage() },
           body: JSON.stringify({ refresh_token: refreshToken }),
         });
         if (!res.ok) return false;
@@ -397,8 +487,8 @@
   // -------------------------------------------------------------------------
 
   async function request(method, path, { body, auth = true, retried = false } = {}) {
-    // Accept-Language: backend la tradui mesaj erè yo nan lang sa a.
-    const headers = { Accept: 'application/json', 'Accept-Language': lang };
+    // Accept-Language: backend la tradui mesaj erè yo nan lang sa a (oswa angle).
+    const headers = { Accept: 'application/json', 'Accept-Language': acceptLanguage() };
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     if (auth && tokens.access) headers.Authorization = `Bearer ${tokens.access}`;
 
@@ -483,63 +573,72 @@
   // -------------------------------------------------------------------------
   // FÒMA
   //
-  // Dat yo nan lang moun nan chwazi a. Pou kreyòl nou pa ka sèvi ak
-  // toLocaleDateString (li pa konnen kreyòl), kidonk non mwa ak jou yo
-  // ekri isit pou chak lang, epi fòma a rete menm jan sou tout paj yo.
+  // Kreyòl: navigatè yo pa konnen kreyòl, kidonk non mwa ak jou yo ekri
+  // isit. Tout lòt lang yo: Intl (li konnen franse, angle, panyòl, chinwa,
+  // arab…). Chif yo toujou 0-9 (gade `locale` nan LANGS).
   // -------------------------------------------------------------------------
 
-  const CALENDAR = {
-    ht: {
-      months: ['janvye', 'fevriye', 'mas', 'avril', 'me', 'jen',
-               'jiyè', 'out', 'septanm', 'oktòb', 'novanm', 'desanm'],
-      monthsShort: ['jan.', 'fev.', 'mas', 'avr.', 'me', 'jen',
-                    'jiy.', 'out', 'sept.', 'okt.', 'nov.', 'des.'],
-      days: ['dimanch', 'lendi', 'madi', 'mèkredi', 'jedi', 'vandredi', 'samdi'],
-      daysShort: ['dim.', 'len.', 'mad.', 'mèk.', 'jed.', 'van.', 'sam.'],
-    },
-    fr: {
-      months: ['janvier', 'février', 'mars', 'avril', 'mai', 'juin',
-               'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'],
-      monthsShort: ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin',
-                    'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'],
-      days: ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'],
-      daysShort: ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'],
-    },
-    en: {
-      months: ['January', 'February', 'March', 'April', 'May', 'June',
-               'July', 'August', 'September', 'October', 'November', 'December'],
-      monthsShort: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-      days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-      daysShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-    },
+  const HT_CAL = {
+    months: ['janvye', 'fevriye', 'mas', 'avril', 'me', 'jen',
+             'jiyè', 'out', 'septanm', 'oktòb', 'novanm', 'desanm'],
+    monthsShort: ['jan.', 'fev.', 'mas', 'avr.', 'me', 'jen',
+                  'jiy.', 'out', 'sept.', 'okt.', 'nov.', 'des.'],
+    days: ['dimanch', 'lendi', 'madi', 'mèkredi', 'jedi', 'vandredi', 'samdi'],
+    daysShort: ['dim.', 'len.', 'mad.', 'mèk.', 'jed.', 'van.', 'sam.'],
   };
-  const cal = () => CALENDAR[lang] || CALENDAR[DEFAULT_LANG];
 
-  // Kreyòl ak franse: "45 000,00". Angle: "45,000.00".
-  const numberFormats = {};
+  const isHt = () => lang === DEFAULT_LANG;
+  const locale = () => (langInfo(lang) || LANGS[0]).locale;
+  const withLatnDigits = (loc) => (loc.includes('-u-') ? loc : `${loc}-u-nu-latn`);
+
+  const formatters = Object.create(null);
+  function dtf(options) {
+    const key = `${lang}|${JSON.stringify(options)}`;
+    if (!formatters[key]) {
+      formatters[key] = new Intl.DateTimeFormat(withLatnDigits(locale()), options);
+    }
+    return formatters[key];
+  }
+
+  const numberFormats = Object.create(null);
   function numberFmt() {
-    const locale = lang === 'en' ? 'en-US' : 'fr-FR';
-    if (!numberFormats[locale]) {
-      numberFormats[locale] = new Intl.NumberFormat(locale, {
+    const loc = withLatnDigits(locale());
+    if (!numberFormats[loc]) {
+      numberFormats[loc] = new Intl.NumberFormat(loc, {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       });
     }
-    return numberFormats[locale];
+    return numberFormats[loc];
+  }
+
+  /** Non 12 mwa oswa 7 jou nan lang aktyèl la. */
+  function calendarNames(kind) {
+    if (isHt()) return HT_CAL[kind];
+    if (kind === 'months') {
+      return Array.from({ length: 12 }, (_, m) => dtf({ month: 'long' }).format(new Date(2026, m, 1)));
+    }
+    // 4 janvye 2026 se yon dimanch.
+    return Array.from({ length: 7 }, (_, d) => dtf({ weekday: 'long' }).format(new Date(2026, 0, 4 + d)));
   }
 
   const pad2 = (n) => String(n).padStart(2, '0');
 
+  const DURATION_UNITS = {
+    ht: [(x) => `${x}è`, (x) => `${x}min`],
+    fr: [(x) => `${x} h`, (x) => `${x} min`],
+    en: [(x) => `${x}h`, (x) => `${x}m`],
+  };
+
   const fmt = {
-    /** Non mwa yo nan lang aktyèl la (miniskil an kreyòl ak franse). */
-    get MONTHS() { return cal().months; },
-    get DAYS() { return cal().days; },
+    /** Non mwa / jou yo nan lang aktyèl la. */
+    get MONTHS() { return calendarNames('months'); },
+    get DAYS() { return calendarNames('days'); },
 
     /** 4500000 → "45 000,00 HTG" (oswa "45,000.00 HTG" an angle). Montan API yo an santim. */
     money(cents, currency = 'HTG') {
       if (cents === null || cents === undefined) return '—';
-      // fr-FR separe milye yo ak yon espas TRÈ etwat (U+202F) ki parèt
+      // Kèk lang separe milye yo ak yon espas TRÈ etwat (U+202F) ki parèt
       // envizib nan kèk polis ("41000,00"). Nou mete yon espas nòmal
       // ki pa kase liy (U+00A0) olye.
       const text = numberFmt().format(cents / 100).replace(/[\u202F\u2009]/g, '\u00A0');
@@ -560,22 +659,36 @@
       return new Date(hasZone ? value : `${value}Z`);
     },
 
-    /** "21 oktòb 2026" · "21 octobre 2026" · "October 21, 2026" */
+    /** Dat jodi a (lè lokal) an "AAAA-MM-JJ" — pou <input type="date">. */
+    todayIso() {
+      const d = new Date();
+      return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+    },
+
+    /** "21 oktòb 2026" · "21 octobre 2026" · "October 21, 2026" · "2026年10月21日" */
     date(value) {
       const d = fmt.parseDate(value);
       if (!d || isNaN(d)) return '—';
-      const c = cal();
-      if (lang === 'en') return `${c.months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
-      return `${d.getDate()} ${c.months[d.getMonth()]} ${d.getFullYear()}`;
+      if (isHt()) return `${d.getDate()} ${HT_CAL.months[d.getMonth()]} ${d.getFullYear()}`;
+      return dtf({ day: 'numeric', month: 'long', year: 'numeric' }).format(d);
+    },
+
+    /** "jedi 24 septanm 2026" · "Thursday, September 24, 2026" */
+    longDate(value) {
+      const d = fmt.parseDate(value);
+      if (!d || isNaN(d)) return '—';
+      if (isHt()) {
+        return `${HT_CAL.days[d.getDay()]} ${d.getDate()} ${HT_CAL.months[d.getMonth()]} ${d.getFullYear()}`;
+      }
+      return dtf({ weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(d);
     },
 
     /** "23 sept." · "Sep 23" */
     shortDate(value) {
       const d = fmt.parseDate(value);
       if (!d || isNaN(d)) return '—';
-      const c = cal();
-      if (lang === 'en') return `${c.monthsShort[d.getMonth()]} ${d.getDate()}`;
-      return `${d.getDate()} ${c.monthsShort[d.getMonth()]}`;
+      if (isHt()) return `${d.getDate()} ${HT_CAL.monthsShort[d.getMonth()]}`;
+      return dtf({ day: 'numeric', month: 'short' }).format(d);
     },
 
     /** "22:45" */
@@ -589,14 +702,13 @@
     dateTime(value) {
       const d = fmt.parseDate(value);
       if (!d || isNaN(d)) return '—';
-      const c = cal();
       const clock = `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
-      if (lang === 'en') {
-        return `${c.daysShort[d.getDay()]}, ${c.monthsShort[d.getMonth()]} ${d.getDate()}, `
+      if (isHt()) {
+        return `${HT_CAL.daysShort[d.getDay()]} ${d.getDate()} ${HT_CAL.monthsShort[d.getMonth()]} `
           + `${d.getFullYear()} · ${clock}`;
       }
-      return `${c.daysShort[d.getDay()]} ${d.getDate()} ${c.monthsShort[d.getMonth()]} `
-        + `${d.getFullYear()} · ${clock}`;
+      const day = dtf({ weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }).format(d);
+      return `${day} · ${clock}`;
     },
 
     /**
@@ -635,13 +747,9 @@
       if (minutes === null || minutes === undefined) return '—';
       const h = Math.floor(minutes / 60);
       const m = Math.round(minutes % 60);
-      const u = {
-        ht: { h: (x) => `${x}è`, m: (x) => `${x}min` },
-        fr: { h: (x) => `${x} h`, m: (x) => `${x} min` },
-        en: { h: (x) => `${x}h`, m: (x) => `${x}m` },
-      }[lang] || { h: (x) => `${x}è`, m: (x) => `${x}min` };
-      if (h === 0) return u.m(m);
-      return m === 0 ? u.h(h) : `${u.h(h)} ${u.m(m)}`;
+      const [uh, um] = DURATION_UNITS[lang] || DURATION_UNITS.fr;
+      if (h === 0) return um(m);
+      return m === 0 ? uh(h) : `${uh(h)} ${um(m)}`;
     },
 
     /** Segonn → "02:14:07" pou minitè a */
@@ -738,12 +846,4 @@
   }
 
   window.Konbit = { API_URL, api, auth, fmt, h, ApiError, i18n, t };
-
-  // Tradui tèks fiks HTML la depi paj la pare. Paj ki ajoute pwòp
-  // tradiksyon yo (i18n.add) apre sa dwe rele Konbit.i18n.apply() ankò.
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => applyTranslations(document));
-  } else {
-    applyTranslations(document);
-  }
 })();

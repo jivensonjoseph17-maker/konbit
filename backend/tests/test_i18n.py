@@ -3,7 +3,13 @@ Konbit — Tès lang (kreyòl, franse, angle)
 Chemen: backend/tests/test_i18n.py
 """
 
-from app.i18n import resolve_language, translate, translate_detail, validation_message
+from app.i18n import (
+    requested_language,
+    resolve_language,
+    translate,
+    translate_detail,
+    validation_message,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -18,6 +24,15 @@ def test_resolve_language():
     assert resolve_language("en-US") == "en"
     assert resolve_language("es-ES,es;q=0.9") == "ht"
     assert resolve_language("es, en") == "en"
+
+
+def test_requested_language_keeps_ui_languages():
+    # Backend la pa gen mesaj an panyòl, men kont lan ka an panyòl.
+    assert resolve_language("es, en;q=0.5") == "en"
+    assert requested_language("es, en;q=0.5") == "es"
+    assert requested_language("zh-CN,zh;q=0.9") == "zh"
+    assert requested_language("xx, yy") == "ht"
+    assert requested_language(None) == "ht"
 
 
 def test_translate_fixed_message():
@@ -128,15 +143,22 @@ def test_update_preferred_language(client, make_org):
     assert identity["user"]["preferred_language"] == "fr"
 
 
-def test_unsupported_language_is_rejected(client, make_org):
+def test_ui_language_without_backend_catalog_is_accepted(client, make_org):
+    org = make_org()
+    resp = client.patch("/api/auth/me", json={"preferred_language": "es"}, headers=org["headers"])
+    assert resp.status_code == 200
+    assert resp.json()["preferred_language"] == "es"
+
+
+def test_unknown_language_is_rejected(client, make_org):
     org = make_org()
     headers = {**org["headers"], "Accept-Language": "en"}
-    resp = client.patch("/api/auth/me", json={"preferred_language": "es"}, headers=headers)
+    resp = client.patch("/api/auth/me", json={"preferred_language": "xx"}, headers=headers)
     assert resp.status_code == 422
     body = resp.json()
     assert body["detail"] == "The data you sent is not valid."
     assert body["errors"][0]["field"] == "preferred_language"
-    assert body["errors"][0]["message"] == "The language must be one of: ht, fr, en."
+    assert body["errors"][0]["message"] == "This language is not available."
 
 
 def test_null_name_does_not_crash(client, make_org):
@@ -165,8 +187,9 @@ def test_signup_uses_header_language_and_translates_password_rules(client):
     assert "Le mot de passe doit contenir au moins un chiffre." in weak.json()["detail"]
 
     payload["admin_password"] = "TestPassw0rd2026"
-    ok = client.post("/api/auth/signup", json=payload, headers={"Accept-Language": "en"})
+    # Konsa api.js voye l pou yon moun ki chwazi panyòl.
+    ok = client.post("/api/auth/signup", json=payload, headers={"Accept-Language": "es, en;q=0.5"})
     assert ok.status_code == 201
     token = ok.json()["access_token"]
     me = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"}).json()
-    assert me["preferred_language"] == "en"
+    assert me["preferred_language"] == "es"

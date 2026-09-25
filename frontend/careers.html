@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Karyè — KONMBIT</title>
+  <title data-i18n>Karyè — KONMBIT</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -15,6 +15,7 @@
       margin: 0 auto;
       padding: 32px 20px 64px;
     }
+    .careers-top { display: flex; justify-content: flex-end; margin-bottom: 12px; }
     .careers-head { margin-bottom: 24px; }
     .careers-head .company { font-size: 14px; color: var(--muted); margin: 0 0 4px; }
     .careers-head h1 { margin: 0; }
@@ -49,15 +50,37 @@
 </head>
 <body>
   <main class="careers">
-    <div id="content"><p class="loading">Ap chaje…</p></div>
-    <p class="careers-foot">Fèt ak KONMBIT</p>
+    <div class="careers-top" id="lang-slot"></div>
+    <div id="content"><p class="loading" data-i18n>Ap chaje…</p></div>
+    <p class="careers-foot" data-i18n>Fèt ak KONMBIT</p>
   </main>
 
   <script src="api.js"></script>
   <script>
-  (function () {
+  (async function () {
     'use strict';
-    const { api, h, ApiError } = Konbit;
+    const { api, h, ApiError, i18n, t, fmt } = Konbit;
+
+    // -------------------------------------------------------------------
+    // TRADIKSYON
+    //
+    // Kesyon pa defo yo (ak seksyon yo) sere an kreyòl nan baz done a.
+    // Nou tradui yo isit dapre tèks kreyòl la. Si HR chanje tèks yon
+    // kesyon, li pa jwenn tradiksyon ankò epi li parèt jan HR ekri l —
+    // se konsa pou kesyon pèsonalize yo tou.
+    // VALÈ yo (sa ki voye bay backend la) toujou rete tèks orijinal la.
+    // -------------------------------------------------------------------
+
+    // Tradiksyon yo nan frontend/i18n/<lang>.json.
+    await i18n.ready;
+
+    document.getElementById('lang-slot').append(i18n.switcher());
+
+    /**
+     * Tradui yon tèks ki soti nan baz done a (kesyon, opsyon, seksyon).
+     * Yon tèks ki gen "|" pa pase nan t(): t() ta koupe l (kontèks).
+     */
+    const tr = (text) => (!text || text.includes('|') ? text : t(text));
 
     const content = document.getElementById('content');
     const params = new URLSearchParams(location.search);
@@ -78,7 +101,7 @@
     const PUBLIC = { auth: false };
 
     function errorMessage(err) {
-      let msg = err instanceof ApiError ? err.message : 'Yon bagay pa mache.';
+      let msg = err instanceof ApiError ? err.message : t('Yon bagay pa mache.');
       if (err && err.fields && err.fields.length) {
         msg += ' ' + err.fields.map((f) => `${f.field}: ${f.message}`).join('; ');
       }
@@ -97,8 +120,7 @@
       return `${listUrl()}&job=${encodeURIComponent(slug)}`;
     }
 
-    // "21 oktòb 2026" — fmt nan api.js ekri dat yo an kreyòl.
-    const formatDay = (value) => (value ? Konbit.fmt.date(value) : '');
+    const formatDay = (value) => (value ? fmt.date(value) : '');
 
     function isHttpUrl(value) {
       try {
@@ -114,22 +136,31 @@
       const { salary_min: lo, salary_max: hi, currency } = job;
       if (!lo && !hi) return null;
       const cur = currency || 'HTG';
-      const num = (c) => Konbit.fmt.money(c, cur).replace(/,00(?=\s)/, '');
-      if (lo && hi && lo !== hi) return `${num(lo).replace(` ${cur}`, '')} – ${num(hi)} / mwa`;
-      if (lo && !hi) return `Apati ${num(lo)} / mwa`;
-      if (!lo && hi) return `Jiska ${num(hi)} / mwa`;
-      return `${num(lo)} / mwa`;
+      // Retire ",00" / ".00" pou salè won yo: "25 000 HTG" olye "25 000,00 HTG".
+      const num = (c) => fmt.money(c, cur).replace(/[.,]00(?=\s)/, '');
+      if (lo && hi && lo !== hi) {
+        return t('{range} / mwa', { range: `${num(lo).replace(` ${cur}`, '')} – ${num(hi)}` });
+      }
+      if (lo && !hi) return t('Apati {amount} / mwa', { amount: num(lo) });
+      if (!lo && hi) return t('Jiska {amount} / mwa', { amount: num(hi) });
+      return t('{range} / mwa', { range: num(lo) });
     }
 
     function metaLine(job) {
       const salary = salaryText(job);
+      const typeKey = EMPLOYMENT_TYPE_LABELS[job.employment_type];
+      let place = null;
+      if (job.location) {
+        place = job.is_remote ? t('{place} · adistans', { place: job.location }) : job.location;
+      } else if (job.is_remote) {
+        place = t('Adistans');
+      }
       return h('div', { class: 'job-meta' },
         salary ? h('span', { style: 'font-weight: 600; color: var(--text);' }, salary) : null,
-        h('span', {}, EMPLOYMENT_TYPE_LABELS[job.employment_type] || job.employment_type),
-        job.location ? h('span', {}, job.is_remote ? `${job.location} · adistans` : job.location)
-                     : (job.is_remote ? h('span', {}, 'Adistans') : null),
-        job.openings > 1 ? h('span', {}, `${job.openings} pòs`) : null,
-        job.closes_at ? h('span', {}, `Aplike avan ${formatDay(job.closes_at)}`) : null,
+        h('span', {}, typeKey ? t(typeKey) : job.employment_type),
+        place ? h('span', {}, place) : null,
+        job.openings > 1 ? h('span', {}, t('{n} pòs', { n: job.openings })) : null,
+        job.closes_at ? h('span', {}, t('Aplike avan {date}', { date: formatDay(job.closes_at) })) : null,
       );
     }
 
@@ -151,14 +182,14 @@
         data = await api.get(`/api/jobs/public/${encodeURIComponent(orgSlug)}`, PUBLIC);
       } catch (err) {
         showError(err instanceof ApiError && err.status === 404
-          ? 'Nou pa jwenn biznis sa a. Verifye lyen an.'
+          ? t('Nou pa jwenn biznis sa a. Verifye lyen an.')
           : errorMessage(err));
         return;
       }
 
       const search = h('input', {
         class: 'input', type: 'search', id: 'q',
-        placeholder: 'Chèche yon pòs', 'aria-label': 'Chèche yon pòs',
+        placeholder: t('Chèche yon pòs'), 'aria-label': t('Chèche yon pòs'),
       });
       const list = h('div', { class: 'job-list' });
 
@@ -167,8 +198,8 @@
         const items = data.items.filter((j) => !q || j.title.toLowerCase().includes(q));
         if (!items.length) {
           list.replaceChildren(h('p', { class: 'empty' },
-            data.items.length ? 'Pa gen pòs ki koresponn ak rechèch la.'
-                              : 'Pa gen okenn pòs louvri kounye a. Tounen pita.'));
+            data.items.length ? t('Pa gen pòs ki koresponn ak rechèch la.')
+                              : t('Pa gen okenn pòs louvri kounye a. Tounen pita.')));
           return;
         }
         list.replaceChildren(...items.map((job) =>
@@ -182,7 +213,7 @@
       draw();
 
       content.replaceChildren(
-        header(data.company_name, 'Travay disponib'),
+        header(data.company_name, t('Travay disponib')),
         data.items.length > 5 ? h('div', { style: 'margin-bottom: 16px;' }, search) : null,
         list,
       );
@@ -213,6 +244,7 @@
     /**
      * Bati kontwòl pou yon kesyon dapre kalite l. Retounen { el, read, focus }:
      * `read()` bay repons lan nan fòma backend la atann (oswa null si vid).
+     * Etikèt opsyon yo tradui; valè yo rete tèks orijinal la.
      */
     function questionControl(q) {
       const id = `q-${q.id}`;
@@ -223,8 +255,8 @@
         const no = h('input', { type: 'radio', name, value: 'false', id: `${id}-non` });
         return {
           el: h('div', { class: 'choices', role: 'radiogroup' },
-            h('label', { for: yes.id }, yes, 'Wi'),
-            h('label', { for: no.id }, no, 'Non')),
+            h('label', { for: yes.id }, yes, t('Wi')),
+            h('label', { for: no.id }, no, t('Non|repons'))),
           read: () => (yes.checked ? true : no.checked ? false : null),
           focus: () => yes.focus(),
           inputs: [yes, no],
@@ -236,7 +268,7 @@
           h('input', { type: 'radio', name, value: opt, id: `${id}-${i}` }));
         return {
           el: h('div', { class: 'choices', role: 'radiogroup' },
-            ...radios.map((r, i) => h('label', { for: r.id }, r, q.options[i]))),
+            ...radios.map((r, i) => h('label', { for: r.id }, r, tr(q.options[i])))),
           read: () => (radios.find((r) => r.checked) || {}).value || null,
           focus: () => radios[0].focus(),
           inputs: radios,
@@ -245,8 +277,8 @@
 
       if (q.question_type === 'single_choice') {
         const sel = h('select', { class: 'select', id },
-          h('option', { value: '' }, 'Chwazi…'),
-          ...q.options.map((opt) => h('option', { value: opt }, opt)));
+          h('option', { value: '' }, t('Chwazi…')),
+          ...q.options.map((opt) => h('option', { value: opt }, tr(opt))));
         return { el: sel, read: () => sel.value || null, focus: () => sel.focus(), inputs: [sel] };
       }
 
@@ -255,7 +287,7 @@
           h('input', { type: 'checkbox', name, value: opt, id: `${id}-${i}` }));
         return {
           el: h('div', { class: 'choices' },
-            ...boxes.map((b, i) => h('label', { for: b.id }, b, q.options[i]))),
+            ...boxes.map((b, i) => h('label', { for: b.id }, b, tr(q.options[i])))),
           read: () => {
             const picked = boxes.filter((b) => b.checked).map((b) => b.value);
             return picked.length ? picked : null;
@@ -292,7 +324,7 @@
     function labelFor(q, control) {
       const forId = control.el.tagName === 'DIV' ? undefined : control.el.id;
       return h('label', forId ? { for: forId } : {},
-        q.label,
+        tr(q.label),
         q.is_required ? h('span', { class: 'req', 'aria-hidden': 'true' }, '*') : null);
     }
 
@@ -307,19 +339,18 @@
       const trap = h('input', { id: 'a-website', type: 'text', tabindex: '-1', autocomplete: 'off' });
 
       const msg = h('div', { class: 'alert alert-error', role: 'alert', hidden: true });
-      const submit = h('button', { class: 'btn btn-primary', type: 'submit' }, 'Voye aplikasyon an');
+      const submit = h('button', { class: 'btn btn-primary', type: 'submit' }, t('Voye aplikasyon an'));
 
       const req = () => h('span', { class: 'req', 'aria-hidden': 'true' }, '*');
 
       // Kesyon yo, gwoupe pa seksyon nan lòd backend la bay
       const questions = questionData.items;
-      const byId = new Map(questions.map((q) => [q.id, q]));
       const entries = questions.map((q) => {
         const control = questionControl(q);
         const wrap = h('div', { class: `field ${q.question_type === 'long_text' ? 'full' : ''}` },
           labelFor(q, control),
           control.el,
-          q.help_text ? h('span', { class: 'hint' }, q.help_text) : null);
+          q.help_text ? h('span', { class: 'hint' }, tr(q.help_text)) : null);
         return { q, control, wrap };
       });
       const entryById = new Map(entries.map((e) => [e.q.id, e]));
@@ -328,7 +359,7 @@
         const own = entries.filter((e) => e.q.section === sec.key);
         if (!own.length) return null;
         return h('div', { class: 'form-section' },
-          h('h3', {}, sec.label),
+          h('h3', {}, tr(sec.label)),
           h('div', { class: 'apply-grid' }, ...own.map((e) => e.wrap)));
       });
 
@@ -339,7 +370,7 @@
         if (!parent || !isVisible(parent.q)) return false;
         const v = parent.control.read();
         if (v === null) return false;
-        return (typeof v === 'boolean' ? String(v) : String(v)) === q.condition_value;
+        return String(v) === q.condition_value;
       }
 
       function syncVisibility() {
@@ -348,23 +379,23 @@
 
       const form = h('form', { novalidate: true },
         h('div', { class: 'form-section' },
-          h('h3', {}, 'Kontak ou'),
+          h('h3', {}, t('Kontak ou')),
           h('div', { class: 'apply-grid' },
-            h('div', { class: 'field' }, h('label', { for: name.id }, 'Non konplè', req()), name),
-            h('div', { class: 'field' }, h('label', { for: email.id }, 'Imel', req()), email),
-            h('div', { class: 'field' }, h('label', { for: phone.id }, 'Telefòn'), phone),
+            h('div', { class: 'field' }, h('label', { for: name.id }, t('Non konplè'), req()), name),
+            h('div', { class: 'field' }, h('label', { for: email.id }, t('Imel'), req()), email),
+            h('div', { class: 'field' }, h('label', { for: phone.id }, t('Telefòn')), phone),
           )),
         ...sectionEls,
         h('div', { class: 'form-section' },
-          h('h3', {}, 'CV ak lèt motivasyon'),
+          h('h3', {}, t('CV ak lèt motivasyon')),
           h('div', { class: 'apply-grid' },
-            field('Lyen CV ou', cv, 'Google Drive, Dropbox, LinkedIn… Asire w lyen an louvri pou tout moun.'),
-            field('Poukisa pòs sa a enterese w?', letter, 'Opsyonèl.', 'full'),
+            field(t('Lyen CV ou'), cv, t('Google Drive, Dropbox, LinkedIn… Asire w lyen an louvri pou tout moun.')),
+            field(t('Poukisa pòs sa a enterese w?'), letter, t('Opsyonèl.'), 'full'),
           )),
         h('div', { class: 'hp', 'aria-hidden': 'true' },
-          h('label', { for: trap.id }, 'Pa ranpli chan sa a'), trap),
+          h('label', { for: trap.id }, t('Pa ranpli chan sa a')), trap),
         h('p', { class: 'hint', style: 'display: block; margin-top: 18px;' },
-          h('span', { class: 'req' }, '*'), ' Obligatwa'),
+          h('span', { class: 'req' }, '*'), ` ${t('Obligatwa')}`),
         msg,
         h('div', { class: 'form-actions' }, submit),
       );
@@ -387,8 +418,8 @@
         const mail = email.value.trim();
         const cvUrl = cv.value.trim();
 
-        if (fullName.length < 2) { fail('Mete non konplè ou.'); name.focus(); return; }
-        if (!email.checkValidity() || !mail) { fail('Mete yon imel valab.'); email.focus(); return; }
+        if (fullName.length < 2) { fail(t('Mete non konplè ou.')); name.focus(); return; }
+        if (!email.checkValidity() || !mail) { fail(t('Mete yon imel valab.')); email.focus(); return; }
 
         // Repons yo: sèlman kesyon ki vizib yo
         const answers = {};
@@ -404,13 +435,15 @@
         }
         if (missing.length) {
           for (const en of missing) en.wrap.classList.add('has-error');
-          fail(`Reponn kesyon obligatwa yo: ${missing.map((en) => en.q.label).join(' · ')}`);
+          fail(t('Reponn kesyon obligatwa yo: {list}', {
+            list: missing.map((en) => tr(en.q.label)).join(' · '),
+          }));
           missing[0].control.focus();
           return;
         }
 
         if (cvUrl && !isHttpUrl(cvUrl)) {
-          fail('Lyen CV a dwe kòmanse ak https://');
+          fail(t('Lyen CV a dwe kòmanse ak https://'));
           cv.focus();
           return;
         }
@@ -419,7 +452,7 @@
         if (trap.value) { showReceipt(job, null); return; }
 
         submit.disabled = true;
-        submit.textContent = 'Ap voye…';
+        submit.textContent = t('Ap voye…');
         try {
           const receipt = await api.post(
             `/api/applications/public/${encodeURIComponent(orgSlug)}/${encodeURIComponent(job.slug)}`,
@@ -438,30 +471,33 @@
         } catch (err) {
           fail(errorMessage(err));
           submit.disabled = false;
-          submit.textContent = 'Voye aplikasyon an';
+          submit.textContent = t('Voye aplikasyon an');
         }
       });
 
       return h('section', { class: 'panel', style: 'margin-top: 28px;' },
-        h('div', { class: 'panel-head' }, h('h2', {}, 'Aplike pou pòs sa a')),
+        h('div', { class: 'panel-head' }, h('h2', {}, t('Aplike pou pòs sa a'))),
         form,
       );
     }
 
     function showReceipt(job, receipt) {
-      document.title = `Aplikasyon voye — ${job.company_name || ''}`;
+      // Mesaj backend la ekri an kreyòl: nan lòt lang nou montre pa nou an.
+      const text = receipt && receipt.message && i18n.lang === 'ht'
+        ? receipt.message
+        : t('Ekip la ap gade l epi n ap kontakte w si pwofil ou koresponn ak pozisyon an.');
+
       content.replaceChildren(
-        header(job.company_name || '', 'Mèsi!'),
+        header(job.company_name || '', t('Mèsi!')),
         h('section', { class: 'panel' },
           h('p', { style: 'margin: 0 0 10px; font-weight: 600;' },
-            `Aplikasyon w pou "${job.title}" rive.`),
-          h('p', { style: 'margin: 0;' },
-            receipt ? receipt.message
-                    : 'Ekip la ap gade l epi n ap kontakte w si pwofil ou koresponn ak pozisyon an.'),
+            t('Aplikasyon w pou "{title}" rive.', { title: job.title })),
+          h('p', { style: 'margin: 0;' }, text),
         ),
         h('p', { style: 'margin-top: 20px;' },
-          h('a', { class: 'plain-link', href: listUrl() }, 'Wè lòt pòs yo')),
+          h('a', { class: 'plain-link', href: listUrl() }, t('Wè lòt pòs yo'))),
       );
+      document.title = `${t('Aplikasyon voye')} — ${job.company_name || ''}`;
       window.scrollTo(0, 0);
     }
 
@@ -477,9 +513,9 @@
       } catch (err) {
         if (err instanceof ApiError && err.status === 404) {
           content.replaceChildren(
-            h('div', { class: 'alert alert-error' }, 'Pòs sa a pa disponib ankò. Li ka fèmen.'),
+            h('div', { class: 'alert alert-error' }, t('Pòs sa a pa disponib ankò. Li ka fèmen.')),
             h('p', { style: 'margin-top: 16px;' },
-              h('a', { class: 'plain-link', href: listUrl() }, 'Wè pòs ki louvri yo')),
+              h('a', { class: 'plain-link', href: listUrl() }, t('Wè pòs ki louvri yo'))),
           );
         } else {
           showError(errorMessage(err));
@@ -488,12 +524,12 @@
       }
 
       content.replaceChildren(
-        h('a', { class: 'back-link', href: listUrl() }, 'Tout pòs yo'),
+        h('a', { class: 'back-link', href: listUrl() }, t('Tout pòs yo')),
         header(job.company_name || '', job.title),
         metaLine(job),
-        textSection('Deskripsyon', job.description),
-        textSection('Responsablite', job.responsibilities),
-        textSection('Kalifikasyon', job.requirements),
+        textSection(t('Deskripsyon'), job.description),
+        textSection(t('Responsablite'), job.responsibilities),
+        textSection(t('Kalifikasyon'), job.requirements),
         applyForm(job, questionData),
       );
     }
@@ -503,7 +539,7 @@
     // -------------------------------------------------------------------
 
     if (!/^[a-z0-9-]+$/.test(orgSlug)) {
-      showError('Lyen sa a pa konplè. Mande biznis la lyen paj karyè li.');
+      showError(t('Lyen sa a pa konplè. Mande biznis la lyen paj karyè li.'));
       return;
     }
 

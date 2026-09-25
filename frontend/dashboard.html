@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Tablo de bò — KONMBIT</title>
+  <title data-i18n>Tablo de bò — KONMBIT</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -16,17 +16,17 @@
     <div class="app-main">
       <header class="topbar" id="topbar"></header>
 
-<main class="page">
-    <div class="page-head">
-      <h1 id="greeting">Bonjou</h1>
-      <p id="today-label"></p>
-    </div>
+      <main class="page">
+        <div class="page-head">
+          <h1 id="greeting"></h1>
+          <p id="today-label"></p>
+        </div>
 
-    <div class="grid">
-      <div class="col" id="col-main"></div>
-      <div class="col" id="col-side"></div>
-    </div>
-  </main>
+        <div class="grid">
+          <div class="col" id="col-main"></div>
+          <div class="col" id="col-side"></div>
+        </div>
+      </main>
     </div>
   </div>
 
@@ -35,7 +35,7 @@
   <script>
   (function () {
     'use strict';
-    const { api, fmt, h, ApiError, shell } = Konbit;
+    const { api, fmt, h, ApiError, shell, t } = Konbit;
 
     const colMain = document.getElementById('col-main');
     const colSide = document.getElementById('col-side');
@@ -45,7 +45,7 @@
     // -----------------------------------------------------------------------
 
     function panel(title, meta) {
-      const body = h('div', {}, h('p', { class: 'loading' }, 'Ap chaje…'));
+      const body = h('div', {}, h('p', { class: 'loading' }, t('Ap chaje…')));
       const el = h('section', { class: 'panel' },
         h('div', { class: 'panel-head' },
           h('h2', {}, title),
@@ -61,7 +61,7 @@
     }
 
     function errorText(err) {
-      return err instanceof ApiError ? err.message : 'Nou pa t ka chaje seksyon sa a.';
+      return err instanceof ApiError ? err.message : t('Nou pa t ka chaje seksyon sa a.');
     }
 
     function initials(name) {
@@ -92,13 +92,12 @@
     // -----------------------------------------------------------------------
 
     function renderGreeting(identity) {
-      const user = identity.user;
+      const name = identity.user.full_name.split(' ')[0];
       const hour = new Date().getHours();
-      const hello = hour < 12 ? 'Bonjou' : hour < 18 ? 'Bon apremidi' : 'Bonswa';
-      document.getElementById('greeting').textContent = `${hello}, ${user.full_name.split(' ')[0]}`;
-      document.getElementById('today-label').textContent = new Date().toLocaleDateString('fr-FR', {
-        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-      });
+      document.getElementById('greeting').textContent = hour < 12
+        ? t('Bonjou, {name}', { name })
+        : hour < 18 ? t('Bon apremidi, {name}', { name }) : t('Bonswa, {name}', { name });
+      document.getElementById('today-label').textContent = fmt.longDate(new Date());
     }
 
     // -----------------------------------------------------------------------
@@ -106,19 +105,19 @@
     // -----------------------------------------------------------------------
 
     function clockSection() {
-      const label = h('p', { class: 'clock-label' }, 'Ap chaje…');
+      const label = h('p', { class: 'clock-label' }, t('Ap chaje…'));
       const time = h('p', { class: 'clock-time', 'aria-live': 'off' }, '00:00:00');
       const since = h('p', { class: 'clock-since' });
       const message = h('p', { class: 'field-error', role: 'status' });
-      const breakSelect = h('select', { class: 'select', 'aria-label': 'Tan repo', hidden: true },
-        h('option', { value: '0' }, 'Pa gen repo'),
-        h('option', { value: '30' }, '30 min repo'),
-        h('option', { value: '60' }, '1è repo'),
+      const breakSelect = h('select', { class: 'select', 'aria-label': t('Tan repo'), hidden: true },
+        h('option', { value: '0' }, t('Pa gen repo')),
+        h('option', { value: '30' }, t('30 min repo')),
+        h('option', { value: '60' }, t('1 èdtan repo')),
       );
       breakSelect.style.marginBottom = '10px';
-      const button = h('button', { class: 'btn btn-primary', type: 'button', disabled: true }, 'Klòk in');
+      const button = h('button', { class: 'btn btn-primary', type: 'button', disabled: true }, t('Klòk in'));
 
-      const el = h('section', { class: 'clock', 'aria-label': 'Prezans' },
+      const el = h('section', { class: 'clock', 'aria-label': t('Prezans') },
         h('div', { class: 'clock-ring', 'aria-hidden': 'true' }, h('span', { class: 'clock-dot' })),
         h('div', {}, label, time, since, message),
         h('div', {}, breakSelect, button),
@@ -140,17 +139,17 @@
 
         if (clockedIn) {
           const start = fmt.parseDate(status.entry.clock_in_at);
-          label.textContent = 'W ap travay depi';
-          since.textContent = `Ou antre a ${fmt.time(start)}`;
-          button.textContent = 'Klòk out';
+          label.textContent = t('W ap travay depi');
+          since.textContent = t('Ou antre a {time}', { time: fmt.time(start) });
+          button.textContent = t('Klòk out');
           button.className = 'btn btn-ghost';
           tick(start);
           timer = setInterval(() => tick(start), 1000);
         } else {
-          label.textContent = 'Ou poko antre';
+          label.textContent = t('Ou poko antre');
           time.textContent = '00:00:00';
-          since.textContent = 'Peze bouton an lè w rive sou travay la.';
-          button.textContent = 'Klòk in';
+          since.textContent = t('Peze bouton an lè w rive sou travay la.');
+          button.textContent = t('Klòk in');
           button.className = 'btn btn-primary';
         }
       }
@@ -159,7 +158,7 @@
         try {
           render(await api.get('/api/attendance/status'));
         } catch (err) {
-          label.textContent = 'Prezans';
+          label.textContent = t('Prezans');
           message.textContent = errorText(err);
         }
       }
@@ -168,13 +167,13 @@
         message.textContent = '';
         button.disabled = true;
         const original = button.textContent;
-        button.textContent = 'Yon ti moman…';
+        button.textContent = t('Yon ti moman…');
         try {
           if (clockedIn) {
             const entry = await api.post('/api/attendance/clock-out', {
               break_minutes: Number(breakSelect.value),
             });
-            since.textContent = `Jounen fini: ${fmt.duration(entry.worked_minutes)} travay.`;
+            since.textContent = t('Jounen fini: {duration} travay.', { duration: fmt.duration(entry.worked_minutes) });
           } else {
             const pos = await getPosition();
             await api.post('/api/attendance/clock-in', {
@@ -199,46 +198,49 @@
     // -----------------------------------------------------------------------
 
     function payslipSection() {
-      const { el, body } = panel('Fich peye');
+      const { el, body } = panel(t('Fich peye'));
 
       api.get('/api/payroll/me/payslips?limit=6').then((data) => {
         if (!data.items.length) {
-          fill(body, h('p', { class: 'empty' }, 'Ou poko gen fich peye. Li ap parèt isit la lè HR fin apwouve peyòl la.'));
+          fill(body, h('p', { class: 'empty' }, t('Ou poko gen fich peye. Li ap parèt isit la lè HR fin apwouve peyòl la.')));
           return;
         }
 
         const s = data.items[0];
         const cur = s.currency;
+        const row = (label, value) =>
+          h('div', { class: 'row' }, h('span', { class: 'k' }, label), h('span', {}, fmt.money(value, cur)));
         const minus = (label, value) => value
           ? h('div', { class: 'row minus' }, h('span', { class: 'k' }, label), h('span', { class: 'v' }, `−${fmt.money(value, cur)}`))
           : null;
 
+        // Non ofisyèl yo (ONA, OFATMA, CFGDCT, FDU / CAS) pa tradui.
         const breakdown = h('details', { class: 'breakdown' },
-          h('summary', {}, 'Detay kalkil la'),
+          h('summary', {}, t('Detay kalkil la')),
           h('div', { class: 'rows' },
-            h('div', { class: 'row' }, h('span', { class: 'k' }, 'Salè debaz'), h('span', {}, fmt.money(s.base_amount, cur))),
-            s.overtime_amount ? h('div', { class: 'row' }, h('span', { class: 'k' }, 'Èdtan siplemantè'), h('span', {}, fmt.money(s.overtime_amount, cur))) : null,
-            s.bonus_amount ? h('div', { class: 'row' }, h('span', { class: 'k' }, 'Bonis'), h('span', {}, fmt.money(s.bonus_amount, cur))) : null,
-            h('div', { class: 'row' }, h('span', { class: 'k' }, 'Brit'), h('span', {}, fmt.money(s.gross_amount, cur))),
-            minus('Enpo sou salè (IRI)', s.tax_amount),
-            minus('Retni sou bonis / èdtan siplemantè', s.supplemental_tax_amount),
+            row(t('Salè debaz'), s.base_amount),
+            s.overtime_amount ? row(t('Èdtan siplemantè'), s.overtime_amount) : null,
+            s.bonus_amount ? row(t('Bonis'), s.bonus_amount) : null,
+            row(t('Brit'), s.gross_amount),
+            minus(t('Enpo sou salè (IRI)'), s.tax_amount),
+            minus(t('Retni sou bonis / èdtan siplemantè'), s.supplemental_tax_amount),
             minus('ONA', s.ona_amount),
             minus('OFATMA', s.ofatma_amount),
             minus('CFGDCT', s.cfgdct_amount),
             minus('FDU / CAS', s.fdu_cas_amount),
-            minus('Lòt dediksyon', s.other_deductions),
-            h('div', { class: 'row total' }, h('span', {}, 'Net'), h('span', {}, fmt.money(s.net_amount, cur))),
+            minus(t('Lòt dediksyon'), s.other_deductions),
+            h('div', { class: 'row total' }, h('span', {}, t('Net')), h('span', {}, fmt.money(s.net_amount, cur))),
           ),
         );
 
         const older = data.items.slice(1);
 
         fill(body,
-          h('p', { class: 'clock-label' }, s.status === 'paid' ? 'Dènye peman' : 'Apwouve, poko peye'),
+          h('p', { class: 'clock-label' }, s.status === 'paid' ? t('Dènye peman') : t('Apwouve, poko peye')),
           h('p', { class: 'pay-net' }, fmt.money(s.net_amount, cur)),
           h('span', { class: 'pay-method' }, fmt.paymentMethod(s)),
           h('p', { class: 'pay-meta' },
-            s.paid_at ? `Peye ${fmt.date(s.paid_at)}` : 'Ap peye nan pwochen jou yo',
+            s.paid_at ? t('Peye {date}', { date: fmt.date(s.paid_at) }) : t('Ap peye nan pwochen jou yo'),
           ),
           breakdown,
           older.length ? h('ul', { class: 'list' }, ...older.map((o) =>
@@ -262,7 +264,7 @@
     // -----------------------------------------------------------------------
 
     function leaveSection() {
-      const { el, body } = panel('Konje');
+      const { el, body } = panel(t('Konje'));
 
       const balancesBox = h('div', { class: 'balances' });
       const requestsBox = h('div', {});
@@ -270,30 +272,30 @@
 
       const typeSelect = h('select', { class: 'select', id: 'leave-type', required: true },
         ...['vacation', 'sick', 'maternity', 'paternity', 'bereavement', 'unpaid', 'other']
-          .map((t) => h('option', { value: t }, fmt.leaveType(t))),
+          .map((type) => h('option', { value: type }, fmt.leaveType(type))),
       );
       const start = h('input', { class: 'input', id: 'leave-start', type: 'date', required: true });
       const end = h('input', { class: 'input', id: 'leave-end', type: 'date', required: true });
       const reason = h('textarea', { class: 'textarea', id: 'leave-reason', maxlength: '1000' });
-      const submit = h('button', { class: 'btn btn-primary', type: 'submit' }, 'Voye demann lan');
+      const submit = h('button', { class: 'btn btn-primary', type: 'submit' }, t('Voye demann lan'));
 
-      const today = new Date().toISOString().slice(0, 10);
-      start.min = today;
+      // Dat LOKAL: toISOString() ta bay demen apre 8è diswa an Ayiti (UTC−4).
+      start.min = fmt.todayIso();
       start.addEventListener('change', () => {
         end.min = start.value;
         if (!end.value || end.value < start.value) end.value = start.value;
       });
 
       const form = h('form', { class: 'leave-form', novalidate: true },
-        h('div', { class: 'field' }, h('label', { for: 'leave-type' }, 'Kalite konje'), typeSelect),
+        h('div', { class: 'field' }, h('label', { for: 'leave-type' }, t('Kalite konje')), typeSelect),
         h('div', { class: 'form-row' },
-          h('div', { class: 'field' }, h('label', { for: 'leave-start' }, 'Premye jou'), start),
-          h('div', { class: 'field' }, h('label', { for: 'leave-end' }, 'Dènye jou'), end),
+          h('div', { class: 'field' }, h('label', { for: 'leave-start' }, t('Premye jou')), start),
+          h('div', { class: 'field' }, h('label', { for: 'leave-end' }, t('Dènye jou')), end),
         ),
         h('div', { class: 'field' },
-          h('label', { for: 'leave-reason' }, 'Rezon (opsyonèl)'),
+          h('label', { for: 'leave-reason' }, t('Rezon (opsyonèl)')),
           reason,
-          h('span', { class: 'hint' }, 'Sèlman manadjè w ak HR ap wè sa.'),
+          h('span', { class: 'hint' }, t('Sèlman manadjè w ak HR ap wè sa.')),
         ),
         formMessage,
         h('div', {}, submit),
@@ -306,7 +308,7 @@
 
         if (!start.value || !end.value) {
           formMessage.className = 'field-error';
-          formMessage.textContent = 'Chwazi premye ak dènye jou konje a.';
+          formMessage.textContent = t('Chwazi premye ak dènye jou konje a.');
           return;
         }
 
@@ -320,7 +322,7 @@
           });
           formMessage.className = 'alert alert-ok';
           formMessage.textContent =
-            `Demann lan voye: ${created.total_days} jou travay. Manadjè w ap resevwa l.`;
+            t('Demann lan voye: {days} jou travay. Manadjè w ap resevwa l.', { days: created.total_days });
           form.reset();
           await load();
         } catch (err) {
@@ -342,9 +344,9 @@
           fill(balancesBox, items.length
             ? items.map((b) => h('div', { class: 'balance' },
                 h('div', { class: 'n' }, String(b.remaining_days), h('small', {}, ` / ${b.entitled_days + b.carried_over_days}`)),
-                h('div', { class: 't' }, `jou ${fmt.leaveType(b.leave_type).toLowerCase()} ki rete`),
+                h('div', { class: 't' }, t('{type}: jou ki rete', { type: fmt.leaveType(b.leave_type) })),
               ))
-            : h('p', { class: 'empty' }, 'HR poko mete balans konje w pou ane sa a.'));
+            : h('p', { class: 'empty' }, t('HR poko mete balans konje w pou ane sa a.')));
         } else {
           fill(balancesBox, h('p', { class: 'empty' }, errorText(balances.reason)));
         }
@@ -355,7 +357,7 @@
             h('ul', { class: 'list' }, ...recent.map((r) =>
               h('li', {},
                 h('div', {},
-                  h('div', {}, `${fmt.leaveType(r.leave_type)} — ${r.total_days} jou`),
+                  h('div', {}, t('{type} — {days} jou', { type: fmt.leaveType(r.leave_type), days: r.total_days })),
                   h('div', { class: 'sub' }, `${fmt.shortDate(r.start_date)} → ${fmt.shortDate(r.end_date)}`),
                 ),
                 h('span', { class: `badge badge-${r.status}` }, fmt.requestStatus(r.status)),
@@ -378,23 +380,26 @@
     // -----------------------------------------------------------------------
 
     function chainSection() {
-      const { el, body } = panel('Ekip ou');
+      const { el, body } = panel(t('Ekip ou'));
 
       api.get('/api/hierarchy/me/chain').then((data) => {
         if (!data.chain.length) {
-          fill(body, h('p', { class: 'empty' }, 'Pa gen pesonn sou tèt ou nan òganigram lan.'));
+          fill(body, h('p', { class: 'empty' }, t('Pa gen pesonn sou tèt ou nan òganigram lan.')));
           return;
         }
         // API a bay manadjè dirèk la an premye; nou montre l de anwo an ba.
         const topDown = [...data.chain].reverse();
-        const person = (p, isMe) => h('li', { class: isMe ? 'me' : null },
-          h('span', { class: 'avatar', 'aria-hidden': 'true' }, initials(`${p.first_name} ${p.last_name}`)),
-          h('div', {},
-            h('div', { class: 'who' }, isMe ? `${p.first_name} ${p.last_name} (ou)` : `${p.first_name} ${p.last_name}`),
-            h('div', { class: 'num' }, p.employee_number),
-          ),
-        );
-        fill(body, h('ol', { class: 'chain', 'aria-label': 'Chèn komandman' },
+        const person = (p, isMe) => {
+          const fullName = `${p.first_name} ${p.last_name}`;
+          return h('li', { class: isMe ? 'me' : null },
+            h('span', { class: 'avatar', 'aria-hidden': 'true' }, initials(fullName)),
+            h('div', {},
+              h('div', { class: 'who' }, isMe ? t('{name} (ou)', { name: fullName }) : fullName),
+              h('div', { class: 'num' }, p.employee_number),
+            ),
+          );
+        };
+        fill(body, h('ol', { class: 'chain', 'aria-label': t('Chèn komandman') },
           ...topDown.map((p) => person(p, false)),
           person(data.employee, true),
         ));
@@ -408,26 +413,26 @@
     // -----------------------------------------------------------------------
 
     function trainingSection() {
-      const { el, body } = panel('Fòmasyon');
+      const { el, body } = panel(t('Fòmasyon'));
 
       api.get('/api/training/me/courses').then((data) => {
         if (!data.items.length) {
-          fill(body, h('p', { class: 'empty' }, 'Ou pa gen okenn fòmasyon pou kounye a.'));
+          fill(body, h('p', { class: 'empty' }, t('Ou pa gen okenn fòmasyon pou kounye a.')));
           return;
         }
         fill(body, ...data.items.map((c) => {
           const done = Boolean(c.completed_at);
           const bar = h('div', { class: done ? 'bar done' : 'bar', role: 'progressbar',
             'aria-valuenow': String(c.progress_percent), 'aria-valuemin': '0', 'aria-valuemax': '100',
-            'aria-label': `Pwogrè ${c.course.title}` },
+            'aria-label': t('Pwogrè: {title}', { title: c.course.title }) },
             h('span', {}),
           );
           bar.firstChild.style.width = `${c.progress_percent}%`;
 
           let status;
-          if (done) status = h('span', { class: 'badge badge-approved' }, 'Fini');
-          else if (c.is_overdue) status = h('span', { class: 'badge badge-late' }, 'An reta');
-          else if (c.due_date) status = h('span', { class: 'sub' }, `Anvan ${fmt.shortDate(c.due_date)}`);
+          if (done) status = h('span', { class: 'badge badge-approved' }, t('Fini'));
+          else if (c.is_overdue) status = h('span', { class: 'badge badge-late' }, t('An reta'));
+          else if (c.due_date) status = h('span', { class: 'sub' }, t('Anvan {date}', { date: fmt.shortDate(c.due_date) }));
 
           return h('div', { class: 'course' },
             h('div', { class: 'course-top' },
@@ -447,18 +452,18 @@
     // -----------------------------------------------------------------------
 
     function approvalsSection() {
-      const { el, body } = panel('Demann konje pou ou apwouve');
+      const { el, body } = panel(t('Demann konje pou ou apwouve'));
 
       async function load() {
         try {
           const data = await api.get('/api/leaves/pending');
           if (!data.items.length) {
-            fill(body, h('p', { class: 'empty' }, 'Pa gen okenn demann k ap tann ou.'));
+            fill(body, h('p', { class: 'empty' }, t('Pa gen okenn demann k ap tann ou.')));
             return;
           }
           fill(body, ...data.items.map(({ request: r, employee_name }) => {
-            const note = h('input', { class: 'input', type: 'text', placeholder: 'Nòt (opsyonèl)',
-              'aria-label': `Nòt pou ${employee_name}`, maxlength: '500' });
+            const note = h('input', { class: 'input', type: 'text', placeholder: t('Nòt (opsyonèl)'),
+              'aria-label': t('Nòt pou {name}', { name: employee_name }), maxlength: '500' });
             const msg = h('p', { class: 'field-error', role: 'status' });
 
             async function decide(approve, buttons) {
@@ -476,8 +481,8 @@
               }
             }
 
-            const yes = h('button', { class: 'btn btn-primary btn-sm', type: 'button' }, 'Apwouve');
-            const no = h('button', { class: 'btn btn-danger btn-sm', type: 'button' }, 'Refize');
+            const yes = h('button', { class: 'btn btn-primary btn-sm', type: 'button' }, t('Apwouve|aksyon'));
+            const no = h('button', { class: 'btn btn-danger btn-sm', type: 'button' }, t('Refize|aksyon'));
             yes.addEventListener('click', () => decide(true, [yes, no]));
             no.addEventListener('click', () => decide(false, [yes, no]));
 
@@ -485,8 +490,8 @@
               h('div', {},
                 h('div', { class: 'who' }, employee_name),
                 h('div', { class: 'what' },
-                  `${fmt.leaveType(r.leave_type)} — ${r.total_days} jou, ` +
-                  `${fmt.shortDate(r.start_date)} → ${fmt.shortDate(r.end_date)}`),
+                  t('{type} — {days} jou', { type: fmt.leaveType(r.leave_type), days: r.total_days })
+                  + ` · ${fmt.shortDate(r.start_date)} → ${fmt.shortDate(r.end_date)}`),
                 r.reason ? h('div', { class: 'what' }, `« ${r.reason} »`) : null,
               ),
               note,
@@ -504,15 +509,15 @@
     }
 
     function todaySection() {
-      const { el, body } = panel('Prezans jodi a');
+      const { el, body } = panel(t('Prezans jodi a'));
 
       api.get('/api/attendance/today').then((d) => {
-        const stat = (n, t) => h('div', { class: 'stat' }, h('div', { class: 'n' }, String(n)), h('div', { class: 't' }, t));
+        const stat = (n, label) => h('div', { class: 'stat' }, h('div', { class: 'n' }, String(n)), h('div', { class: 't' }, label));
         fill(body,
           h('div', { class: 'stat-line' },
-            stat(d.present_count, 'antre jodi a'),
-            stat(d.still_working, 'ap travay kounye a'),
-            stat(d.total_active_employees, 'anplwaye aktif'),
+            stat(d.present_count, t('antre jodi a')),
+            stat(d.still_working, t('ap travay kounye a')),
+            stat(d.total_active_employees, t('anplwaye aktif')),
           ),
           d.present.length ? h('ul', { class: 'list' }, ...d.present.slice(0, 8).map((p) =>
             h('li', {},
@@ -520,7 +525,7 @@
               h('span', { class: 'sub' },
                 p.clocked_out
                   ? `${fmt.time(p.clock_in_at)} — ${fmt.duration(p.worked_minutes)}`
-                  : `depi ${fmt.time(p.clock_in_at)}`),
+                  : t('depi {time}', { time: fmt.time(p.clock_in_at) })),
             )
           )) : null,
         );
@@ -554,11 +559,10 @@
       }
 
       // Admin san dosye anplwaye: tablo jesyon an okipe tout lajè a.
-      const goEmployees = h('a', { class: 'btn btn-primary btn-sm', href: 'employees.html' }, 'Jere anplwaye yo');
+      const goEmployees = h('a', { class: 'btn btn-primary btn-sm', href: 'employees.html' }, t('Jere anplwaye yo'));
       colMain.append(
         h('div', { class: 'notice' },
-          h('p', {}, 'Kont ou a se yon kont administratè, san dosye anplwaye — ' +
-            'donk ou pa gen klòk in, fich peye ni konje pou tèt ou isit la.'),
+          h('p', {}, t('Kont ou a se yon kont administratè, san dosye anplwaye — donk ou pa gen klòk in, fich peye ni konje pou tèt ou isit la.')),
           isAdmin ? h('div', { style: 'margin-top: 12px;' }, goEmployees) : null,
         ),
         todaySection(),

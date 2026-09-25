@@ -3,132 +3,134 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Konekte — KONMBIT</title>
+  <title data-i18n>Konekte — KONMBIT</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="app.css">
+  <style>
+    .lang-row { display: flex; justify-content: flex-end; margin-bottom: 18px; }
+  </style>
 </head>
 <body>
   <div class="auth-page">
 
     <aside class="auth-aside">
-      <a class="brand" href="index.html">
+      <a class="brand" href="index.html" data-i18n-attr="aria-label" aria-label="KONMBIT — akèy">
         <span class="brand-mark" aria-hidden="true">K</span>
         <span class="brand-name">KONMBIT</span>
       </a>
 
       <div>
-        <h1>Tout ekip ou nan yon sèl kote.</h1>
-        <p class="lede">
-          Anplwaye yo antre ak soti, mande konje, wè fich peye yo epi swiv
-          fòmasyon yo — san papye, san fil datant.
-        </p>
+        <h1 data-i18n>Tout ekip ou nan yon sèl kote.</h1>
+        <p class="lede" data-i18n>Anplwaye yo antre ak soti, mande konje, wè fich peye yo epi swiv fòmasyon yo — san papye, san fil datant.</p>
         <ul class="auth-facts">
-          <li><span><strong>Fich peye klè</strong>Chak moun wè si l ap resevwa chèk, depo oswa MonCash.</span></li>
-          <li><span><strong>Konje san papye</strong>Manadjè a apwouve, balans lan ajiste pou kont li.</span></li>
-          <li><span><strong>Òganigram vivan</strong>Chak anplwaye konnen ki moun ki sou tèt li.</span></li>
+          <li><span><strong data-i18n>Fich peye klè</strong><span data-i18n>Chak moun wè si l ap resevwa chèk, depo oswa MonCash.</span></span></li>
+          <li><span><strong data-i18n>Konje san papye</strong><span data-i18n>Manadjè a apwouve, balans lan ajiste pou kont li.</span></span></li>
+          <li><span><strong data-i18n>Òganigram vivan</strong><span data-i18n>Chak anplwaye konnen ki moun ki sou tèt li.</span></span></li>
         </ul>
       </div>
 
-      <p class="auth-footnote">Fèt an Ayiti, an kreyòl.</p>
+      <p class="auth-footnote" data-i18n>Fèt an Ayiti, pou biznis ayisyen.</p>
     </aside>
 
     <main class="auth-main">
       <div class="auth-card">
 
-        <div class="tabs" role="tablist" aria-label="Chwazi">
-          <button class="tab" role="tab" id="tab-login" aria-selected="true" aria-controls="panel-login">Konekte</button>
-          <button class="tab" role="tab" id="tab-signup" aria-selected="false" aria-controls="panel-signup">Enskri biznis ou</button>
+        <div class="lang-row" id="lang-slot"></div>
+
+        <div class="tabs" role="tablist" data-i18n-attr="aria-label" aria-label="Chwazi">
+          <button class="tab" role="tab" id="tab-login" aria-selected="true" aria-controls="panel-login" data-i18n>Konekte</button>
+          <button class="tab" role="tab" id="tab-signup" aria-selected="false" aria-controls="panel-signup" data-i18n>Enskri biznis ou</button>
         </div>
 
         <!-- KONEKSYON -->
         <section id="panel-login" role="tabpanel" aria-labelledby="tab-login">
-          <h2>Bon retou</h2>
-          <p class="sub">Konekte ak imel ou te resevwa nan men responsab ou.</p>
+          <h2 data-i18n>Bon retou</h2>
+          <p class="sub" data-i18n>Konekte ak imel ou te resevwa nan men responsab ou.</p>
 
           <form class="auth-form" id="login-form" novalidate>
             <div class="alert alert-error" id="login-error" role="alert"></div>
 
             <div class="field">
-              <label for="login-email">Imel</label>
+              <label for="login-email" data-i18n>Imel</label>
               <input class="input" id="login-email" name="email" type="email"
                      autocomplete="username" required>
             </div>
 
             <div class="field">
-              <label for="login-password">Modpas</label>
+              <label for="login-password" data-i18n>Modpas</label>
               <input class="input" id="login-password" name="password" type="password"
                      autocomplete="current-password" required>
             </div>
 
-            <button class="btn btn-primary" type="submit" id="login-submit">Konekte</button>
+            <button class="btn btn-primary" type="submit" id="login-submit" data-i18n>Konekte</button>
           </form>
 
           <p class="auth-switch">
-            Premye fwa w sou KONMBIT?
-            <button class="link-btn" type="button" data-go="signup">Enskri biznis ou</button>
+            <span data-i18n>Premye fwa w sou KONMBIT?</span>
+            <button class="link-btn" type="button" data-go="signup" data-i18n>Enskri biznis ou</button>
           </p>
         </section>
 
         <!-- ENSKRIPSYON -->
         <section id="panel-signup" role="tabpanel" aria-labelledby="tab-signup" hidden>
-          <h2>Kreye espas biznis ou</h2>
-          <p class="sub">W ap vin premye administratè a. Apre sa w ap ka ajoute ekip ou.</p>
+          <h2 data-i18n>Kreye espas biznis ou</h2>
+          <p class="sub" data-i18n>W ap vin premye administratè a. Apre sa w ap ka ajoute ekip ou.</p>
 
           <form class="auth-form" id="signup-form" novalidate>
             <div class="alert alert-error" id="signup-error" role="alert"></div>
 
             <div class="field">
-              <label for="org-name">Non biznis la</label>
+              <label for="org-name" data-i18n>Non biznis la</label>
               <input class="input" id="org-name" type="text" required maxlength="200"
                      autocomplete="organization">
             </div>
 
             <div class="field">
-              <label for="org-slug">Adrès paj karyè w</label>
+              <label for="org-slug" data-i18n>Adrès paj karyè w</label>
               <input class="input" id="org-slug" type="text" required maxlength="100"
                      pattern="[a-z0-9-]+" aria-describedby="slug-hint">
-              <span class="hint" id="slug-hint">Lèt piti, chif ak tirè sèlman.</span>
+              <span class="hint" id="slug-hint" data-i18n>Lèt piti, chif ak tirè sèlman.</span>
             </div>
 
             <div class="form-row">
               <div class="field">
-                <label for="org-city">Vil</label>
+                <label for="org-city" data-i18n>Vil</label>
                 <input class="input" id="org-city" type="text" autocomplete="address-level2">
               </div>
               <div class="field">
-                <label for="org-currency">Lajan</label>
+                <label for="org-currency" data-i18n>Lajan</label>
                 <select class="select" id="org-currency">
-                  <option value="HTG" selected>Goud (HTG)</option>
-                  <option value="USD">Dola (USD)</option>
+                  <option value="HTG" selected data-i18n>Goud (HTG)</option>
+                  <option value="USD" data-i18n>Dola (USD)</option>
                 </select>
               </div>
             </div>
 
             <div class="field">
-              <label for="admin-name">Non konplè w</label>
+              <label for="admin-name" data-i18n>Non konplè w</label>
               <input class="input" id="admin-name" type="text" required autocomplete="name">
             </div>
 
             <div class="field">
-              <label for="admin-email">Imel ou</label>
+              <label for="admin-email" data-i18n>Imel ou</label>
               <input class="input" id="admin-email" type="email" required autocomplete="email">
             </div>
 
             <div class="field">
-              <label for="admin-password">Modpas</label>
+              <label for="admin-password" data-i18n>Modpas</label>
               <input class="input" id="admin-password" type="password" required
                      minlength="10" autocomplete="new-password" aria-describedby="pw-hint">
-              <span class="hint" id="pw-hint">Omwen 10 karaktè, ak lèt ak chif.</span>
+              <span class="hint" id="pw-hint" data-i18n>Omwen 10 karaktè, ak lèt ak chif.</span>
             </div>
 
-            <button class="btn btn-primary" type="submit" id="signup-submit">Kreye espas la</button>
+            <button class="btn btn-primary" type="submit" id="signup-submit" data-i18n>Kreye espas la</button>
           </form>
 
           <p class="auth-switch">
-            Ou deja gen yon kont?
-            <button class="link-btn" type="button" data-go="login">Konekte</button>
+            <span data-i18n>Ou deja gen yon kont?</span>
+            <button class="link-btn" type="button" data-go="login" data-i18n>Konekte</button>
           </p>
         </section>
 
@@ -138,9 +140,16 @@
 
   <script src="api.js"></script>
   <script>
-  (function () {
+  (async function () {
     'use strict';
-    const { auth, ApiError } = Konbit;
+    const { auth, ApiError, i18n, t } = Konbit;
+
+    // Tradiksyon yo nan frontend/i18n/<lang>.json.
+    await i18n.ready;
+
+    // Chwa lang lan: moun nan ka chanje l anvan l konekte. Kont lan ap
+    // pran chwa sa a apre koneksyon (Konbit.i18n.sync nan shell.js).
+    document.getElementById('lang-slot').append(i18n.switcher());
 
     // Si moun nan deja konekte, voye l dirèk nan tablo de bò a.
     if (auth.isLoggedIn()) {
@@ -187,13 +196,13 @@
     // --- Zouti ---
     function setBusy(button, busy, label) {
       button.disabled = busy;
-      button.textContent = busy ? 'Yon ti moman…' : label;
+      button.textContent = busy ? t('Yon ti moman…') : label;
     }
 
     function showError(box, err) {
       box.textContent = err instanceof ApiError
         ? err.message
-        : 'Yon bagay pa mache. Eseye ankò.';
+        : t('Yon bagay pa mache. Eseye ankò.');
     }
 
     // --- Koneksyon ---
@@ -208,11 +217,11 @@
       const email = loginForm.email.value.trim();
       const password = loginForm.password.value;
       if (!email || !password) {
-        loginError.textContent = 'Mete imel ou ak modpas ou.';
+        loginError.textContent = t('Mete imel ou ak modpas ou.');
         return;
       }
 
-      setBusy(loginBtn, true, 'Konekte');
+      setBusy(loginBtn, true, t('Konekte'));
       try {
         await auth.login(email, password);
         location.replace(safeNext());
@@ -220,7 +229,7 @@
         showError(loginError, err);
         loginForm.password.value = '';
         loginForm.password.focus();
-        setBusy(loginBtn, false, 'Konekte');
+        setBusy(loginBtn, false, t('Konekte'));
       }
     });
 
@@ -272,21 +281,22 @@
       // Verifikasyon rapid anvan nou deranje sèvè a
       if (!payload.organization.name || !payload.organization.slug
           || !payload.admin_full_name || !payload.admin_email) {
-        signupError.textContent = 'Ranpli tout chan ki obligatwa yo.';
+        signupError.textContent = t('Ranpli tout chan ki obligatwa yo.');
         return;
       }
       if (password.length < 10 || !/\d/.test(password) || !/[a-zA-Z]/.test(password)) {
-        signupError.textContent = 'Modpas la dwe gen omwen 10 karaktè, ak lèt ak chif.';
+        signupError.textContent = t('Modpas la dwe gen omwen 10 karaktè, ak lèt ak chif.');
         return;
       }
 
-      setBusy(signupBtn, true, 'Kreye espas la');
+      setBusy(signupBtn, true, t('Kreye espas la'));
       try {
+        // api.js voye lang lan (Accept-Language): kont lan kòmanse nan lang sa a.
         await auth.signup(payload);
         location.replace('dashboard.html');
       } catch (err) {
         showError(signupError, err);
-        setBusy(signupBtn, false, 'Kreye espas la');
+        setBusy(signupBtn, false, t('Kreye espas la'));
       }
     });
   })();

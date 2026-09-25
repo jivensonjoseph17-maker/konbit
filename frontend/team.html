@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Ekip mwen — KONMBIT</title>
+  <title data-i18n>Ekip mwen — KONMBIT</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -18,8 +18,8 @@
 
       <main class="page">
         <div class="page-head">
-          <h1>Ekip mwen</h1>
-          <p id="subtitle">Apwouve demann yo epi evalye travay ekip ou.</p>
+          <h1 data-i18n>Ekip mwen</h1>
+          <p id="subtitle" data-i18n>Apwouve demann yo epi evalye travay ekip ou.</p>
         </div>
 
         <div id="leaves"></div>
@@ -33,7 +33,7 @@
   <script>
   (async function () {
     'use strict';
-    const { api, fmt, h, ApiError, shell } = Konbit;
+    const { api, fmt, h, ApiError, shell, t } = Konbit;
 
     const identity = await shell.mount('team', shell.MANAGERS);
     if (!identity) return;
@@ -49,7 +49,7 @@
     // -------------------------------------------------------------------
 
     function errorMessage(err) {
-      let msg = err instanceof ApiError ? err.message : 'Yon bagay pa mache.';
+      let msg = err instanceof ApiError ? err.message : t('Yon bagay pa mache.');
       if (err && err.fields && err.fields.length) {
         msg += ' ' + err.fields.map((f) => `${f.field}: ${f.message}`).join('; ');
       }
@@ -95,7 +95,13 @@
 
     function personName(id) {
       const p = people.find((e) => e.id === id);
-      return p ? `${p.first_name} ${p.last_name}` : `Anplwaye #${id}`;
+      return p ? `${p.first_name} ${p.last_name}` : t('Anplwaye #{id}', { id });
+    }
+
+    /** "Fòs:" + tèks la, oswa anyen si pa gen tèks. */
+    function labeled(label, text) {
+      if (!text) return null;
+      return h('div', {}, h('span', { class: 'sub' }, `${label} `), text);
     }
 
     // -------------------------------------------------------------------
@@ -105,11 +111,15 @@
     function leaveCard(item) {
       const r = item.request;
       const msg = h('p', { class: 'field-error', role: 'status', style: 'margin: 0;' });
-      const note = input(`note-${r.id}`, '', { maxlength: '500', placeholder: 'Nòt (opsyonèl)' });
+      const note = input(`note-${r.id}`, '', {
+        maxlength: '500',
+        placeholder: t('Nòt (opsyonèl)'),
+        'aria-label': t('Nòt pou {name}', { name: item.employee_name }),
+      });
 
       async function decide(approve, btn) {
         if (!approve && !note.value.trim()
-            && !confirm('Refize san nòt? Li pi bon pou di moun nan poukisa.')) return;
+            && !confirm(t('Refize san nòt? Li pi bon pou di moun nan poukisa.'))) return;
         btn.disabled = true;
         msg.textContent = '';
         try {
@@ -123,12 +133,11 @@
         }
       }
 
-      const approveBtn = h('button', { class: 'btn btn-primary btn-sm', type: 'button' }, 'Apwouve');
-      const rejectBtn = h('button', { class: 'btn btn-danger btn-sm', type: 'button' }, 'Refize');
+      const approveBtn = h('button', { class: 'btn btn-primary btn-sm', type: 'button' }, t('Apwouve|aksyon'));
+      const rejectBtn = h('button', { class: 'btn btn-danger btn-sm', type: 'button' }, t('Refize|aksyon'));
       approveBtn.addEventListener('click', () => decide(true, approveBtn));
       rejectBtn.addEventListener('click', () => decide(false, rejectBtn));
 
-      const days = Number(r.total_days);
       return h('div', {
         style: 'padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); display: grid; gap: 8px;',
       },
@@ -137,7 +146,8 @@
           h('span', { class: 'badge badge-pending' }, fmt.leaveType(r.leave_type)),
         ),
         h('div', { class: 'sub' },
-          `${fmt.date(r.start_date)} → ${fmt.date(r.end_date)} · ${days} jou travay`),
+          `${fmt.date(r.start_date)} → ${fmt.date(r.end_date)} · `
+          + t('{days} jou travay', { days: Number(r.total_days) })),
         r.reason ? h('div', { style: 'white-space: pre-wrap;' }, r.reason) : null,
         h('div', { style: 'display: flex; gap: 8px; flex-wrap: wrap; align-items: center;' },
           note, approveBtn, rejectBtn),
@@ -146,16 +156,16 @@
     }
 
     async function loadLeaves() {
+      const title = t('Demann konje k ap tann');
       try {
         const data = await api.get('/api/leaves/pending');
-        leavesBox.replaceChildren(panel('Demann konje k ap tann', data.total,
+        leavesBox.replaceChildren(panel(title, data.total,
           data.items.length
             ? h('div', { style: 'display: grid; gap: 12px;' }, ...data.items.map(leaveCard))
-            : h('p', { class: 'empty' }, 'Pa gen okenn demann k ap tann ou. 👍'),
+            : h('p', { class: 'empty' }, t('Pa gen okenn demann k ap tann ou.')),
         ));
       } catch (err) {
-        leavesBox.replaceChildren(panel('Demann konje k ap tann', null,
-          h('p', { class: 'empty' }, errorMessage(err))));
+        leavesBox.replaceChildren(panel(title, null, h('p', { class: 'empty' }, errorMessage(err))));
       }
     }
 
@@ -169,10 +179,10 @@
       let action = null;
 
       if (!done) {
-        action = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, 'Finalize');
+        action = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, t('Finalize|aksyon'));
         action.addEventListener('click', async () => {
-          if (!confirm(`Finalize evalyasyon ${personName(r.employee_id)} an? `
-            + 'Apre sa, li p ap ka chanje ankò, e anplwaye a ap ka wè l.')) return;
+          if (!confirm(t('Finalize evalyasyon {name} an? Apre sa, li p ap ka chanje ankò, e anplwaye a ap ka wè l.',
+            { name: personName(r.employee_id) }))) return;
           action.disabled = true;
           try {
             await api.post(`/api/feedback/reviews/${r.id}/finalize`);
@@ -188,16 +198,18 @@
         style: 'padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); display: grid; gap: 6px;',
       },
         h('div', { style: 'display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap;' },
-          h('strong', {}, `${personName(r.employee_id)} · ${r.period_label || ''}`),
-          done ? h('span', { class: 'badge badge-approved' }, 'Finalize')
-               : h('span', { class: 'badge badge-pending' }, 'Bouyon'),
+          h('strong', {}, r.period_label ? `${personName(r.employee_id)} · ${r.period_label}` : personName(r.employee_id)),
+          done ? h('span', { class: 'badge badge-approved' }, t('Finalize|estati'))
+               : h('span', { class: 'badge badge-pending' }, t('Bouyon')),
         ),
         h('div', { class: 'sub' },
-          r.overall_score ? `Nòt jeneral: ${'★'.repeat(r.overall_score)} (${r.overall_score}/5)` : 'Poko gen nòt'),
-        r.strengths ? h('div', {}, h('span', { class: 'sub' }, 'Fòs: '), r.strengths) : null,
-        r.improvements ? h('div', {}, h('span', { class: 'sub' }, 'Pou amelyore: '), r.improvements) : null,
-        r.goals ? h('div', {}, h('span', { class: 'sub' }, 'Objektif: '), r.goals) : null,
-        r.employee_comment ? h('div', {}, h('span', { class: 'sub' }, 'Repons anplwaye a: '), r.employee_comment) : null,
+          r.overall_score
+            ? t('Nòt jeneral: {stars} ({score}/5)', { stars: '★'.repeat(r.overall_score), score: r.overall_score })
+            : t('Poko gen nòt')),
+        labeled(t('Fòs:'), r.strengths),
+        labeled(t('Pou amelyore:'), r.improvements),
+        labeled(t('Objektif:'), r.goals),
+        labeled(t('Repons anplwaye a:'), r.employee_comment),
         h('div', { style: 'display: flex; gap: 8px; align-items: center;' }, action, msg),
       );
     }
@@ -205,11 +217,11 @@
     function reviewForm() {
       const msg = h('p', { class: 'field-error', role: 'status' });
       // Pèsonn pa evalye tèt li: nou retire moun ki konekte a nan lis la.
-      const myEmpId = identity.employee ? identity.employee.id : null;
+      const myEmpId = identity.employee_id || null;
       const choices = people.filter((p) => p.status === 'active' && p.id !== myEmpId);
       const who = select('rv-who',
-        [['', 'Chwazi yon moun…'], ...choices.map((p) => [String(p.id), `${p.first_name} ${p.last_name}`])], '');
-      const label = input('rv-label', '', { maxlength: '100', placeholder: 'Egz: 2026 — 2yèm semès' });
+        [['', t('Chwazi yon moun…')], ...choices.map((p) => [String(p.id), `${p.first_name} ${p.last_name}`])], '');
+      const label = input('rv-label', '', { maxlength: '100', placeholder: t('Egz: 2026 — 2yèm semès') });
       const start = input('rv-start', '', { type: 'date' });
       const end = input('rv-end', '', { type: 'date' });
       const score = select('rv-score',
@@ -217,30 +229,30 @@
       const strengths = textarea('rv-strengths', '');
       const improvements = textarea('rv-improvements', '');
       const goals = textarea('rv-goals', '');
-      const submit = h('button', { class: 'btn btn-primary btn-sm', type: 'submit' }, 'Sove bouyon an');
+      const submit = h('button', { class: 'btn btn-primary btn-sm', type: 'submit' }, t('Sove bouyon an'));
 
       const form = h('form', { novalidate: true, style: 'display: grid; gap: 12px; margin-top: 18px;' },
-        h('p', { class: 'sub-label' }, 'Nouvo evalyasyon'),
+        h('p', { class: 'sub-label' }, t('Nouvo evalyasyon')),
         h('div', { style: 'display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;' },
-          field('Anplwaye', who),
-          field('Peryòd', label),
-          field('Kòmansman', start),
-          field('Fen', end),
-          field('Nòt jeneral', score, 'Obligatwa pou finalize.'),
+          field(t('Anplwaye'), who),
+          field(t('Peryòd'), label),
+          field(t('Kòmansman'), start),
+          field(t('Fen'), end),
+          field(t('Nòt jeneral'), score, t('Obligatwa pou finalize.')),
         ),
-        field('Fòs li', strengths),
-        field('Sa pou l amelyore', improvements),
-        field('Objektif pou pwochen peryòd la', goals),
+        field(t('Fòs li'), strengths),
+        field(t('Sa pou l amelyore'), improvements),
+        field(t('Objektif pou pwochen peryòd la'), goals),
         msg, h('div', {}, submit),
       );
 
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         msg.textContent = '';
-        if (!who.value) { msg.textContent = 'Chwazi anplwaye a.'; return; }
-        if (!label.value.trim()) { msg.textContent = 'Bay peryòd la yon non.'; return; }
+        if (!who.value) { msg.textContent = t('Chwazi anplwaye a.'); return; }
+        if (!label.value.trim()) { msg.textContent = t('Bay peryòd la yon non.'); return; }
         if (start.value && end.value && end.value < start.value) {
-          msg.textContent = 'Fen peryòd la pa ka anvan kòmansman an.';
+          msg.textContent = t('Fen peryòd la pa ka anvan kòmansman an.');
           return;
         }
         submit.disabled = true;
@@ -266,19 +278,20 @@
     }
 
     async function loadReviews() {
+      const title = t('Evalyasyon');
       try {
         const data = await api.get('/api/feedback/reviews/team');
         const list = data.items.length
           ? h('div', { style: 'display: grid; gap: 12px;' }, ...data.items.map(reviewRow))
-          : h('p', { class: 'empty' }, 'Poko gen evalyasyon.');
-        reviewsBox.replaceChildren(panel('Evalyasyon', data.total,
+          : h('p', { class: 'empty' }, t('Poko gen evalyasyon.'));
+        reviewsBox.replaceChildren(panel(title, data.total,
           h('p', { class: 'hint', style: 'display: block; margin: 0 0 14px;' },
-            'Yon bouyon rete prive. Lè w finalize l, anplwaye a resevwa yon notifikasyon epi li ka reponn.'),
+            t('Yon bouyon rete prive. Lè w finalize l, anplwaye a ka wè l epi reponn.')),
           list,
           people.length ? reviewForm() : null,
         ));
       } catch (err) {
-        reviewsBox.replaceChildren(panel('Evalyasyon', null, h('p', { class: 'empty' }, errorMessage(err))));
+        reviewsBox.replaceChildren(panel(title, null, h('p', { class: 'empty' }, errorMessage(err))));
       }
     }
 
@@ -296,7 +309,7 @@
 
     if (isHr) {
       document.getElementById('subtitle').textContent =
-        'Tout demann ki ap tann nan biznis la, ak evalyasyon yo.';
+        t('Tout demann ki ap tann nan biznis la, ak evalyasyon yo.');
     }
 
     await Promise.all([loadLeaves(), loadReviews()]);
