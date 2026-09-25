@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Anplwaye — KONMBIT</title>
+  <title data-i18n>Anplwaye — KONMBIT</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -19,19 +19,19 @@
       <main class="page">
         <div class="page-head-row">
           <div class="page-head">
-            <h1>Anplwaye</h1>
-            <p id="count-label">Ap chaje…</p>
+            <h1 data-i18n="Anplwaye|meni">Anplwaye</h1>
+            <p id="count-label" data-i18n>Ap chaje…</p>
           </div>
-          <button class="btn btn-primary" type="button" id="add-btn">Ajoute yon anplwaye</button>
+          <button class="btn btn-primary" type="button" id="add-btn" data-i18n>Ajoute yon anplwaye</button>
         </div>
 
         <!-- Modpas tanporè: parèt yon sèl fwa -->
         <section class="secret" id="secret" hidden aria-live="polite">
           <h2 id="secret-title"></h2>
-          <p>Modpas sa a parèt yon sèl fwa. Voye l bay moun nan kounye a epi mande l chanje l lè l konekte.</p>
+          <p data-i18n>Modpas sa a parèt yon sèl fwa. Voye l bay moun nan kounye a epi mande l chanje l lè l konekte.</p>
           <div class="secret-row">
             <code id="secret-password"></code>
-            <button class="btn btn-ghost btn-sm" type="button" id="secret-copy">Kopye</button>
+            <button class="btn btn-ghost btn-sm" type="button" id="secret-copy" data-i18n>Kopye</button>
             <span class="email" id="secret-email"></span>
           </div>
         </section>
@@ -39,123 +39,124 @@
         <!-- Fòm ajoute -->
         <section class="panel form-panel" id="form-panel" hidden aria-labelledby="form-title">
           <div class="panel-head">
-            <h2 id="form-title">Nouvo anplwaye</h2>
+            <h2 id="form-title" data-i18n>Nouvo anplwaye</h2>
           </div>
 
           <form id="emp-form" novalidate>
             <div class="alert alert-error" id="form-error" role="alert"></div>
 
             <div class="form-grid" style="margin-top: 12px;">
-              <p class="form-section-title">Idantite</p>
+              <p class="form-section-title" data-i18n>Idantite</p>
 
               <div class="field">
-                <label for="f-first">Prenon</label>
+                <label for="f-first" data-i18n>Prenon</label>
                 <input class="input" id="f-first" required maxlength="100" autocomplete="off">
               </div>
               <div class="field">
-                <label for="f-last">Non</label>
+                <label for="f-last" data-i18n="Non|moun">Non</label>
                 <input class="input" id="f-last" required maxlength="100" autocomplete="off">
               </div>
               <div class="field">
-                <label for="f-email">Imel</label>
+                <label for="f-email" data-i18n>Imel</label>
                 <input class="input" id="f-email" type="email" required autocomplete="off">
-                <span class="hint">Se ak imel sa a moun nan ap konekte.</span>
+                <span class="hint" data-i18n>Se ak imel sa a moun nan ap konekte.</span>
               </div>
               <div class="field">
-                <label for="f-phone">Telefòn</label>
+                <label for="f-phone" data-i18n>Telefòn</label>
                 <input class="input" id="f-phone" type="tel" placeholder="+509 3000 0000" autocomplete="off">
               </div>
 
-              <p class="form-section-title">Travay</p>
+              <p class="form-section-title" data-i18n>Travay</p>
 
               <div class="field">
-                <label for="f-hire">Dat li kòmanse</label>
+                <label for="f-hire" data-i18n>Dat li kòmanse</label>
                 <input class="input" id="f-hire" type="date" required>
               </div>
               <div class="field">
-                <label for="f-type">Kalite kontra</label>
+                <label for="f-type" data-i18n>Kalite kontra</label>
                 <select class="select" id="f-type">
-                  <option value="full_time">Tan plen</option>
-                  <option value="part_time">Tan pasyèl</option>
-                  <option value="contract">Kontra</option>
-                  <option value="intern">Estaj</option>
-                  <option value="seasonal">Sezon</option>
+                  <option value="full_time" data-i18n>Tan plen</option>
+                  <option value="part_time" data-i18n>Tan pasyèl</option>
+                  <option value="contract" data-i18n>Kontra</option>
+                  <option value="intern" data-i18n>Estaj</option>
+                  <option value="seasonal" data-i18n>Sezon</option>
                 </select>
               </div>
               <div class="field">
-                <label for="f-manager">Manadjè</label>
+                <label for="f-manager" data-i18n>Manadjè</label>
                 <select class="select" id="f-manager">
-                  <option value="">Pa gen manadjè</option>
+                  <option value="" data-i18n>Pa gen manadjè</option>
                 </select>
               </div>
               <div class="field">
-                <label for="f-role">Aksè nan KONMBIT</label>
+                <label for="f-role" data-i18n>Aksè nan KONMBIT</label>
                 <select class="select" id="f-role">
-                  <option value="employee">Anplwaye</option>
-                  <option value="manager">Manadjè — apwouve konje ekip li</option>
-                  <option value="hr">Resous imèn — jere tout anplwaye</option>
+                  <option value="employee" data-i18n>Anplwaye</option>
+                  <option value="manager" data-i18n>Manadjè — apwouve konje ekip li</option>
+                  <option value="hr" data-i18n>Resous imèn — jere tout anplwaye</option>
                 </select>
               </div>
 
-              <p class="form-section-title">Salè ak peman</p>
+              <p class="form-section-title" data-i18n>Salè ak peman</p>
 
               <div class="field">
-                <label for="f-paytype">Kijan li peye</label>
+                <label for="f-paytype" data-i18n>Kijan li peye</label>
                 <select class="select" id="f-paytype">
-                  <option value="monthly">Salè pa mwa</option>
-                  <option value="hourly">Pa lè</option>
+                  <option value="monthly" data-i18n>Salè pa mwa</option>
+                  <option value="hourly" data-i18n>Pa lè</option>
                 </select>
               </div>
               <div class="field">
-                <label for="f-amount" id="f-amount-label">Salè pa mwa (HTG)</label>
+                <label for="f-amount" id="f-amount-label"></label>
                 <input class="input" id="f-amount" inputmode="decimal" placeholder="45 000" autocomplete="off">
                 <span class="hint" id="f-amount-hint"></span>
               </div>
               <div class="field span-2">
-                <label for="f-method">Kijan li resevwa lajan l</label>
+                <label for="f-method" data-i18n>Kijan li resevwa lajan l</label>
                 <select class="select" id="f-method">
-                  <option value="check">Chèk</option>
-                  <option value="direct_deposit">Depo dirèk labank</option>
+                  <option value="check" data-i18n>Chèk</option>
+                  <option value="direct_deposit" data-i18n>Depo dirèk labank</option>
                   <option value="moncash">MonCash</option>
                   <option value="natcash">NatCash</option>
-                  <option value="cash">Lajan kach</option>
+                  <option value="cash" data-i18n>Lajan kach</option>
                 </select>
               </div>
               <div class="field" data-method="direct_deposit" hidden>
-                <label for="f-bank">Bank</label>
+                <label for="f-bank" data-i18n>Bank</label>
                 <input class="input" id="f-bank" placeholder="Sogebank, Unibank, BNC…" autocomplete="off">
               </div>
               <div class="field" data-method="direct_deposit" hidden>
-                <label for="f-account">Nimewo kont</label>
+                <label for="f-account" data-i18n>Nimewo kont</label>
                 <input class="input" id="f-account" autocomplete="off">
               </div>
               <div class="field span-2" data-method="mobile" hidden>
-                <label for="f-mobile">Nimewo telefòn MonCash / NatCash</label>
+                <label for="f-mobile" data-i18n>Nimewo telefòn MonCash / NatCash</label>
                 <input class="input" id="f-mobile" type="tel" placeholder="+509 3000 0000" autocomplete="off">
               </div>
 
               <div class="span-2" style="margin-top: 6px;">
                 <label class="check">
                   <input type="checkbox" id="f-login" checked>
-                  Kreye yon kont pou l ka konekte
+                  <span data-i18n>Kreye yon kont pou l ka konekte</span>
                 </label>
               </div>
             </div>
 
             <div class="form-actions">
-              <button class="btn btn-primary" type="submit" id="f-submit">Anrejistre anplwaye a</button>
-              <button class="btn btn-ghost" type="button" id="f-cancel">Anile</button>
+              <button class="btn btn-primary" type="submit" id="f-submit" data-i18n>Anrejistre anplwaye a</button>
+              <button class="btn btn-ghost" type="button" id="f-cancel" data-i18n="Anile|aksyon">Anile</button>
             </div>
           </form>
         </section>
 
         <!-- Lis -->
         <div class="toolbar">
-          <label class="visually-hidden" for="search">Chèche yon anplwaye</label>
-          <input class="input" id="search" type="search" placeholder="Chèche pa non oswa nimewo">
+          <label class="visually-hidden" for="search" data-i18n>Chèche yon anplwaye</label>
+          <input class="input" id="search" type="search"
+                 data-i18n-attr="placeholder" placeholder="Chèche pa non oswa nimewo">
           <label class="check">
             <input type="checkbox" id="show-inactive">
-            Montre moun ki pa la ankò
+            <span data-i18n>Montre moun ki pa la ankò</span>
           </label>
         </div>
 
@@ -163,14 +164,14 @@
           <table class="table">
             <thead>
               <tr>
-                <th scope="col">Anplwaye</th>
-                <th scope="col">Estati</th>
-                <th scope="col" class="hide-sm">Manadjè</th>
-                <th scope="col"><span class="visually-hidden">Aksyon</span></th>
+                <th scope="col" data-i18n>Anplwaye</th>
+                <th scope="col" data-i18n>Estati</th>
+                <th scope="col" class="hide-sm" data-i18n>Manadjè</th>
+                <th scope="col"><span class="visually-hidden" data-i18n>Aksyon</span></th>
               </tr>
             </thead>
             <tbody id="rows">
-              <tr><td colspan="4" class="loading">Ap chaje…</td></tr>
+              <tr><td colspan="4" class="loading" data-i18n>Ap chaje…</td></tr>
             </tbody>
           </table>
         </div>
@@ -178,8 +179,8 @@
         <div class="pager" id="pager" hidden>
           <span id="pager-label"></span>
           <div style="display: flex; gap: 8px;">
-            <button class="btn btn-ghost btn-sm" type="button" id="prev">Anvan</button>
-            <button class="btn btn-ghost btn-sm" type="button" id="next">Apre</button>
+            <button class="btn btn-ghost btn-sm" type="button" id="prev" data-i18n>Anvan</button>
+            <button class="btn btn-ghost btn-sm" type="button" id="next" data-i18n>Apre</button>
           </div>
         </div>
       </main>
@@ -191,7 +192,7 @@
   <script>
   (async function () {
     'use strict';
-    const { api, fmt, h, ApiError, shell } = Konbit;
+    const { api, fmt, h, ApiError, shell, t } = Konbit;
 
     const identity = await shell.mount('employees', shell.ADMIN);
     if (!identity) return;
@@ -208,9 +209,9 @@
     function showSecret(title, password, email) {
       $('secret-title').textContent = title;
       $('secret-password').textContent = password;
-      $('secret-email').textContent = email ? `Imel koneksyon: ${email}` : '';
+      $('secret-email').textContent = email ? t('Imel koneksyon: {email}', { email }) : '';
       $('secret').hidden = false;
-      $('secret-copy').textContent = 'Kopye';
+      $('secret-copy').textContent = t('Kopye');
       $('secret').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
@@ -218,7 +219,7 @@
       const text = $('secret-password').textContent;
       try {
         await navigator.clipboard.writeText(text);
-        $('secret-copy').textContent = 'Kopye ✓';
+        $('secret-copy').textContent = t('Kopye ✓');
       } catch {
         // Kèk navigatè bloke clipboard la: nou seleksyone tèks la pou moun nan kopye l.
         const range = document.createRange();
@@ -226,7 +227,7 @@
         const sel = window.getSelection();
         sel.removeAllRanges();
         sel.addRange(range);
-        $('secret-copy').textContent = 'Ctrl+C pou kopye';
+        $('secret-copy').textContent = t('Ctrl+C pou kopye');
       }
     });
 
@@ -241,7 +242,7 @@
         state.managers = new Map(data.items.map((e) => [e.id, `${e.first_name} ${e.last_name}`]));
         const select = $('f-manager');
         select.replaceChildren(
-          h('option', { value: '' }, 'Pa gen manadjè'),
+          h('option', { value: '' }, t('Pa gen manadjè')),
           ...data.items.map((e) => h('option', { value: String(e.id) },
             `${e.first_name} ${e.last_name} (${e.employee_number})`)),
         );
@@ -261,22 +262,24 @@
         const data = await api.get(`/api/employees?${params}`);
         state.total = data.total;
 
-        $('count-label').textContent = data.total === 1
-          ? '1 moun'
-          : `${data.total} moun${state.q ? ` pou "${state.q}"` : ''}`;
+        if (state.q) {
+          $('count-label').textContent = t('{n} moun pou «{q}»', { n: data.total, q: state.q });
+        } else {
+          $('count-label').textContent = data.total === 1 ? t('1 moun') : t('{n} moun', { n: data.total });
+        }
 
         if (!data.items.length) {
           body.replaceChildren(h('tr', {}, h('td', { colspan: '4', class: 'empty' },
             state.q
-              ? 'Pesonn pa koresponn ak rechèch sa a.'
-              : 'Ou poko gen anplwaye. Klike "Ajoute yon anplwaye" pou kòmanse.')));
+              ? t('Pesonn pa koresponn ak rechèch sa a.')
+              : t('Ou poko gen anplwaye. Klike "Ajoute yon anplwaye" pou kòmanse.'))));
         } else {
           body.replaceChildren(...data.items.map(row));
         }
 
         const pages = Math.max(1, Math.ceil(data.total / PAGE_SIZE));
         $('pager').hidden = pages <= 1;
-        $('pager-label').textContent = `Paj ${state.page} sou ${pages}`;
+        $('pager-label').textContent = t('Paj {page} sou {pages}', { page: state.page, pages });
         $('prev').disabled = state.page <= 1;
         $('next').disabled = state.page >= pages;
       } catch (err) {
@@ -286,14 +289,14 @@
 
     function row(e) {
       const name = `${e.first_name} ${e.last_name}`;
-      const resetBtn = h('button', { class: 'btn btn-quiet btn-sm', type: 'button' }, 'Nouvo modpas');
+      const resetBtn = h('button', { class: 'btn btn-quiet btn-sm', type: 'button' }, t('Nouvo modpas'));
 
       resetBtn.addEventListener('click', async () => {
-        if (!confirm(`Jenere yon nouvo modpas pou ${name}? Ansyen an p ap mache ankò.`)) return;
+        if (!confirm(t('Jenere yon nouvo modpas pou {name}? Ansyen an p ap mache ankò.', { name }))) return;
         resetBtn.disabled = true;
         try {
           const r = await api.post(`/api/employees/${e.id}/reset-password`);
-          showSecret(`Nouvo modpas pou ${name}`, r.temporary_password, r.login_email);
+          showSecret(t('Nouvo modpas pou {name}', { name }), r.temporary_password, r.login_email);
         } catch (err) {
           alert(err.message);
         } finally {
@@ -346,7 +349,8 @@
     function openForm() {
       $('form-panel').hidden = false;
       $('add-btn').hidden = true;
-      if (!$('f-hire').value) $('f-hire').value = new Date().toISOString().slice(0, 10);
+      // Dat LOKAL: toISOString() ta bay demen apre 8è diswa an Ayiti.
+      if (!$('f-hire').value) $('f-hire').value = fmt.todayIso();
       $('f-first').focus();
     }
 
@@ -363,7 +367,7 @@
 
     function syncPayFields() {
       const hourly = $('f-paytype').value === 'hourly';
-      $('f-amount-label').textContent = hourly ? 'To pa lè (HTG)' : 'Salè pa mwa (HTG)';
+      $('f-amount-label').textContent = hourly ? t('To pa lè (HTG)') : t('Salè pa mwa (HTG)');
       $('f-amount').placeholder = hourly ? '250' : '45 000';
 
       const method = $('f-method').value;
@@ -399,15 +403,15 @@
       const createLogin = $('f-login').checked;
 
       const problems = [];
-      if (!first || !last) problems.push('Mete prenon ak non moun nan.');
-      if (!hire) problems.push('Chwazi dat li kòmanse.');
-      if (createLogin && !email) problems.push('Ou bezwen yon imel pou kreye kont koneksyon an.');
-      if ($('f-amount').value.trim() && cents === null) problems.push('Salè a pa yon chif valab.');
+      if (!first || !last) problems.push(t('Mete prenon ak non moun nan.'));
+      if (!hire) problems.push(t('Chwazi dat li kòmanse.'));
+      if (createLogin && !email) problems.push(t('Ou bezwen yon imel pou kreye kont koneksyon an.'));
+      if ($('f-amount').value.trim() && cents === null) problems.push(t('Salè a pa yon chif valab.'));
       if (method === 'direct_deposit' && !$('f-account').value.trim()) {
-        problems.push('Mete nimewo kont labank lan pou depo dirèk.');
+        problems.push(t('Mete nimewo kont labank lan pou depo dirèk.'));
       }
       if (['moncash', 'natcash'].includes(method) && !$('f-mobile').value.trim()) {
-        problems.push('Mete nimewo telefòn MonCash oswa NatCash la.');
+        problems.push(t('Mete nimewo telefòn MonCash oswa NatCash la.'));
       }
       if (problems.length) {
         formError.textContent = problems.join(' ');
@@ -436,14 +440,17 @@
 
       const submit = $('f-submit');
       submit.disabled = true;
-      submit.textContent = 'Ap anrejistre…';
+      submit.textContent = t('Ap anrejistre…');
 
       try {
         const r = await api.post('/api/employees', payload);
         closeForm();
         if (r.temporary_password) {
           showSecret(
-            `${r.employee.first_name} ${r.employee.last_name} ajoute (${r.employee.employee_number})`,
+            t('{name} ajoute ({number})', {
+              name: `${r.employee.first_name} ${r.employee.last_name}`,
+              number: r.employee.employee_number,
+            }),
             r.temporary_password,
             r.login_email,
           );
@@ -451,14 +458,14 @@
         await loadManagers();
         await loadList();
       } catch (err) {
-        let msg = err instanceof ApiError ? err.message : 'Yon bagay pa mache.';
+        let msg = err instanceof ApiError ? err.message : t('Yon bagay pa mache.');
         if (err.fields && err.fields.length) {
           msg += ' ' + err.fields.map((f) => `${f.field}: ${f.message}`).join('; ');
         }
         formError.textContent = msg;
       } finally {
         submit.disabled = false;
-        submit.textContent = 'Anrejistre anplwaye a';
+        submit.textContent = t('Anrejistre anplwaye a');
       }
     });
 

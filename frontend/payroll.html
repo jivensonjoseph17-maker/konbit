@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Peyòl — KONMBIT</title>
+  <title data-i18n>Peyòl — KONMBIT</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -19,38 +19,38 @@
       <main class="page">
         <div class="page-head-row">
           <div class="page-head">
-            <h1>Peyòl</h1>
-            <p>Kreye yon peryòd, kalkile fich peye yo, verifye yo, apwouve, epi make yo peye.</p>
+            <h1 data-i18n>Peyòl</h1>
+            <p data-i18n>Kreye yon peryòd, kalkile fich peye yo, verifye yo, apwouve, epi make yo peye.</p>
           </div>
-          <button class="btn btn-primary" type="button" id="new-btn">Nouvo peryòd</button>
+          <button class="btn btn-primary" type="button" id="new-btn" data-i18n>Nouvo peryòd</button>
         </div>
 
         <section class="panel form-panel" id="new-panel" hidden aria-labelledby="new-title">
-          <div class="panel-head"><h2 id="new-title">Nouvo peryòd peye</h2></div>
+          <div class="panel-head"><h2 id="new-title" data-i18n>Nouvo peryòd peye</h2></div>
           <form id="new-form" novalidate>
             <div class="form-grid">
               <div class="field span-2">
-                <label for="p-name">Non</label>
+                <label for="p-name" data-i18n>Non peryòd la</label>
                 <input class="input" id="p-name" maxlength="100" autocomplete="off">
               </div>
               <div class="field">
-                <label for="p-start">Premye jou</label>
+                <label for="p-start" data-i18n>Premye jou</label>
                 <input class="input" id="p-start" type="date">
               </div>
               <div class="field">
-                <label for="p-end">Dènye jou</label>
+                <label for="p-end" data-i18n>Dènye jou</label>
                 <input class="input" id="p-end" type="date">
               </div>
               <div class="field">
-                <label for="p-pay">Dat peman</label>
+                <label for="p-pay" data-i18n>Dat peman</label>
                 <input class="input" id="p-pay" type="date">
                 <span class="hint" id="p-pay-hint"></span>
               </div>
             </div>
             <p class="field-error" id="new-error" role="alert" style="margin-top: 12px;"></p>
             <div class="form-actions">
-              <button class="btn btn-primary" type="submit" id="new-submit">Kreye peryòd la</button>
-              <button class="btn btn-ghost" type="button" id="new-cancel">Anile</button>
+              <button class="btn btn-primary" type="submit" id="new-submit" data-i18n>Kreye peryòd la</button>
+              <button class="btn btn-ghost" type="button" id="new-cancel" data-i18n="Anile|aksyon">Anile</button>
             </div>
           </form>
         </section>
@@ -58,8 +58,8 @@
         <div id="detail"></div>
 
         <section class="panel" aria-labelledby="periods-title" style="margin-top: 20px;">
-          <div class="panel-head"><h2 id="periods-title">Tout peryòd yo</h2></div>
-          <div id="periods"><p class="loading">Ap chaje…</p></div>
+          <div class="panel-head"><h2 id="periods-title" data-i18n>Tout peryòd yo</h2></div>
+          <div id="periods"><p class="loading" data-i18n>Ap chaje…</p></div>
         </section>
       </main>
     </div>
@@ -70,18 +70,16 @@
   <script>
   (async function () {
     'use strict';
-    const { api, fmt, h, ApiError, shell } = Konbit;
+    const { api, fmt, h, ApiError, shell, t } = Konbit;
 
     const identity = await shell.mount('payroll', shell.ADMIN);
     if (!identity) return;
 
     const $ = (id) => document.getElementById(id);
-    const MONTHS = ['Janvye', 'Fevriye', 'Mas', 'Avril', 'Me', 'Jen',
-                    'Jiyè', 'Out', 'Septanm', 'Oktòb', 'Novanm', 'Desanm'];
     const STATUS = {
       draft: ['Bouyon', 'badge-pending'],
       approved: ['Apwouve', 'badge-info'],
-      paid: ['Peye', 'badge-approved'],
+      paid: ['Peye|estati', 'badge-approved'],
       cancelled: ['Anile', 'badge-cancelled'],
     };
 
@@ -94,7 +92,7 @@
     // ---------------------------------------------------------------------
 
     function errorMessage(err) {
-      let msg = err instanceof ApiError ? err.message : 'Yon bagay pa mache.';
+      let msg = err instanceof ApiError ? err.message : t('Yon bagay pa mache.');
       if (err && err.fields && err.fields.length) {
         msg += ' ' + err.fields.map((f) => `${f.field}: ${f.message}`).join('; ');
       }
@@ -106,8 +104,8 @@
     }
 
     function statusBadge(status) {
-      const [label, cls] = STATUS[status] || [status, ''];
-      return h('span', { class: `badge ${cls}` }, label);
+      const [key, cls] = STATUS[status] || [null, ''];
+      return h('span', { class: `badge ${cls}` }, key ? t(key) : status);
     }
 
     function deductionsOf(s) {
@@ -116,9 +114,18 @@
         + (s.other_deductions || 0);
     }
 
+    // Toujou fr-FR pou chan yo: parseMoney li l nan tout lang, epi chif yo rete 0-9.
     function centsToInput(cents) {
       if (!cents) return '';
       return (cents / 100).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+    }
+
+    /** Non metòd peman an pou rezime a ("3 × Chèk"). */
+    function methodName(m) {
+      return {
+        check: t('Chèk'), direct_deposit: t('Depo dirèk'), cash: t('Lajan kach'),
+        moncash: 'MonCash', natcash: 'NatCash',
+      }[m] || m;
     }
 
     function selectPeriod(id) {
@@ -142,8 +149,8 @@
 
       btn.addEventListener('click', () => {
         const yesClass = className.includes('danger') ? className : 'btn btn-primary';
-        const yes = h('button', { class: yesClass, type: 'button' }, 'Wi, kontinye');
-        const no = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, 'Anile');
+        const yes = h('button', { class: yesClass, type: 'button' }, t('Wi, kontinye'));
+        const no = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, t('Anile|aksyon'));
         const box = h('div', { class: 'confirm-box', role: 'alertdialog' },
           h('p', {}, question),
           h('div', { class: 'form-actions', style: 'margin-top: 12px;' }, yes, no),
@@ -153,7 +160,7 @@
         no.addEventListener('click', () => wrap.replaceChildren(btn));
         yes.addEventListener('click', async () => {
           yes.disabled = true; no.disabled = true;
-          yes.textContent = 'Yon ti moman…';
+          yes.textContent = t('Yon ti moman…');
           await onConfirm();
         });
       });
@@ -178,7 +185,9 @@
       const start = new Date(y, m, 1);
       const end = new Date(y, m + 1, 0);
       const pay = new Date(y, m + 1, 5);
-      $('p-name').value = `${MONTHS[m]} ${y}`;
+      // Non an nan lang moun nan ("Oktòb 2026", "October 2026"). Li sere jan l ekri a.
+      const month = fmt.MONTHS[m];
+      $('p-name').value = `${month.charAt(0).toLocaleUpperCase()}${month.slice(1)} ${y}`;
       $('p-start').value = iso(start);
       $('p-end').value = iso(end);
       $('p-pay').value = iso(pay);
@@ -189,7 +198,7 @@
       // Retni sou bonis la depann de dat peman an (10% → 15% nan 1ye okt. 2026).
       const v = $('p-pay').value;
       $('p-pay-hint').textContent = v
-        ? `Retni sou bonis ak èdtan siplemantè: ${v >= '2026-10-01' ? '15%' : '10%'}`
+        ? t('Retni sou bonis ak èdtan siplemantè: {rate}', { rate: v >= '2026-10-01' ? '15%' : '10%' })
         : '';
     }
 
@@ -219,15 +228,15 @@
         pay_date: $('p-pay').value,
       };
       if (!payload.name || !payload.start_date || !payload.end_date || !payload.pay_date) {
-        $('new-error').textContent = 'Ranpli tout chan yo.';
+        $('new-error').textContent = t('Ranpli tout chan yo.');
         return;
       }
       if (payload.end_date < payload.start_date) {
-        $('new-error').textContent = 'Dènye jou a pa ka anvan premye jou a.';
+        $('new-error').textContent = t('Dènye jou a pa ka anvan premye jou a.');
         return;
       }
       if (payload.pay_date < payload.end_date) {
-        $('new-error').textContent = 'Dat peman an pa ka anvan fen peryòd la.';
+        $('new-error').textContent = t('Dat peman an pa ka anvan fen peryòd la.');
         return;
       }
 
@@ -262,17 +271,17 @@
     function renderPeriods() {
       if (!periods.length) {
         $('periods').replaceChildren(h('p', { class: 'empty' },
-          'Ou poko gen okenn peryòd. Klike "Nouvo peryòd" pou kòmanse premye peyòl ou.'));
+          t('Ou poko gen okenn peryòd. Klike "Nouvo peryòd" pou kòmanse premye peyòl ou.')));
         return;
       }
       $('periods').replaceChildren(h('div', { class: 'table-wrap flush' },
         h('table', { class: 'table' },
           h('thead', {}, h('tr', {},
-            h('th', { scope: 'col' }, 'Peryòd'),
-            h('th', { scope: 'col', class: 'hide-sm' }, 'Dat'),
-            h('th', { scope: 'col' }, 'Estati'),
-            h('th', { scope: 'col', class: 'num-col hide-sm' }, 'Fich'),
-            h('th', { scope: 'col', class: 'num-col' }, 'Total net'),
+            h('th', { scope: 'col' }, t('Peryòd')),
+            h('th', { scope: 'col', class: 'hide-sm' }, t('Dat')),
+            h('th', { scope: 'col' }, t('Estati')),
+            h('th', { scope: 'col', class: 'num-col hide-sm' }, t('Fich')),
+            h('th', { scope: 'col', class: 'num-col' }, t('Total net')),
           )),
           h('tbody', {}, ...periods.map((p) => {
             const link = h('a', { class: 'plain-link', href: `?id=${p.id}` }, p.name);
@@ -296,7 +305,7 @@
     async function loadDetail() {
       const box = $('detail');
       if (!selectedId) { box.replaceChildren(); return; }
-      box.replaceChildren(h('section', { class: 'panel' }, h('p', { class: 'loading' }, 'Ap chaje…')));
+      box.replaceChildren(h('section', { class: 'panel' }, h('p', { class: 'loading' }, t('Ap chaje…'))));
 
       try {
         const [period, slips] = await Promise.all([
@@ -315,9 +324,9 @@
     }
 
     function stepper(status) {
-      const steps = [['draft', 'Kalkile ak verifye'], ['approved', 'Apwouve'], ['paid', 'Peye']];
+      const steps = [['draft', t('Kalkile ak verifye')], ['approved', t('Apwouve')], ['paid', t('Peye|estati')]];
       const reached = { draft: 0, approved: 1, paid: 2 }[status] ?? 0;
-      return h('ol', { class: 'stepper', 'aria-label': 'Etap peyòl la' },
+      return h('ol', { class: 'stepper', 'aria-label': t('Etap peyòl la') },
         ...steps.map(([key, label], i) => h('li', {
           class: i < reached ? 'done' : i === reached ? 'current' : null,
           'aria-current': i === reached ? 'step' : null,
@@ -336,13 +345,14 @@
         pay_period_id: period.id,
         include_overtime: true,
       });
+      // Avètisman backend yo ekri an kreyòl (pa tradui ankò).
       lastWarnings = r.warnings || [];
       if (r.unapproved && r.unapproved.length) {
-        lastWarnings.unshift(
-          `Kalkile san èdtan apwouve (salè de baz sèlman, pa èdtan siplemantè): ${r.unapproved.join(', ')}.`);
+        lastWarnings.unshift(t('Kalkile san èdtan apwouve (salè de baz sèlman, pa èdtan siplemantè): {names}.',
+          { names: r.unapproved.join(', ') }));
       }
       if (r.created === 0 && r.skipped > 0 && !lastWarnings.length) {
-        lastWarnings = ['Tout anplwaye aktif yo gen fich yo deja.'];
+        lastWarnings = [t('Tout anplwaye aktif yo gen fich yo deja.')];
       }
       await refresh();
     }
@@ -350,14 +360,14 @@
     function unapprovedBox(period, message, runBtn, msg) {
       const box = h('div', { class: 'alert alert-warn', role: 'alertdialog', style: 'margin-top: 14px;' });
       const go = h('button', { class: 'btn btn-primary btn-sm', type: 'button' },
-        'Kontinye san èdtan siplemantè yo');
+        t('Kontinye san èdtan siplemantè yo'));
       const review = h('a', { class: 'btn btn-ghost btn-sm', href: 'timesheets.html' },
-        'Ale nan Tan travay');
-      const cancel = h('button', { class: 'btn btn-quiet btn-sm', type: 'button' }, 'Anile');
+        t('Ale nan Tan travay'));
+      const cancel = h('button', { class: 'btn btn-quiet btn-sm', type: 'button' }, t('Anile|aksyon'));
 
       go.addEventListener('click', async () => {
         go.disabled = true; cancel.disabled = true;
-        go.textContent = 'Ap kalkile…';
+        go.textContent = t('Ap kalkile…');
         try {
           await runPayroll(period, true);
         } catch (err) {
@@ -372,11 +382,10 @@
       });
 
       box.append(
-        h('strong', {}, 'Èdtan kèk moun poko apwouve.'),
+        h('strong', {}, t('Èdtan kèk moun poko apwouve.')),
         h('p', { style: 'margin: 6px 0 0;' }, message),
         h('p', { class: 'hint', style: 'display: block; margin: 6px 0 0;' },
-          'Manadjè a dwe apwouve èdtan yo nan paj "Tan travay". Si w kontinye kounye a, '
-          + 'ou ka toujou ajoute èdtan siplemantè yo pita kòm bonis sou fich la.'),
+          t('Manadjè a dwe apwouve èdtan yo nan paj "Tan travay". Si w kontinye kounye a, ou ka toujou ajoute èdtan siplemantè yo pita kòm bonis sou fich la.')),
         h('div', { class: 'form-actions', style: 'margin-top: 12px;' }, go, review, cancel),
       );
       return box;
@@ -387,24 +396,23 @@
       const msg = h('p', { class: 'field-error', role: 'status' });
       const slips = rows.map((r) => r.payslip);
 
-      const totals = slips.reduce((t, s) => {
-        t.gross += s.gross_amount || 0;
-        t.ded += deductionsOf(s);
-        t.net += s.net_amount || 0;
-        t.methods[s.payment_method] = (t.methods[s.payment_method] || 0) + 1;
-        return t;
+      const totals = slips.reduce((tot, s) => {
+        tot.gross += s.gross_amount || 0;
+        tot.ded += deductionsOf(s);
+        tot.net += s.net_amount || 0;
+        tot.methods[s.payment_method] = (tot.methods[s.payment_method] || 0) + 1;
+        return tot;
       }, { gross: 0, ded: 0, net: 0, methods: {} });
 
       // --- Aksyon dapre estati a ---
       const actions = h('div', { class: 'period-actions' });
 
       if (period.status === 'draft') {
-        const runBtn = h('button', { class: 'btn btn-primary', type: 'button' },
-          slips.length ? 'Ajoute moun ki manke yo' : 'Kalkile fich peye yo');
-        const label = runBtn.textContent;
+        const label = slips.length ? t('Ajoute moun ki manke yo') : t('Kalkile fich peye yo');
+        const runBtn = h('button', { class: 'btn btn-primary', type: 'button' }, label);
         runBtn.addEventListener('click', async () => {
           runBtn.disabled = true;
-          runBtn.textContent = 'Ap kalkile…';
+          runBtn.textContent = t('Ap kalkile…');
           msg.textContent = '';
           try {
             await runPayroll(period, false);
@@ -419,12 +427,13 @@
           }
         });
         actions.append(runBtn);
-        actions.append(h('a', { class: 'btn btn-ghost', href: 'timesheets.html' }, 'Tan travay'));
+        actions.append(h('a', { class: 'btn btn-ghost', href: 'timesheets.html' }, t('Tan travay')));
 
         if (slips.length) {
           actions.append(confirmButton(
-            'Apwouve peyòl la',
-            `Apre apwobasyon, ou p ap ka chanje ${slips.length} fich yo ankò, epi anplwaye yo ap ka wè yo. Total net: ${fmt.money(totals.net)}.`,
+            t('Apwouve peyòl la'),
+            t('Apre apwobasyon, ou p ap ka chanje {count} fich yo ankò, epi anplwaye yo ap ka wè yo. Total net: {net}.',
+              { count: slips.length, net: fmt.money(totals.net) }),
             'btn btn-ghost',
             async () => {
               try {
@@ -443,15 +452,15 @@
       if (period.status === 'approved') {
         const checks = totals.methods.check || 0;
         const checkInput = h('input', { class: 'input', id: 'check-start', inputmode: 'numeric',
-          placeholder: 'Egz: 1001', style: 'max-width: 180px;' });
-        const payBtn = h('button', { class: 'btn btn-primary', type: 'button' }, 'Make l peye');
+          placeholder: t('Egz: 1001'), style: 'max-width: 180px;' });
+        const payBtn = h('button', { class: 'btn btn-primary', type: 'button' }, t('Make l peye'));
 
         payBtn.addEventListener('click', async () => {
           msg.textContent = '';
           const raw = checkInput.value.trim();
-          if (raw && !/^\d+$/.test(raw)) { msg.textContent = 'Nimewo chèk la dwe yon chif.'; return; }
+          if (raw && !/^\d+$/.test(raw)) { msg.textContent = t('Nimewo chèk la dwe yon chif.'); return; }
           payBtn.disabled = true;
-          payBtn.textContent = 'Ap anrejistre…';
+          payBtn.textContent = t('Ap anrejistre…');
           try {
             await api.post(`/api/payroll/periods/${period.id}/pay`,
               raw ? { check_start_number: Number(raw) } : {});
@@ -459,14 +468,14 @@
           } catch (err) {
             msg.textContent = errorMessage(err);
             payBtn.disabled = false;
-            payBtn.textContent = 'Make l peye';
+            payBtn.textContent = t('Make l peye');
           }
         });
 
         actions.append(
           checks
             ? h('div', { class: 'field inline-field' },
-                h('label', { for: 'check-start' }, `Premye nimewo chèk (${checks} chèk)`),
+                h('label', { for: 'check-start' }, t('Premye nimewo chèk ({count} chèk)', { count: checks })),
                 checkInput)
             : null,
           payBtn,
@@ -474,37 +483,38 @@
       }
 
       // --- Rezime ---
-      const methodLabels = { check: 'chèk', direct_deposit: 'depo', moncash: 'MonCash', natcash: 'NatCash', cash: 'kach' };
       const methodLine = Object.entries(totals.methods)
-        .map(([m, n]) => `${n} ${methodLabels[m] || m}`).join(', ');
+        .map(([m, n]) => `${n} × ${methodName(m)}`).join(', ');
 
-      const stat = (n, t) => h('div', { class: 'stat' }, h('div', { class: 'n' }, n), h('div', { class: 't' }, t));
+      const stat = (n, label) => h('div', { class: 'stat' }, h('div', { class: 'n' }, n), h('div', { class: 't' }, label));
 
       box.replaceChildren(h('section', { class: 'panel period-panel' },
         h('div', { class: 'period-head' },
           h('div', {},
             h('h2', { class: 'period-title' }, period.name, ' ', statusBadge(period.status)),
             h('p', { class: 'cell-muted' },
-              `${fmt.date(period.start_date)} – ${fmt.date(period.end_date)}. ` +
-              (period.status === 'paid' ? 'Peye.' : `Peman prevwa ${fmt.date(period.pay_date)}.`)),
+              `${fmt.date(period.start_date)} – ${fmt.date(period.end_date)}. `
+              + (period.status === 'paid'
+                ? t('Peye.')
+                : t('Peman prevwa {date}.', { date: fmt.date(period.pay_date) }))),
           ),
           stepper(period.status),
         ),
 
         lastWarnings.length
           ? h('div', { class: 'alert alert-warn' },
-              h('strong', {}, 'Pou verifye:'),
+              h('strong', {}, t('Pou verifye:')),
               h('ul', {}, ...lastWarnings.map((w) => h('li', {}, w))))
           : null,
 
         slips.length
           ? h('div', { class: 'stat-line period-stats' },
-              stat(fmt.money(totals.gross), 'brit'),
-              stat(fmt.money(totals.ded), 'dediksyon'),
-              stat(fmt.money(totals.net), 'net pou peye'),
-              stat(String(slips.length), methodLine || 'fich'),
+              stat(fmt.money(totals.gross), t('brit')),
+              stat(fmt.money(totals.ded), t('dediksyon')),
+              stat(fmt.money(totals.net), t('net pou peye')),
+              stat(String(slips.length), methodLine || t('fich')),
             )
-          : h('p', { class: 'empty' }, 'Pa gen fich peye pou peryòd sa a ankò. Klike "Kalkile fich peye yo".'),
+          : h('p', { class: 'empty' }, t('Pa gen fich peye pou peryòd sa a ankò. Klike "Kalkile fich peye yo".')),
 
         actions,
         msg,
@@ -526,7 +536,7 @@
           h('td', { colspan: '6' }, breakdown(s, editable)));
 
         const toggle = h('button', { class: 'btn btn-quiet btn-sm', type: 'button', 'aria-expanded': 'false' },
-          editable ? 'Detay / ajiste' : 'Detay');
+          editable ? t('Detay / ajiste') : t('Detay'));
         toggle.addEventListener('click', () => {
           detailRow.hidden = !detailRow.hidden;
           toggle.setAttribute('aria-expanded', String(!detailRow.hidden));
@@ -541,7 +551,7 @@
               h('div', { class: 'who' }, employee_name),
               h('div', { class: 'num' }, employee_number),
               unpaidOt ? h('span', { class: 'badge badge-pending', style: 'font-size: 11px;' },
-                `${s.overtime_hours} è siplemantè pa peye`) : null,
+                t('{hours} è siplemantè pa peye', { hours: s.overtime_hours })) : null,
             ),
             h('td', { class: 'num-col hide-sm' }, fmt.money(s.gross_amount)),
             h('td', { class: 'num-col hide-sm cell-muted' }, `−${fmt.money(deductionsOf(s))}`),
@@ -556,12 +566,12 @@
       return h('div', { class: 'table-wrap flush', style: 'margin-top: 18px;' },
         h('table', { class: 'table' },
           h('thead', {}, h('tr', {},
-            h('th', { scope: 'col' }, 'Anplwaye'),
-            h('th', { scope: 'col', class: 'num-col hide-sm' }, 'Brit'),
-            h('th', { scope: 'col', class: 'num-col hide-sm' }, 'Dediksyon'),
-            h('th', { scope: 'col', class: 'num-col' }, 'Net'),
-            h('th', { scope: 'col' }, 'Peman'),
-            h('th', { scope: 'col' }, h('span', { class: 'visually-hidden' }, 'Aksyon')),
+            h('th', { scope: 'col' }, t('Anplwaye')),
+            h('th', { scope: 'col', class: 'num-col hide-sm' }, t('Brit')),
+            h('th', { scope: 'col', class: 'num-col hide-sm' }, t('Dediksyon')),
+            h('th', { scope: 'col', class: 'num-col' }, t('Net')),
+            h('th', { scope: 'col' }, t('Peman')),
+            h('th', { scope: 'col' }, h('span', { class: 'visually-hidden' }, t('Aksyon'))),
           )),
           tbody,
         ),
@@ -575,24 +585,25 @@
             h('span', { class: 'v' }, `${minus ? '−' : ''}${fmt.money(v)}`))
         : null;
 
+      // Non ofisyèl yo (IRI, ONA, OFATMA, CFGDCT, FDU / CAS) pa tradui.
       const rowsBox = h('div', { class: 'rows' },
-        line('Salè debaz', s.base_amount),
-        line('Èdtan siplemantè', s.overtime_amount),
+        line(t('Salè debaz'), s.base_amount),
+        line(t('Èdtan siplemantè'), s.overtime_amount),
         s.overtime_hours > 0 && !s.overtime_amount
           ? h('div', { class: 'row' },
-              h('span', { class: 'k' }, `Èdtan siplemantè pa apwouve (${s.overtime_hours} è)`),
-              h('span', { class: 'v' }, 'pa peye'))
+              h('span', { class: 'k' }, t('Èdtan siplemantè pa apwouve ({hours} è)', { hours: s.overtime_hours })),
+              h('span', { class: 'v' }, t('pa peye')))
           : null,
-        line('Bonis', s.bonus_amount),
-        h('div', { class: 'row' }, h('span', { class: 'k' }, 'Brit'), h('span', {}, fmt.money(s.gross_amount))),
+        line(t('Bonis'), s.bonus_amount),
+        h('div', { class: 'row' }, h('span', { class: 'k' }, t('Brit')), h('span', {}, fmt.money(s.gross_amount))),
         line('IRI', s.tax_amount, true),
-        line('Retni sou bonis / èdtan siplemantè', s.supplemental_tax_amount, true),
+        line(t('Retni sou bonis / èdtan siplemantè'), s.supplemental_tax_amount, true),
         line('ONA', s.ona_amount, true),
         line('OFATMA', s.ofatma_amount, true),
         line('CFGDCT', s.cfgdct_amount, true),
         line('FDU / CAS', s.fdu_cas_amount, true),
-        line('Lòt dediksyon', s.other_deductions, true),
-        h('div', { class: 'row total' }, h('span', {}, 'Net'), h('span', {}, fmt.money(s.net_amount))),
+        line(t('Lòt dediksyon'), s.other_deductions, true),
+        h('div', { class: 'row total' }, h('span', {}, t('Net')), h('span', {}, fmt.money(s.net_amount))),
       );
 
       if (!editable) return h('div', { class: 'breakdown-grid' }, rowsBox);
@@ -603,20 +614,20 @@
       const other = h('input', { class: 'input', inputmode: 'decimal', id: `o-${s.id}` });
       other.value = centsToInput(s.other_deductions);
       const method = h('select', { class: 'select', id: `m-${s.id}` },
-        ...[['check', 'Chèk'], ['direct_deposit', 'Depo dirèk'], ['moncash', 'MonCash'],
-            ['natcash', 'NatCash'], ['cash', 'Lajan kach']].map(([v, l]) => h('option', { value: v }, l)));
+        ...['check', 'direct_deposit', 'moncash', 'natcash', 'cash']
+          .map((v) => h('option', { value: v }, methodName(v))));
       method.value = s.payment_method;
       const note = h('input', { class: 'input', id: `n-${s.id}`, maxlength: '500',
-        placeholder: 'Egz: Bonis fen ane' });
+        placeholder: t('Egz: Bonis fen ane') });
       const msg = h('p', { class: 'field-error', role: 'status' });
-      const save = h('button', { class: 'btn btn-primary btn-sm', type: 'submit' }, 'Rekalkile');
+      const save = h('button', { class: 'btn btn-primary btn-sm', type: 'submit' }, t('Rekalkile'));
 
       const form = h('form', { class: 'adjust-form', novalidate: true },
-        h('div', { class: 'field' }, h('label', { for: bonus.id }, 'Bonis (HTG)'), bonus),
-        h('div', { class: 'field' }, h('label', { for: other.id }, 'Lòt dediksyon (HTG)'), other,
-          h('span', { class: 'hint' }, 'Avans sou salè, prè, elatriye.')),
-        h('div', { class: 'field' }, h('label', { for: method.id }, 'Peman'), method),
-        h('div', { class: 'field' }, h('label', { for: note.id }, 'Nòt'), note),
+        h('div', { class: 'field' }, h('label', { for: bonus.id }, t('Bonis (HTG)')), bonus),
+        h('div', { class: 'field' }, h('label', { for: other.id }, t('Lòt dediksyon (HTG)')), other,
+          h('span', { class: 'hint' }, t('Avans sou salè, prè, elatriye.'))),
+        h('div', { class: 'field' }, h('label', { for: method.id }, t('Peman')), method),
+        h('div', { class: 'field' }, h('label', { for: note.id }, t('Nòt')), note),
         msg,
         h('div', {}, save),
       );
@@ -626,7 +637,7 @@
         msg.textContent = '';
         const b = bonus.value.trim() ? fmt.parseMoney(bonus.value) : 0;
         const o = other.value.trim() ? fmt.parseMoney(other.value) : 0;
-        if (b === null || o === null) { msg.textContent = 'Montan yo dwe chif valab.'; return; }
+        if (b === null || o === null) { msg.textContent = t('Montan yo dwe chif valab.'); return; }
 
         const changes = {};
         if (b !== (s.bonus_amount || 0)) changes.bonus_amount = b;
@@ -634,17 +645,17 @@
         if (method.value !== s.payment_method) changes.payment_method = method.value;
         if (note.value.trim()) changes.notes = note.value.trim();
 
-        if (!Object.keys(changes).length) { msg.textContent = 'Pa gen anyen ki chanje.'; return; }
+        if (!Object.keys(changes).length) { msg.textContent = t('Pa gen anyen ki chanje.'); return; }
 
         save.disabled = true;
-        save.textContent = 'Ap rekalkile…';
+        save.textContent = t('Ap rekalkile…');
         try {
           await api.patch(`/api/payroll/payslips/${s.id}`, changes);
           await refresh();
         } catch (err) {
           msg.textContent = errorMessage(err);
           save.disabled = false;
-          save.textContent = 'Rekalkile';
+          save.textContent = t('Rekalkile');
         }
       });
 
