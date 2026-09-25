@@ -4,26 +4,33 @@
  *
  * Chak paj aplikasyon an chaje api.js, apre sa shell.js, epi li rele:
  *
+ *     Konbit.i18n.add([...]);          // tradiksyon paj la (si l genyen)
  *     const identity = await Konbit.shell.mount('employees');
  *
  * Paj la dwe gen: <aside id="sidebar"></aside> ak <header id="topbar"></header>.
  * Meni an chanje dapre wòl moun nan. Pou ajoute yon nouvo paj, ajoute yon
- * liy nan NAV anba a epi retire `soon: true`.
+ * liy nan NAV anba a (ak tradiksyon l nan NAV_TRANSLATIONS) epi retire `soon: true`.
+ *
+ * mount() mete lang kont lan an plas (Konbit.i18n.sync) epi tradui tèks fiks
+ * HTML la (data-i18n) ANVAN li retounen — kidonk tout sa paj la rann apre
+ * `await mount()` deja nan bon lang lan.
  */
 (function () {
   'use strict';
-  const { api, auth, fmt, h } = Konbit;
+  const { api, auth, fmt, h, i18n, t } = Konbit;
 
   const ADMIN = ['super_admin', 'org_admin', 'hr'];
   const MANAGERS = ['super_admin', 'org_admin', 'hr', 'manager'];
 
   // `needsEmployee`: paj la sèvi sèlman si kont lan gen yon dosye anplwaye.
+  // Label yo se kle tradiksyon (tèks kreyòl la). '|meni' separe "Anplwaye"
+  // nan meni an (Employés) ak wòl "Anplwaye" (Employé).
   const NAV = [
     { group: null, items: [
       { id: 'dashboard', label: 'Akèy', href: 'dashboard.html' },
     ] },
     { group: 'Jesyon', roles: ADMIN, items: [
-      { id: 'employees', label: 'Anplwaye', href: 'employees.html' },
+      { id: 'employees', label: 'Anplwaye|meni', href: 'employees.html' },
       { id: 'payroll', label: 'Peyòl', href: 'payroll.html' },
       { id: 'leave-admin', label: 'Balans konje', href: 'leave-balances.html' },
       { id: 'hiring', label: 'Rekritman', href: 'jobs.html' },
@@ -34,6 +41,27 @@
       { id: 'timesheets', label: 'Tan travay', href: 'timesheets.html' },
     ] },
   ];
+
+  i18n.add([
+    // --- Meni ---
+    ['Akèy', 'Accueil', 'Home'],
+    ['Jesyon', 'Gestion', 'Management'],
+    ['Anplwaye|meni', 'Employés', 'Employees'],
+    ['Peyòl', 'Paie', 'Payroll'],
+    ['Balans konje', 'Soldes de congés', 'Leave balances'],
+    ['Rekritman', 'Recrutement', 'Recruiting'],
+    ['Fòmasyon', 'Formation', 'Training'],
+    ['Ekip', 'Équipe', 'Team'],
+    ['Ekip mwen', 'Mon équipe', 'My team'],
+    ['Tan travay', 'Temps de travail', 'Timesheets'],
+    ['byento', 'bientôt', 'soon'],
+
+    // --- Kad la ---
+    ['KONMBIT — akèy', 'KONMBIT — accueil', 'KONMBIT — home'],
+    ['Meni aplikasyon an', "Menu de l'application", 'App menu'],
+    ['Meni', 'Menu', 'Menu'],
+    ['Dekonekte', 'Se déconnecter', 'Log out'],
+  ]);
 
   function initials(name) {
     return (name || '?').split(/\s+/).filter(Boolean).slice(0, 2)
@@ -66,12 +94,12 @@
     const groups = NAV
       .filter((g) => !g.roles || g.roles.includes(role))
       .map((g) => h('div', { class: 'nav-group' },
-        g.group ? h('p', { class: 'nav-group-label' }, g.group) : null,
+        g.group ? h('p', { class: 'nav-group-label' }, t(g.group)) : null,
         h('ul', { class: 'nav-list' }, ...g.items.map((item) => {
           if (item.soon) {
             return h('li', {},
               h('span', { class: 'nav-item is-soon', 'aria-disabled': 'true' },
-                item.label, h('span', { class: 'soon' }, 'byento')),
+                t(item.label), h('span', { class: 'soon' }, t('byento'))),
             );
           }
           const current = item.id === active;
@@ -80,17 +108,17 @@
               class: current ? 'nav-item is-active' : 'nav-item',
               href: item.href,
               'aria-current': current ? 'page' : null,
-            }, item.label),
+            }, t(item.label)),
           );
         })),
       ));
 
     aside.replaceChildren(
-      h('a', { class: 'brand sidebar-brand', href: 'dashboard.html', 'aria-label': 'KONMBIT — akèy' },
+      h('a', { class: 'brand sidebar-brand', href: 'dashboard.html', 'aria-label': t('KONMBIT — akèy') },
         h('span', { class: 'brand-mark', 'aria-hidden': 'true' }, 'K'),
         h('span', { class: 'brand-name' }, 'KONMBIT'),
       ),
-      h('nav', { 'aria-label': 'Meni aplikasyon an' }, ...groups),
+      h('nav', { 'aria-label': t('Meni aplikasyon an') }, ...groups),
     );
   }
 
@@ -104,7 +132,7 @@
       type: 'button',
       'aria-controls': 'sidebar',
       'aria-expanded': String(isMobileView() ? false : !isSidebarCollapsed()),
-    }, 'Meni');
+    }, t('Meni'));
 
     menuBtn.addEventListener('click', () => {
       if (isMobileView()) {
@@ -119,8 +147,13 @@
       menuBtn.setAttribute('aria-expanded', String(!collapsed));
     });
 
-    const logout = h('button', { class: 'btn btn-quiet btn-sm', type: 'button' }, 'Dekonekte');
+    const logout = h('button', { class: 'btn btn-quiet btn-sm', type: 'button' }, t('Dekonekte'));
     logout.addEventListener('click', () => auth.logout());
+
+    // Chwa lang: sove nan kont lan (PATCH /api/auth/me) epi paj la rechaje.
+    const langSelect = i18n.switcher();
+    langSelect.style.width = 'auto';
+    langSelect.style.minWidth = '0';
 
     bar.replaceChildren(
       h('div', { class: 'topbar-left' },
@@ -133,6 +166,7 @@
           h('div', { class: 'role' }, fmt.role(user.role)),
         ),
         h('span', { class: 'avatar', 'aria-hidden': 'true' }, initials(user.full_name)),
+        langSelect,
         logout,
       ),
     );
@@ -166,6 +200,10 @@
       location.replace('dashboard.html');
       return null;
     }
+
+    // Lang kont lan, epi tèks fiks HTML la (ak tradiksyon paj la te ajoute).
+    await i18n.sync(identity.user.preferred_language);
+    i18n.apply(document);
 
     applySidebarState();
     renderSidebar(identity, active);

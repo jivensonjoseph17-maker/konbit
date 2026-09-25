@@ -9,7 +9,7 @@ Endpoint yo:
     POST  /api/auth/refresh           Nouvo access token
     POST  /api/auth/logout            Antre nan jounal la
     GET   /api/auth/me                Kiyès mwen ye
-    PATCH /api/auth/me                Chanje pwòp enfòmasyon
+    PATCH /api/auth/me                Chanje pwòp enfòmasyon (non, lang)
     POST  /api/auth/change-password   Chanje modpas
     GET   /api/auth/identity          Tout sa frontend lan bezwen apre koneksyon
 """
@@ -20,12 +20,14 @@ from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from sqlalchemy.orm import Session
 
 from ..config import settings
 from ..database import get_db
 from ..deps import CurrentUser, DbSession
+from ..i18n import SUPPORTED as SUPPORTED_LANGUAGES
+from ..i18n import resolve_language
 from ..models import AuditLog, Employee, Organization, User, UserRole
 from ..schemas import (
     LoginRequest,
@@ -169,6 +171,10 @@ def signup(payload: SignupRequest, request: Request, db: DbSession):
     org_data = payload.organization.model_dump()
     org_data["slug"] = slug
 
+    # Lang admin lan chwazi sou paj enskripsyon an (api.js voye l nan
+    # Accept-Language). Konsa kont lan kòmanse nan bon lang lan.
+    language = resolve_language(request.headers.get("accept-language"))
+
     try:
         org = Organization(**org_data)
         db.add(org)
@@ -180,6 +186,7 @@ def signup(payload: SignupRequest, request: Request, db: DbSession):
             hashed_password=hash_password(payload.admin_password),
             full_name=payload.admin_full_name.strip(),
             role=UserRole.ORG_ADMIN,
+            preferred_language=language,
             is_active=True,
             email_verified=False,
         )
@@ -268,14 +275,32 @@ def read_me(user: CurrentUser):
 
 
 class MeUpdate(BaseModel):
-    full_name: Optional[str] = None
+    full_name: Optional[str] = Field(default=None, min_length=2, max_length=200)
     preferred_language: Optional[str] = None
+
+    @field_validator("full_name")
+    @classmethod
+    def _strip_name(cls, v: Optional[str]) -> Optional[str]:
+        return v.strip() if v is not None else None
+
+    @field_validator("preferred_language")
+    @classmethod
+    def _check_language(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        v = v.strip().lower()
+        if v not in SUPPORTED_LANGUAGES:
+            raise ValueError("Lang lan dwe youn nan: ht, fr, en.")
+        return v
 
 
 @router.patch("/me", response_model=UserOut)
 def update_me(payload: MeUpdate, user: CurrentUser, db: DbSession):
     data = payload.model_dump(exclude_unset=True)
     for field, value in data.items():
+        # Kolòn sa yo pa aksepte NULL: yon `null` nan kò rekèt la pa chanje anyen.
+        if value is None:
+            continue
         setattr(user, field, value)
     db.commit()
     db.refresh(user)

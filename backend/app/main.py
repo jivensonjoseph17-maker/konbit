@@ -7,13 +7,16 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, status
+from fastapi.exception_handlers import http_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .config import settings
 from .database import engine
+from .i18n import resolve_language, translate, translate_detail, validation_message
 
 # --- Router ki aktif ---
 from .routers import (
@@ -76,18 +79,44 @@ app.add_middleware(
 
 # ---------------------------------------------------------------------------
 # JESYON ERÈ
+#
+# Router yo ekri mesaj yo an kreyòl. Isit la nou tradui yo dapre header
+# Accept-Language api.js voye a (ht / fr / en). Gade app/i18n.py.
 # ---------------------------------------------------------------------------
+
+def _request_language(request: Request) -> str:
+    return resolve_language(request.headers.get("accept-language"))
+
+
+@app.exception_handler(StarletteHTTPException)
+async def translated_http_exception_handler(request: Request, exc: StarletteHTTPException):
+    """Tout HTTPException (pa nou yo ak pa FastAPI yo) pase isit anvan yo pati."""
+    lang = _request_language(request)
+    translated = StarletteHTTPException(
+        status_code=exc.status_code,
+        detail=translate_detail(exc.detail, lang),
+        headers=getattr(exc, "headers", None),
+    )
+    return await http_exception_handler(request, translated)
+
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     """Mete erè validasyon yo nan yon fòm frontend lan ka sèvi avè l fasil."""
+    lang = _request_language(request)
     errors = []
     for err in exc.errors():
         location = ".".join(str(p) for p in err.get("loc", []) if p != "body")
-        errors.append({"field": location or "body", "message": err.get("msg", "")})
+        errors.append({
+            "field": location or "body",
+            "message": validation_message(err, lang),
+        })
     return JSONResponse(
         status_code=422,
-        content={"detail": "Done ou voye yo pa valab.", "errors": errors},
+        content={
+            "detail": translate("Done ou voye yo pa valab.", lang),
+            "errors": errors,
+        },
     )
 
 
@@ -99,7 +128,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     """
     logger.exception("Erè pa jere sou %s %s", request.method, request.url.path)
     detail = (
-        "Yon erè entèn rive."
+        translate("Yon erè entèn rive.", _request_language(request))
         if settings.is_production
         else f"{type(exc).__name__}: {exc}"
     )
