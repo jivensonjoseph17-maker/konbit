@@ -11,13 +11,23 @@ kolòn nan modèl la san l pa jenere yon migrasyon), tès yo p ap detekte sa.
 Se yon chwa rezonab pou yon ti baz done SQLite; pa fè menm bagay la pou
 yon vrè migrasyon nan pwodiksyon.
 
-ITILIZASYON: kouri `pytest` soti nan `backend/` (menm dosye ak `.env`),
-menm jan ak `uvicorn` ak `alembic`.
+ITILIZASYON: `python -m pytest` mache soti nan `backend/` OSWA nan `konbit/`.
+Fichye sa a mete dosye travay la sou `backend/` otomatikman, pou `.env` la
+(ak SECRET_KEY) toujou jwenn. `uvicorn` ak `alembic` toujou bezwen `backend/`.
 """
 
 import os
+import sys
 import uuid
 from pathlib import Path
+
+# Dosye backend/ la, kèlkeswa kote moun nan lanse pytest.
+# San sa, `pytest` depi konbit/ pa jwenn `.env` epi Settings() kraze
+# ak "secret_key Field required".
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+os.chdir(BACKEND_DIR)
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
 
 # Dwe fèt AVAN nenpòt enpòtasyon `app.*` — pydantic-settings pran yon
 # varyab anviwonman anvan valè `.env` la, kidonk sa a fòse yon baz done
@@ -30,7 +40,7 @@ from fastapi.testclient import TestClient
 from app.database import Base, engine
 from app.main import app
 
-TEST_DB_FILE = Path("test_konbit.db")
+TEST_DB_FILE = BACKEND_DIR / "test_konbit.db"
 
 
 @pytest.fixture(scope="session", autouse=True)

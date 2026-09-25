@@ -94,3 +94,35 @@ def test_patch_rejects_zero_openings(client, org_admin):
     resp = client.patch(f"/api/jobs/{job['id']}", json={"openings": 0},
                          headers=org_admin["headers"])
     assert resp.status_code == 400
+
+
+def test_careers_link_gives_org_slug(client, org_admin):
+    resp = client.get("/api/jobs/careers-link", headers=org_admin["headers"])
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["org_slug"] == org_admin["org_slug"]
+    assert body["path"] == f"careers.html?org={org_admin['org_slug']}"
+
+
+def test_public_salary_only_when_show_salary(client, org_admin):
+    h = org_admin["headers"]
+    slug = org_admin["org_slug"]
+
+    hidden = client.post("/api/jobs", json={
+        "title": "Salè Kache", "description": "OK",
+        "salary_min": 2_500_000, "salary_max": 3_500_000, "show_salary": False,
+    }, headers=h).json()
+    shown = client.post("/api/jobs", json={
+        "title": "Salè Vizib", "description": "OK",
+        "salary_min": 2_500_000, "salary_max": 3_500_000, "show_salary": True,
+    }, headers=h).json()
+    for job in (hidden, shown):
+        client.post(f"/api/jobs/{job['id']}/publish", json={}, headers=h)
+
+    pub_hidden = client.get(f"/api/jobs/public/{slug}/{hidden['slug']}").json()
+    assert pub_hidden["salary_min"] is None and pub_hidden["salary_max"] is None
+
+    pub_shown = client.get(f"/api/jobs/public/{slug}/{shown['slug']}").json()
+    assert pub_shown["salary_min"] == 2_500_000
+    assert pub_shown["salary_max"] == 3_500_000
+    assert pub_shown["currency"] == "HTG"

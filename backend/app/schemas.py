@@ -479,6 +479,10 @@ class JobPostingPublic(BaseModel):
     published_at: Optional[datetime] = None
     closes_at: Optional[datetime] = None
     company_name: Optional[str] = None
+    # Ranpli SÈLMAN lè HR tcheke `show_salary` (gade jobs._to_public)
+    salary_min: Optional[int] = None
+    salary_max: Optional[int] = None
+    currency: Optional[Currency] = None
 
 
 class JobPostingOut(JobPostingPublic):

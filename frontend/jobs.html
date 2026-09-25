@@ -22,8 +22,12 @@
             <h1>Rekritman</h1>
             <p id="count-label">Ap chaje…</p>
           </div>
-          <button class="btn btn-primary" type="button" id="add-btn">Nouvo òf</button>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn btn-ghost" type="button" id="copy-link-btn">Kopye lyen paj karyè a</button>
+            <button class="btn btn-primary" type="button" id="add-btn">Nouvo òf</button>
+          </div>
         </div>
+        <p class="hint" id="copy-link-msg" role="status" style="display: block; margin: -12px 0 16px;"></p>
 
         <!-- Fòm kreye yon òf -->
         <section class="panel form-panel" id="form-panel" hidden aria-labelledby="form-title">
@@ -185,6 +189,32 @@
       const d = new Date(`${dateValue}T23:59:59`);
       return Number.isNaN(d.getTime()) ? null : d.toISOString();
     }
+
+    // -----------------------------------------------------------------------
+    // LYEN PAJ KARYÈ A — pou HR pataje l sou Facebook, WhatsApp...
+    // -----------------------------------------------------------------------
+
+    $('copy-link-btn').addEventListener('click', async () => {
+      const msg = $('copy-link-msg');
+      const btn = $('copy-link-btn');
+      btn.disabled = true;
+      msg.textContent = '';
+      try {
+        const info = await api.get('/api/jobs/careers-link');
+        // Menm dosye ak paj sa a (mache ak Live Server /frontend/ ak sou sèvè a)
+        const url = new URL(info.path, location.href).href;
+        try {
+          await navigator.clipboard.writeText(url);
+          msg.textContent = `Lyen an kopye: ${url}`;
+        } catch {
+          msg.textContent = `Kopye lyen sa a: ${url}`;
+        }
+      } catch (err) {
+        msg.textContent = errorMessage(err);
+      } finally {
+        btn.disabled = false;
+      }
+    });
 
     // -----------------------------------------------------------------------
     // FÒM KREYE

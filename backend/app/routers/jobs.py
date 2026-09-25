@@ -7,6 +7,7 @@ PIBLIK (san otantifikasyon — se paj karyè a):
     GET  /api/jobs/public/{org_slug}/{slug}     Detay yon òf
 
 ENTÈN (HR):
+    GET    /api/jobs/careers-link    Lyen paj karyè biznis la (pou pataje)
     POST   /api/jobs                 Kreye yon òf
     GET    /api/jobs                 Lis òf yo
     GET    /api/jobs/{id}            Detay ak konte aplikasyon
@@ -141,6 +142,10 @@ def _to_public(job: JobPosting, company_name: Optional[str]) -> JobPostingPublic
         published_at=job.published_at,
         closes_at=job.closes_at,
         company_name=company_name,
+        # Salè a parèt SÈLMAN si HR chwazi montre l
+        salary_min=job.salary_min if job.show_salary else None,
+        salary_max=job.salary_max if job.show_salary else None,
+        currency=job.currency if job.show_salary else None,
     )
 
 
@@ -306,6 +311,28 @@ def list_jobs(
 
     items = query.order_by(JobPosting.created_at.desc()).all()
     return JobListResponse(total=len(items), items=[_to_out(db, j) for j in items])
+
+
+class CareersLink(BaseModel):
+    org_slug: str
+    company_name: str
+    path: str
+
+
+@router.get("/careers-link", response_model=CareersLink, dependencies=[Depends(require_hr)])
+def careers_link(org_id: TenantId, db: DbSession):
+    """
+    Idantifyan paj karyè a, pou HR kopye lyen an san l pa bezwen konnen slug la.
+    DWE rete ANVAN /{job_id}: sinon "careers-link" ta pase pou yon id.
+    """
+    org = db.query(Organization).filter(Organization.id == org_id).first()
+    if org is None:
+        raise HTTPException(status_code=404, detail="Biznis la pa jwenn.")
+    return CareersLink(
+        org_slug=org.slug,
+        company_name=org.name,
+        path=f"careers.html?org={org.slug}",
+    )
 
 
 @router.get("/{job_id}", response_model=JobPostingOut, dependencies=[Depends(require_hr)])

@@ -109,8 +109,22 @@
       }
     }
 
+    /** "25 000 – 35 000 HTG / mwa", oswa null si biznis la pa montre salè a. */
+    function salaryText(job) {
+      const { salary_min: lo, salary_max: hi, currency } = job;
+      if (!lo && !hi) return null;
+      const cur = currency || 'HTG';
+      const num = (c) => Konbit.fmt.money(c, cur).replace(/,00(?=\s)/, '');
+      if (lo && hi && lo !== hi) return `${num(lo).replace(` ${cur}`, '')} – ${num(hi)} / mwa`;
+      if (lo && !hi) return `Apati ${num(lo)} / mwa`;
+      if (!lo && hi) return `Jiska ${num(hi)} / mwa`;
+      return `${num(lo)} / mwa`;
+    }
+
     function metaLine(job) {
+      const salary = salaryText(job);
       return h('div', { class: 'job-meta' },
+        salary ? h('span', { style: 'font-weight: 600; color: var(--text);' }, salary) : null,
         h('span', {}, EMPLOYMENT_TYPE_LABELS[job.employment_type] || job.employment_type),
         job.location ? h('span', {}, job.is_remote ? `${job.location} · adistans` : job.location)
                      : (job.is_remote ? h('span', {}, 'Adistans') : null),
