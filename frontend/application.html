@@ -94,7 +94,6 @@
 
     let detail = null;       // ApplicationDetail
     let offers = [];         // OfferRow pou kandida sa a, pi resan an anvan
-    let employees = [];      // pou chwazi moun k ap fè antrevi a
     let hireResult = null;   // modpas tanporè a parèt yon sèl fwa
 
     // Sa moun nan tape men li poko sove. refresh() rebati tout paj la depi
@@ -180,8 +179,7 @@
     }
 
     function employeeName(empId) {
-      const e = employees.find((x) => x.id === empId);
-      return e ? `${e.first_name} ${e.last_name}` : '—';
+      return shell.cachedName(empId) || '—';
     }
 
     function splitName(full) {
@@ -203,15 +201,9 @@
 
       const offerList = await api.get(`/api/offers?job_posting_id=${jobId}`);
       offers = offerList.items.filter((row) => row.offer.application_id === id);
-    }
 
-    async function loadEmployees() {
-      try {
-        const data = await api.get('/api/employees');
-        employees = Array.isArray(data) ? data : (data.items || []);
-      } catch {
-        employees = [];   // lis la pa obligatwa: antrevi a ka pa gen entèvyouwè
-      }
+      // Non moun k ap fè antrevi yo (sèlman sa ki nan dosye sa a).
+      await shell.employeeNames(detail.interviews.map((iv) => iv.interviewer_id));
     }
 
     async function refresh() {
@@ -511,8 +503,8 @@
       day.addEventListener('input', () => { drafts.scDay = day.value; });
       time.addEventListener('input', () => { drafts.scTime = time.value; });
       const duration = input('sc-duration', '45', { type: 'number', min: '5', max: '480', step: '5' });
-      const who = select('sc-who',
-        [['', t('Pa chwazi')], ...employees.map((e) => [String(e.id), `${e.first_name} ${e.last_name}`])], '');
+      // Chwazi pa rechèch: pa gen limit sou kantite anplwaye.
+      const who = shell.employeePicker({ id: 'sc-who' });
       const where = input('sc-where', '', { maxlength: '255', placeholder: t('Adrès oswa lyen videyo') });
       const round = input('sc-round', String(nextRound), { type: 'number', min: '1' });
       const submit = h('button', { class: 'btn btn-primary btn-sm', type: 'submit' }, t('Planifye|aksyon'));
@@ -524,7 +516,7 @@
           field(t('Lè'), time, t('Lè lokal ou.')),
           field(t('Dire (minit)'), duration),
           field(t('Wonn'), round),
-          field(t('Kiyès k ap fè l'), who),
+          h('div', { class: 'field' }, h('label', { for: 'sc-who' }, t('Kiyès k ap fè l')), who.el),
         ),
         field(t('Kote'), where),
         msg, h('div', {}, submit),
@@ -546,7 +538,7 @@
             scheduled_at: iso,
             duration_minutes: Number(duration.value) || 45,
             round_number: Number(round.value) || nextRound,
-            interviewer_id: who.value ? Number(who.value) : null,
+            interviewer_id: who.value,
             location: where.value.trim() || null,
           });
           delete drafts.scDay;
@@ -867,7 +859,6 @@
       );
     }
 
-    await loadEmployees();
     await refresh();
   })();
   </script>

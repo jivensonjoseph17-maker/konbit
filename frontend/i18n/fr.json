@@ -359,7 +359,6 @@
  "Pou amelyore:": "À améliorer :",
  "Objektif:": "Objectifs :",
  "Repons anplwaye a:": "Réponse de l'employé :",
- "Chwazi yon moun…": "Choisir une personne…",
  "Egz: 2026 — 2yèm semès": "Ex. : 2026 — 2e semestre",
  "Sove bouyon an": "Enregistrer le brouillon",
  "Nouvo evalyasyon": "Nouvelle évaluation",
@@ -395,7 +394,6 @@
  "Travay": "Emploi",
  "Dat li kòmanse": "Date d'entrée",
  "Kalite kontra": "Type de contrat",
- "Pa gen manadjè": "Aucun manager",
  "Aksè nan KONMBIT": "Accès à KONMBIT",
  "Manadjè — apwouve konje ekip li": "Manager — approuve les congés de son équipe",
  "Resous imèn — jere tout anplwaye": "Ressources humaines — gère tous les employés",
@@ -663,7 +661,6 @@
  "Planifye|estati": "Planifié",
  "San entèvyouwè": "Sans intervieweur",
  "Lyen apèl la": "Lien de l'appel",
- "Pa chwazi": "Non choisi",
  "Adrès oswa lyen videyo": "Adresse ou lien vidéo",
  "Planifye|aksyon": "Planifier",
  "Nouvo antrevi": "Nouvel entretien",
@@ -806,5 +803,8 @@
  "Mete 15 jou konje vakans pou {n} moun nan ane {year}? Sa ap ranplase jou definitif yo genyen kounye a (jou yo deja pote ap rete menm jan an).": "Attribuer 15 jours de congé annuel à {n} personne(s) pour {year} ? Cela remplace leurs jours acquis actuels (les jours reportés ne changent pas).",
  "Ap mete jou yo… {count}/{total}": "Mise à jour des jours… {count}/{total}",
  "{done} moun sove, {failed} echwe. Eseye ankò pou moun ki echwe yo.": "{done} personne(s) enregistrée(s), {failed} en échec. Réessayez pour celles qui ont échoué.",
- "{done} moun jwenn 15 jou konje vakans pou {year}.": "{done} personne(s) ont reçu 15 jours de congé annuel pour {year}."
+ "{done} moun jwenn 15 jou konje vakans pou {year}.": "{done} personne(s) ont reçu 15 jours de congé annuel pour {year}.",
+ "Tape yon non oswa yon nimewo…": "Tapez un nom ou un numéro…",
+ "Retire chwa a": "Retirer la sélection",
+ "Ap chèche…": "Recherche…"
 }

@@ -84,9 +84,7 @@
               </div>
               <div class="field">
                 <label for="f-manager" data-i18n>Manadjè</label>
-                <select class="select" id="f-manager">
-                  <option value="" data-i18n>Pa gen manadjè</option>
-                </select>
+                <div id="f-manager-slot"></div>
               </div>
               <div class="field">
                 <label for="f-role" data-i18n>Aksè nan KONMBIT</label>
@@ -200,7 +198,11 @@
     const $ = (id) => document.getElementById(id);
     const PAGE_SIZE = 25;
 
-    const state = { page: 1, q: '', inactive: false, total: 0, managers: new Map() };
+    const state = { page: 1, q: '', inactive: false, total: 0 };
+
+    // Chwazi manadjè a pa rechèch: yon lis dewoulan pa ka gen plis pase 100 moun.
+    const managerPicker = shell.employeePicker({ id: 'f-manager' });
+    $('f-manager-slot').append(managerPicker.el);
 
     // ---------------------------------------------------------------------
     // MODPAS TANPORÈ
@@ -235,20 +237,6 @@
     // LIS
     // ---------------------------------------------------------------------
 
-    async function loadManagers() {
-      // Tout anplwaye aktif, pou lis manadjè a ak pou afiche non manadjè yo.
-      try {
-        const data = await api.get('/api/employees?size=100');
-        state.managers = new Map(data.items.map((e) => [e.id, `${e.first_name} ${e.last_name}`]));
-        const select = $('f-manager');
-        select.replaceChildren(
-          h('option', { value: '' }, t('Pa gen manadjè')),
-          ...data.items.map((e) => h('option', { value: String(e.id) },
-            `${e.first_name} ${e.last_name} (${e.employee_number})`)),
-        );
-      } catch { /* lis la ap toujou mache san non manadjè yo */ }
-    }
-
     async function loadList() {
       const params = new URLSearchParams({
         page: String(state.page),
@@ -274,6 +262,8 @@
               ? t('Pesonn pa koresponn ak rechèch sa a.')
               : t('Ou poko gen anplwaye. Klike "Ajoute yon anplwaye" pou kòmanse.'))));
         } else {
+          // Non manadjè yo: sèlman pou moun ki sou paj sa a (pa tout biznis la).
+          await shell.employeeNames(data.items.map((e) => e.manager_id));
           body.replaceChildren(...data.items.map(row));
         }
 
@@ -315,7 +305,7 @@
           ),
         ),
         h('td', {}, h('span', { class: `badge badge-${e.status}` }, fmt.employmentStatus(e.status))),
-        h('td', { class: 'cell-muted hide-sm' }, e.manager_id ? (state.managers.get(e.manager_id) || '—') : '—'),
+        h('td', { class: 'cell-muted hide-sm' }, (e.manager_id && shell.cachedName(e.manager_id)) || '—'),
         h('td', { class: 'actions' }, resetBtn),
       );
     }
@@ -358,6 +348,7 @@
       $('form-panel').hidden = true;
       $('add-btn').hidden = false;
       form.reset();
+      managerPicker.clear();
       formError.textContent = '';
       syncPayFields();
     }
@@ -425,7 +416,7 @@
         phone: $('f-phone').value.trim() || null,
         hire_date: hire,
         employment_type: $('f-type').value,
-        manager_id: $('f-manager').value ? Number($('f-manager').value) : null,
+        manager_id: managerPicker.value,
         base_salary: !hourly ? cents : null,
         hourly_rate: hourly ? cents : null,
         currency: 'HTG',
@@ -455,7 +446,6 @@
             r.login_email,
           );
         }
-        await loadManagers();
         await loadList();
       } catch (err) {
         let msg = err instanceof ApiError ? err.message : t('Yon bagay pa mache.');
@@ -473,7 +463,6 @@
     // DEMARAJ
     // ---------------------------------------------------------------------
     syncPayFields();
-    await loadManagers();
     await loadList();
   })();
   </script>

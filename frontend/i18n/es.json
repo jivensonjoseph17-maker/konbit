@@ -359,7 +359,6 @@
  "Pou amelyore:": "A mejorar:",
  "Objektif:": "Objetivos:",
  "Repons anplwaye a:": "Respuesta del empleado:",
- "Chwazi yon moun…": "Elige una persona…",
  "Egz: 2026 — 2yèm semès": "Ej.: 2026 — 2.º semestre",
  "Sove bouyon an": "Guardar borrador",
  "Nouvo evalyasyon": "Nueva evaluación",
@@ -395,7 +394,6 @@
  "Travay": "Empleo",
  "Dat li kòmanse": "Fecha de inicio",
  "Kalite kontra": "Tipo de contrato",
- "Pa gen manadjè": "Sin responsable",
  "Aksè nan KONMBIT": "Acceso a KONMBIT",
  "Manadjè — apwouve konje ekip li": "Responsable — aprueba los permisos de su equipo",
  "Resous imèn — jere tout anplwaye": "Recursos humanos — gestiona a todos los empleados",
@@ -663,7 +661,6 @@
  "Planifye|estati": "Programada",
  "San entèvyouwè": "Sin entrevistador",
  "Lyen apèl la": "Enlace de la llamada",
- "Pa chwazi": "Sin elegir",
  "Adrès oswa lyen videyo": "Dirección o enlace de video",
  "Planifye|aksyon": "Programar",
  "Nouvo antrevi": "Nueva entrevista",
@@ -806,5 +803,8 @@
  "Mete 15 jou konje vakans pou {n} moun nan ane {year}? Sa ap ranplase jou definitif yo genyen kounye a (jou yo deja pote ap rete menm jan an).": "¿Asignar 15 días de vacaciones a {n} personas en {year}? Esto reemplaza sus días asignados actuales (los días arrastrados no cambian).",
  "Ap mete jou yo… {count}/{total}": "Asignando días… {count}/{total}",
  "{done} moun sove, {failed} echwe. Eseye ankò pou moun ki echwe yo.": "{done} guardados, {failed} fallaron. Vuelve a intentarlo con los que fallaron.",
- "{done} moun jwenn 15 jou konje vakans pou {year}.": "{done} personas tienen ahora 15 días de vacaciones para {year}."
+ "{done} moun jwenn 15 jou konje vakans pou {year}.": "{done} personas tienen ahora 15 días de vacaciones para {year}.",
+ "Tape yon non oswa yon nimewo…": "Escribe un nombre o un número…",
+ "Retire chwa a": "Quitar la selección",
+ "Ap chèche…": "Buscando…"
 }

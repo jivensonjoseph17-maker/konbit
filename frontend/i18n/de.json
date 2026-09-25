@@ -359,7 +359,6 @@
  "Pou amelyore:": "Verbesserungspotenzial:",
  "Objektif:": "Ziele:",
  "Repons anplwaye a:": "Antwort der Person:",
- "Chwazi yon moun…": "Person wählen…",
  "Egz: 2026 — 2yèm semès": "z. B. 2026 — 2. Halbjahr",
  "Sove bouyon an": "Entwurf speichern",
  "Nouvo evalyasyon": "Neue Beurteilung",
@@ -395,7 +394,6 @@
  "Travay": "Beschäftigung",
  "Dat li kòmanse": "Eintrittsdatum",
  "Kalite kontra": "Vertragsart",
- "Pa gen manadjè": "Keine Führungskraft",
  "Aksè nan KONMBIT": "Zugriff auf KONMBIT",
  "Manadjè — apwouve konje ekip li": "Führungskraft — genehmigt den Urlaub des Teams",
  "Resous imèn — jere tout anplwaye": "Personalabteilung — verwaltet alle Mitarbeitenden",
@@ -663,7 +661,6 @@
  "Planifye|estati": "Geplant",
  "San entèvyouwè": "Keine gesprächsführende Person",
  "Lyen apèl la": "Link zum Gespräch",
- "Pa chwazi": "Nicht ausgewählt",
  "Adrès oswa lyen videyo": "Adresse oder Videolink",
  "Planifye|aksyon": "Planen",
  "Nouvo antrevi": "Neues Gespräch",
@@ -806,5 +803,8 @@
  "Mete 15 jou konje vakans pou {n} moun nan ane {year}? Sa ap ranplase jou definitif yo genyen kounye a (jou yo deja pote ap rete menm jan an).": "15 Urlaubstage für {n} Personen im Jahr {year} festlegen? Das ersetzt die aktuellen Anspruchstage (übertragene Tage bleiben gleich).",
  "Ap mete jou yo… {count}/{total}": "Tage werden gesetzt… {count}/{total}",
  "{done} moun sove, {failed} echwe. Eseye ankò pou moun ki echwe yo.": "{done} gespeichert, {failed} fehlgeschlagen. Versuchen Sie es für die fehlgeschlagenen erneut.",
- "{done} moun jwenn 15 jou konje vakans pou {year}.": "{done} Personen haben jetzt 15 Urlaubstage für {year}."
+ "{done} moun jwenn 15 jou konje vakans pou {year}.": "{done} Personen haben jetzt 15 Urlaubstage für {year}.",
+ "Tape yon non oswa yon nimewo…": "Name oder Nummer eingeben…",
+ "Retire chwa a": "Auswahl entfernen",
+ "Ap chèche…": "Suche läuft…"
 }

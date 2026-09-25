@@ -42,8 +42,6 @@
     const leavesBox = document.getElementById('leaves');
     const reviewsBox = document.getElementById('reviews');
 
-    let people = [];         // moun mwen ka wè (ekip mwen, oswa tout moun pou HR)
-
     // -------------------------------------------------------------------
     // ZOUTI
     // -------------------------------------------------------------------
@@ -94,8 +92,7 @@
     }
 
     function personName(id) {
-      const p = people.find((e) => e.id === id);
-      return p ? `${p.first_name} ${p.last_name}` : t('Anplwaye #{id}', { id });
+      return shell.cachedName(id) || t('Anplwaye #{id}', { id });
     }
 
     /** "Fòs:" + tèks la, oswa anyen si pa gen tèks. */
@@ -216,11 +213,10 @@
 
     function reviewForm() {
       const msg = h('p', { class: 'field-error', role: 'status' });
-      // Pèsonn pa evalye tèt li: nou retire moun ki konekte a nan lis la.
+      // Pèsonn pa evalye tèt li: nou retire moun ki konekte a nan rezilta yo.
+      // Pou yon manadjè, API a bay sèlman moun ki anba l.
       const myEmpId = identity.employee_id || null;
-      const choices = people.filter((p) => p.status === 'active' && p.id !== myEmpId);
-      const who = select('rv-who',
-        [['', t('Chwazi yon moun…')], ...choices.map((p) => [String(p.id), `${p.first_name} ${p.last_name}`])], '');
+      const who = shell.employeePicker({ id: 'rv-who', excludeIds: myEmpId ? [myEmpId] : [] });
       const label = input('rv-label', '', { maxlength: '100', placeholder: t('Egz: 2026 — 2yèm semès') });
       const start = input('rv-start', '', { type: 'date' });
       const end = input('rv-end', '', { type: 'date' });
@@ -234,7 +230,7 @@
       const form = h('form', { novalidate: true, style: 'display: grid; gap: 12px; margin-top: 18px;' },
         h('p', { class: 'sub-label' }, t('Nouvo evalyasyon')),
         h('div', { style: 'display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;' },
-          field(t('Anplwaye'), who),
+          h('div', { class: 'field' }, h('label', { for: 'rv-who' }, t('Anplwaye')), who.el),
           field(t('Peryòd'), label),
           field(t('Kòmansman'), start),
           field(t('Fen'), end),
@@ -258,7 +254,7 @@
         submit.disabled = true;
         try {
           await api.post('/api/feedback/reviews', {
-            employee_id: Number(who.value),
+            employee_id: who.value,
             period_label: label.value.trim(),
             period_start: start.value || null,
             period_end: end.value || null,
@@ -281,6 +277,7 @@
       const title = t('Evalyasyon');
       try {
         const data = await api.get('/api/feedback/reviews/team');
+        await shell.employeeNames(data.items.map((r) => r.employee_id));
         const list = data.items.length
           ? h('div', { style: 'display: grid; gap: 12px;' }, ...data.items.map(reviewRow))
           : h('p', { class: 'empty' }, t('Poko gen evalyasyon.'));
@@ -288,7 +285,7 @@
           h('p', { class: 'hint', style: 'display: block; margin: 0 0 14px;' },
             t('Yon bouyon rete prive. Lè w finalize l, anplwaye a ka wè l epi reponn.')),
           list,
-          people.length ? reviewForm() : null,
+          reviewForm(),
         ));
       } catch (err) {
         reviewsBox.replaceChildren(panel(title, null, h('p', { class: 'empty' }, errorMessage(err))));
@@ -298,14 +295,6 @@
     // -------------------------------------------------------------------
     // DEMARAJ
     // -------------------------------------------------------------------
-
-    try {
-      // Pou yon manadjè, API a retounen sèlman moun ki anba l (+ li menm).
-      const data = await api.get('/api/employees?size=100');
-      people = data.items;
-    } catch {
-      people = [];
-    }
 
     if (isHr) {
       document.getElementById('subtitle').textContent =

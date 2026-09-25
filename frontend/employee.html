@@ -43,7 +43,6 @@
     }
 
     let emp = null;          // dosye a jan li ye nan baz done a
-    let others = [];         // lòt anplwaye yo, pou lis manadjè a
 
     // ---------------------------------------------------------------------
     // ZOUTI
@@ -91,12 +90,9 @@
 
     async function load() {
       try {
-        const [e, list] = await Promise.all([
-          api.get(`/api/employees/${id}`),
-          api.get('/api/employees?size=100'),
-        ]);
-        emp = e;
-        others = list.items.filter((x) => x.id !== id);
+        emp = await api.get(`/api/employees/${id}`);
+        // Non manadjè aktyèl la, pou chan rechèch la.
+        if (emp.manager_id) await shell.employeeNames([emp.manager_id]);
         render();
       } catch (err) {
         content.replaceChildren(h('div', { class: 'alert alert-error' }, errorMessage(err)));
@@ -287,10 +283,8 @@
         ecName: input('e-ec-name', emp.emergency_contact_name),
         ecPhone: input('e-ec-phone', emp.emergency_contact_phone, { type: 'tel' }),
 
-        manager: select('e-manager',
-          [['', t('Pa gen manadjè')], ...others.map((o) =>
-            [String(o.id), `${o.first_name} ${o.last_name} (${o.employee_number})`])],
-          emp.manager_id ? String(emp.manager_id) : ''),
+        // Chwazi pa rechèch: pa gen limit 100 moun. Yon moun pa ka manadjè tèt li.
+        manager: shell.employeePicker({ id: 'e-manager', excludeIds: [id] }),
         type: select('e-type', [
           ['full_time', t('Tan plen')], ['part_time', t('Tan pasyèl')], ['contract', t('Kontra')],
           ['intern', t('Estaj')], ['seasonal', t('Sezon')],
@@ -308,6 +302,8 @@
         account: input('e-account', ''),
         mobile: input('e-mobile', emp.mobile_money_number, { type: 'tel' }),
       };
+
+      if (emp.manager_id) f.manager.set(emp.manager_id, shell.cachedName(emp.manager_id) || `#${emp.manager_id}`);
 
       const amountLabel = h('label', { for: 'e-amount' });
       const amountHint = h('span', { class: 'hint' });
@@ -356,7 +352,10 @@
           field(t('Telefòn moun sa a'), f.ecPhone),
 
           h('p', { class: 'form-section-title' }, t('Travay')),
-          field(t('Manadjè'), f.manager, t('Se manadjè a ki apwouve konje moun nan.')),
+          h('div', { class: 'field' },
+            h('label', { for: 'e-manager' }, t('Manadjè')),
+            f.manager.el,
+            h('span', { class: 'hint' }, t('Se manadjè a ki apwouve konje moun nan.'))),
           field(t('Kalite kontra'), f.type),
 
           h('p', { class: 'form-section-title' }, t('Salè ak peman')),
@@ -403,7 +402,7 @@
           city: orNull(f.city.value),
           emergency_contact_name: orNull(f.ecName.value),
           emergency_contact_phone: orNull(f.ecPhone.value),
-          manager_id: f.manager.value ? Number(f.manager.value) : null,
+          manager_id: f.manager.value,
           employment_type: f.type.value,
           base_salary: isHourly ? null : cents,
           hourly_rate: isHourly ? cents : null,
