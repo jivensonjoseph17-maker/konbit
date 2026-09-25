@@ -25,7 +25,6 @@ anvan li korije yon lè — sinon èdtan yo ta ka chanje apre siyati a.
 import logging
 from datetime import date, datetime, time, timedelta, timezone
 from typing import Annotated, Optional
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel
@@ -45,7 +44,6 @@ from ..models import (
     AuditLog,
     Employee,
     EmploymentStatus,
-    Organization,
     TimeEntry,
     User,
     UserRole,
@@ -58,6 +56,7 @@ from ..schemas import (
     TimeEntryAdjust,
     TimeEntryOut,
 )
+from ..timezone_utils import get_local_today, get_org_timezone
 from .timesheets import timesheet_locked
 
 logger = logging.getLogger("konbit")
@@ -95,47 +94,13 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-DEFAULT_TZ = "America/Port-au-Prince"
 LATE_AFTER = time(9, 0)          # lè lokal apre sa yon moun konte an reta
 
-
-def _org_tz(db: Session, org_id: int):
-    """
-    Fizo orè biznis la. TOUT kalkil dat (ki jou yon moun travay, kiyès ki
-    la jodi a, kiyès ki an reta) dwe fèt nan lè LOKAL biznis la — pa an UTC.
-
-    San sa, yon moun ki klòk in a 9è diswa an Ayiti (1è maten UTC) ta
-    anrejistre sou jou ki vini an, epi li ta disparèt nan tablo jodi a.
-    """
-    name = db.query(Organization.timezone).filter(Organization.id == org_id).scalar()
-    for candidate in (name, DEFAULT_TZ):
-        if not candidate:
-            continue
-        try:
-            return ZoneInfo(candidate)
-        except (ZoneInfoNotFoundError, ValueError):
-            continue
-
-    # Baz done fizo orè a pa disponib ditou (sou Windows: `pip install tzdata`).
-    # Nou tonbe sou UTC olye nou kraze paj la — men nou di l fò nan lòg yo,
-    # paske dat yo ap fo apre 8è diswa lè Ayiti.
-    logger.error(
-        "Fizo orè '%s' pa jwenn. Enstale pakè 'tzdata'. N ap sèvi ak UTC pou kounye a.",
-        name or DEFAULT_TZ,
-    )
-    return ZoneInfo("UTC") if _utc_available() else timezone.utc
-
-
-def _utc_available() -> bool:
-    try:
-        ZoneInfo("UTC")
-        return True
-    except (ZoneInfoNotFoundError, ValueError):
-        return False
-
-
-def _local_today(db: Session, org_id: int) -> date:
-    return datetime.now(_org_tz(db, org_id)).date()
+# Fizo orè biznis la: TOUT kalkil dat (ki jou yon moun travay, kiyès ki la
+# jodi a, kiyès ki an reta) fèt nan lè LOKAL biznis la, pa an UTC. Lojik la
+# nan timezone_utils.py, pataje ak leaves.py, training.py ak applications.py.
+_org_tz = get_org_timezone
+_local_today = get_local_today
 
 
 def _as_aware(dt: Optional[datetime]) -> Optional[datetime]:
