@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kou — KONMBIT</title>
+  <title data-i18n>Kou — KONMBIT</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -17,9 +17,9 @@
       <header class="topbar" id="topbar"></header>
 
       <main class="page">
-        <a class="back-link" href="training.html">Tout kou yo</a>
+        <a class="back-link" href="training.html" data-i18n>Tout kou yo</a>
 
-        <div id="content"><p class="loading">Ap chaje…</p></div>
+        <div id="content"><p class="loading" data-i18n>Ap chaje…</p></div>
       </main>
     </div>
   </div>
@@ -29,7 +29,7 @@
   <script>
   (async function () {
     'use strict';
-    const { api, fmt, h, ApiError, shell } = Konbit;
+    const { api, fmt, h, ApiError, shell, t } = Konbit;
 
     const identity = await shell.mount('training', shell.ADMIN);
     if (!identity) return;
@@ -38,7 +38,7 @@
     const id = Number(new URLSearchParams(location.search).get('id'));
 
     if (!Number.isInteger(id) || id <= 0) {
-      content.replaceChildren(h('div', { class: 'alert alert-error' }, 'Pa gen kou chwazi. Retounen nan lis la.'));
+      content.replaceChildren(h('div', { class: 'alert alert-error' }, t('Pa gen kou chwazi. Retounen nan lis la.')));
       return;
     }
 
@@ -46,12 +46,17 @@
     let employees = [];     // pou lis asiyasyon an
     const selectedEmployeeIds = new Set();
 
+    // Lang videyo kou a (pa lang aplikasyon an).
+    const courseLanguages = () => [
+      ['ht', t('Kreyòl')], ['fr', t('Franse')], ['en', t('Angle')], ['es', t('Panyòl')],
+    ];
+
     // -------------------------------------------------------------------
     // ZOUTI
     // -------------------------------------------------------------------
 
     function errorMessage(err) {
-      let msg = err instanceof ApiError ? err.message : 'Yon bagay pa mache.';
+      let msg = err instanceof ApiError ? err.message : t('Yon bagay pa mache.');
       if (err && err.fields && err.fields.length) {
         msg += ' ' + err.fields.map((f) => `${f.field}: ${f.message}`).join('; ');
       }
@@ -78,6 +83,7 @@
       return el;
     }
 
+    /** 125 → "2:05" (minit:segonn), menm fòma nan tout lang. */
     function durationLabel(seconds) {
       if (!seconds) return '—';
       const m = Math.floor(seconds / 60);
@@ -109,7 +115,7 @@
       const actions = [];
 
       const publishBtn = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' },
-        course.is_published ? 'Retire nan piblikasyon' : 'Pibliye');
+        course.is_published ? t('Retire nan piblikasyon') : t('Pibliye|aksyon'));
       publishBtn.addEventListener('click', async () => {
         actionMsg.textContent = '';
         publishBtn.disabled = true;
@@ -124,9 +130,9 @@
       actions.push(publishBtn);
 
       if (!course.is_published) {
-        const deleteBtn = h('button', { class: 'btn btn-danger btn-sm', type: 'button' }, 'Efase');
+        const deleteBtn = h('button', { class: 'btn btn-danger btn-sm', type: 'button' }, t('Efase'));
         deleteBtn.addEventListener('click', async () => {
-          if (!confirm(`Efase kou "${course.title}" nèt? Sa pa ka defèt.`)) return;
+          if (!confirm(t('Efase kou "{title}" nèt? Sa pa ka defèt.', { title: course.title }))) return;
           deleteBtn.disabled = true;
           try {
             await api.del(`/api/training/courses/${id}`);
@@ -144,10 +150,10 @@
           h('h1', {}, course.title),
           h('p', { class: 'emp-meta' },
             h('span', { class: `badge ${course.is_published ? 'badge-approved' : 'badge-pending'}` },
-              course.is_published ? 'Pibliye' : 'Bouyon'),
-            h('span', {}, `${course.lesson_count} leson`),
-            h('span', {}, `Nòt pou pase: ${course.passing_score}%`),
-            course.is_mandatory ? h('span', {}, 'Obligatwa') : null,
+              course.is_published ? t('Pibliye') : t('Bouyon')),
+            h('span', {}, t('{n} leson', { n: course.lesson_count })),
+            h('span', {}, t('Nòt pou pase: {score}%', { score: course.passing_score })),
+            course.is_mandatory ? h('span', {}, t('Obligatwa')) : null,
           ),
         ),
         h('div', { class: 'emp-actions' }, ...actions),
@@ -174,25 +180,24 @@
       const desc = textarea('e-desc', course.description, { rows: '3', maxlength: '4000' });
       const category = input('e-category', course.category, { maxlength: '100' });
       const lang = h('select', { class: 'select', id: 'e-lang' },
-        ...[['ht', 'Kreyòl'], ['fr', 'Fransè'], ['en', 'Anglè'], ['es', 'Panyòl']]
-          .map(([v, l]) => h('option', { value: v }, l)));
+        ...courseLanguages().map(([v, l]) => h('option', { value: v }, l)));
       lang.value = course.language;
       const passing = input('e-passing', String(course.passing_score), { type: 'number', min: '0', max: '100' });
       const mandatory = h('input', { type: 'checkbox', id: 'e-mandatory' });
       mandatory.checked = Boolean(course.is_mandatory);
 
       const msg = h('p', { class: 'field-error', role: 'status' });
-      const saveBtn = h('button', { class: 'btn btn-primary', type: 'submit' }, 'Sove chanjman yo');
+      const saveBtn = h('button', { class: 'btn btn-primary', type: 'submit' }, t('Sove chanjman yo'));
 
       const form = h('form', { novalidate: true },
         h('div', { class: 'form-grid' },
-          h('div', { class: 'field span-2' }, field('Tit kou a', title)),
-          h('div', { class: 'field span-2' }, field('Deskripsyon', desc)),
-          field('Kategori', category),
-          field('Lang', lang),
-          field('Nòt pou pase (%)', passing),
+          h('div', { class: 'field span-2' }, field(t('Tit kou a'), title)),
+          h('div', { class: 'field span-2' }, field(t('Deskripsyon'), desc)),
+          field(t('Kategori'), category),
+          field(t('Lang videyo yo'), lang),
+          field(t('Nòt pou pase (%)'), passing),
           h('div', { class: 'field' },
-            h('label', {}, h('span', { class: 'check' }, mandatory, ' Kou obligatwa')),
+            h('label', {}, h('span', { class: 'check' }, mandatory, ` ${t('Kou obligatwa')}`)),
           ),
         ),
         msg,
@@ -226,7 +231,7 @@
 
         if (!Object.keys(changes).length) {
           msg.className = 'hint';
-          msg.textContent = 'Pa gen anyen ki chanje.';
+          msg.textContent = t('Pa gen anyen ki chanje.');
           return;
         }
 
@@ -234,7 +239,7 @@
         try {
           await api.patch(`/api/training/courses/${id}`, changes);
           msg.className = 'hint';
-          msg.textContent = 'Chanjman yo sove.';
+          msg.textContent = t('Chanjman yo sove.');
           await load();
         } catch (err) {
           msg.className = 'field-error';
@@ -244,7 +249,7 @@
       });
 
       return h('section', { class: 'panel', style: 'margin-top: 20px;' },
-        h('div', { class: 'panel-head' }, h('h2', {}, 'Detay kou a')),
+        h('div', { class: 'panel-head' }, h('h2', {}, t('Detay kou a'))),
         form,
       );
     }
@@ -257,11 +262,11 @@
       const list = h('div', { style: 'display: grid; gap: 12px;' },
         ...(course.lessons.length
           ? course.lessons.map((lesson, i) => lessonCard(lesson, i))
-          : [h('p', { class: 'empty' }, 'Pa gen leson ankò.')]),
+          : [h('p', { class: 'empty' }, t('Pa gen leson ankò.'))]),
       );
 
       return h('section', { class: 'panel', style: 'margin-top: 20px;' },
-        h('div', { class: 'panel-head' }, h('h2', {}, `Leson (${course.lessons.length})`)),
+        h('div', { class: 'panel-head' }, h('h2', {}, t('Leson ({n})', { n: course.lessons.length }))),
         list,
         addLessonForm(),
       );
@@ -283,23 +288,30 @@
 
     function lessonCard(lesson, index) {
       const title = input(`l-title-${lesson.id}`, lesson.title, { maxlength: '200' });
-      const video = input(`l-video-${lesson.id}`, lesson.video_url, { placeholder: 'https://...mp4 oswa lyen YouTube' });
+      const video = input(`l-video-${lesson.id}`, lesson.video_url,
+        { type: 'url', placeholder: t('https://…mp4 oswa lyen YouTube') });
       const duration = input(`l-dur-${lesson.id}`, lesson.duration_seconds ?? '', { type: 'number', min: '0' });
       const desc = textarea(`l-desc-${lesson.id}`, lesson.description, { rows: '2', maxlength: '2000' });
       const required = h('input', { type: 'checkbox', id: `l-req-${lesson.id}` });
       required.checked = Boolean(lesson.is_required);
 
       const msg = h('p', { class: 'field-error', role: 'status', style: 'margin: 0;' });
-      const saveBtn = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, 'Sove');
-      const upBtn = h('button', { class: 'btn btn-quiet btn-sm', type: 'button', disabled: index === 0 }, '↑');
-      const downBtn = h('button', { class: 'btn btn-quiet btn-sm', type: 'button', disabled: index === course.lessons.length - 1 }, '↓');
-      const deleteBtn = h('button', { class: 'btn btn-danger btn-sm', type: 'button' }, 'Retire');
+      const saveBtn = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, t('Sove'));
+      const upBtn = h('button', {
+        class: 'btn btn-quiet btn-sm', type: 'button', disabled: index === 0,
+        'aria-label': t('Monte leson an'), title: t('Monte leson an'),
+      }, '↑');
+      const downBtn = h('button', {
+        class: 'btn btn-quiet btn-sm', type: 'button', disabled: index === course.lessons.length - 1,
+        'aria-label': t('Desann leson an'), title: t('Desann leson an'),
+      }, '↓');
+      const deleteBtn = h('button', { class: 'btn btn-danger btn-sm', type: 'button' }, t('Retire|aksyon'));
 
       upBtn.addEventListener('click', () => moveLesson(lesson.id, -1));
       downBtn.addEventListener('click', () => moveLesson(lesson.id, 1));
 
       deleteBtn.addEventListener('click', async () => {
-        if (!confirm(`Retire leson "${lesson.title}"? Pwogrè anplwaye yo sou li ap disparèt.`)) return;
+        if (!confirm(t('Retire leson "{title}"? Pwogrè anplwaye yo sou li ap disparèt.', { title: lesson.title }))) return;
         deleteBtn.disabled = true;
         try {
           await api.del(`/api/training/lessons/${lesson.id}`);
@@ -322,7 +334,7 @@
 
         if (!Object.keys(changes).length) {
           msg.className = 'hint';
-          msg.textContent = 'Pa gen anyen ki chanje.';
+          msg.textContent = t('Pa gen anyen ki chanje.');
           return;
         }
 
@@ -337,6 +349,8 @@
         }
       });
 
+      const durHint = durationLabel(lesson.duration_seconds) !== '—' ? `≈ ${durationLabel(lesson.duration_seconds)}` : null;
+
       return h('div', {
         style: 'padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--radius); display: grid; gap: 10px;',
       },
@@ -346,12 +360,12 @@
           upBtn, downBtn,
         ),
         h('div', { class: 'form-row' },
-          field('Lyen videyo', video),
-          field('Dire (segonn)', duration, durationLabel(lesson.duration_seconds) !== '—' ? `≈ ${durationLabel(lesson.duration_seconds)}` : null),
+          field(t('Lyen videyo'), video),
+          field(t('Dire (segonn)'), duration, durHint),
         ),
-        field('Deskripsyon (opsyonèl)', desc),
+        field(t('Deskripsyon (opsyonèl)'), desc),
         h('div', { style: 'display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;' },
-          h('label', {}, h('span', { class: 'check' }, required, ' Obligatwa pou fini kou a')),
+          h('label', {}, h('span', { class: 'check' }, required, ` ${t('Obligatwa pou fini kou a')}`)),
           h('div', { style: 'display: flex; gap: 8px;' }, saveBtn, deleteBtn),
         ),
         msg,
@@ -359,18 +373,18 @@
     }
 
     function addLessonForm() {
-      const title = input('new-l-title', '', { placeholder: 'Tit leson an', maxlength: '200' });
-      const video = input('new-l-video', '', { placeholder: 'https://...mp4 oswa lyen YouTube' });
-      const duration = input('new-l-dur', '', { type: 'number', min: '0', placeholder: 'segonn' });
+      const title = input('new-l-title', '', { placeholder: t('Tit leson an'), maxlength: '200' });
+      const video = input('new-l-video', '', { type: 'url', placeholder: t('https://…mp4 oswa lyen YouTube') });
+      const duration = input('new-l-dur', '', { type: 'number', min: '0', placeholder: t('segonn') });
       const required = h('input', { type: 'checkbox', id: 'new-l-req' });
       required.checked = true;
       const msg = h('p', { class: 'field-error', role: 'status' });
-      const addBtn = h('button', { class: 'btn btn-primary btn-sm', type: 'button' }, 'Ajoute leson');
+      const addBtn = h('button', { class: 'btn btn-primary btn-sm', type: 'button' }, t('Ajoute leson'));
 
       addBtn.addEventListener('click', async () => {
         msg.textContent = '';
         if (title.value.trim().length < 2) {
-          msg.textContent = 'Mete yon tit pou leson an.';
+          msg.textContent = t('Mete yon tit pou leson an.');
           return;
         }
         addBtn.disabled = true;
@@ -390,11 +404,12 @@
       });
 
       return h('div', { style: 'padding-top: 16px; border-top: 1px solid var(--line); display: grid; gap: 10px;' },
-        h('p', { class: 'sub-label' }, 'Ajoute yon nouvo leson'),
-        h('div', { class: 'form-row' }, field('Tit', title), field('Lyen videyo', video)),
+        h('p', { class: 'sub-label' }, t('Ajoute yon nouvo leson')),
+        h('div', { class: 'form-row' }, field(t('Tit'), title), field(t('Lyen videyo'), video)),
         h('div', { class: 'form-row' },
-          field('Dire (segonn)', duration),
-          h('label', { style: 'align-self: end; padding-bottom: 10px;' }, h('span', { class: 'check' }, required, ' Obligatwa')),
+          field(t('Dire (segonn)'), duration),
+          h('label', { style: 'align-self: end; padding-bottom: 10px;' },
+            h('span', { class: 'check' }, required, ` ${t('Obligatwa')}`)),
         ),
         msg,
         h('div', {}, addBtn),
@@ -408,27 +423,29 @@
     function assignPanel() {
       if (!course.is_published) {
         return h('section', { class: 'panel', style: 'margin-top: 20px;' },
-          h('div', { class: 'panel-head' }, h('h2', {}, 'Asiye kou a')),
-          h('p', { class: 'hint' }, 'Pibliye kou a anvan ou ka asiye l bay anplwaye.'),
+          h('div', { class: 'panel-head' }, h('h2', {}, t('Asiye kou a'))),
+          h('p', { class: 'hint' }, t('Pibliye kou a anvan ou ka asiye l bay anplwaye.')),
         );
       }
 
-      const search = input('assign-search', '', { type: 'search', placeholder: 'Chèche pa non oswa nimewo' });
+      const search = input('assign-search', '', {
+        type: 'search', placeholder: t('Chèche pa non oswa nimewo'), 'aria-label': t('Chèche yon anplwaye'),
+      });
       const list = h('div', { style: 'display: grid; gap: 4px; max-height: 260px; overflow-y: auto; margin-top: 10px;' },
-        h('p', { class: 'loading' }, 'Ap chaje…'));
+        h('p', { class: 'loading' }, t('Ap chaje…')));
       const dueDate = input('assign-due', '', { type: 'date' });
       const msg = h('p', { role: 'status' });
-      const assignBtn = h('button', { class: 'btn btn-primary btn-sm', type: 'button' }, 'Asiye moun ki chwazi yo');
+      const assignBtn = h('button', { class: 'btn btn-primary btn-sm', type: 'button' }, t('Asiye moun ki chwazi yo'));
 
       async function loadEmployees(q) {
-        list.replaceChildren(h('p', { class: 'loading' }, 'Ap chaje…'));
+        list.replaceChildren(h('p', { class: 'loading' }, t('Ap chaje…')));
         try {
           const params = new URLSearchParams({ size: '100' });
           if (q) params.set('q', q);
           const data = await api.get(`/api/employees?${params}`);
           employees = data.items;
           if (!employees.length) {
-            list.replaceChildren(h('p', { class: 'empty' }, 'Pa gen anplwaye ki koresponn.'));
+            list.replaceChildren(h('p', { class: 'empty' }, t('Pa gen anplwaye ki koresponn.')));
             return;
           }
           list.replaceChildren(...employees.map((emp) => {
@@ -457,7 +474,7 @@
         msg.textContent = '';
         if (!selectedEmployeeIds.size) {
           msg.className = 'field-error';
-          msg.textContent = 'Chwazi omwen yon anplwaye.';
+          msg.textContent = t('Chwazi omwen yon anplwaye.');
           return;
         }
         assignBtn.disabled = true;
@@ -468,7 +485,9 @@
             due_date: dueDate.value || null,
           });
           msg.className = 'hint';
-          msg.textContent = `${result.enrolled} moun asiye. ${result.already_enrolled} te deja asiye.`;
+          msg.textContent = t('{enrolled} moun asiye. {already} te deja asiye.', {
+            enrolled: result.enrolled, already: result.already_enrolled,
+          });
           selectedEmployeeIds.clear();
           await loadEmployees(search.value.trim());
           loadReport();
@@ -483,10 +502,10 @@
       loadEmployees('');
 
       return h('section', { class: 'panel', style: 'margin-top: 20px;' },
-        h('div', { class: 'panel-head' }, h('h2', {}, 'Asiye kou a')),
+        h('div', { class: 'panel-head' }, h('h2', {}, t('Asiye kou a'))),
         search,
         list,
-        h('div', { class: 'form-row', style: 'margin-top: 12px;' }, field('Delè (opsyonèl)', dueDate)),
+        h('div', { class: 'form-row', style: 'margin-top: 12px;' }, field(t('Delè (opsyonèl)'), dueDate)),
         msg,
         h('div', { style: 'margin-top: 10px;' }, assignBtn),
       );
@@ -497,9 +516,9 @@
     // -------------------------------------------------------------------
 
     function reportPanel() {
-      const body = h('div', {}, h('p', { class: 'loading' }, 'Ap chaje…'));
+      const body = h('div', {}, h('p', { class: 'loading' }, t('Ap chaje…')));
       const el = h('section', { class: 'panel', style: 'margin-top: 20px;' },
-        h('div', { class: 'panel-head' }, h('h2', {}, 'Kiyès ki asiye')),
+        h('div', { class: 'panel-head' }, h('h2', {}, t('Kiyès ki asiye'))),
         body,
       );
       el._body = body;
@@ -513,27 +532,27 @@
       try {
         const r = await api.get(`/api/training/courses/${id}/report`);
         if (!r.total_enrolled) {
-          el._body.replaceChildren(h('p', { class: 'empty' }, 'Pesonn poko asiye nan kou sa a.'));
+          el._body.replaceChildren(h('p', { class: 'empty' }, t('Pesonn poko asiye nan kou sa a.')));
           return;
         }
-        const stat = (n, t) => h('div', { class: 'stat' }, h('div', { class: 'n' }, String(n)), h('div', { class: 't' }, t));
+        const stat = (n, label) => h('div', { class: 'stat' }, h('div', { class: 'n' }, String(n)), h('div', { class: 't' }, label));
         el._body.replaceChildren(
           h('div', { class: 'stat-line' },
-            stat(r.total_enrolled, 'asiye'),
-            stat(r.completed, 'fini'),
-            stat(r.in_progress, 'ap fèt'),
-            stat(r.not_started, 'poko kòmanse'),
-            stat(r.overdue, 'an reta'),
-            stat(`${r.completion_rate}%`, 'to konplete'),
+            stat(r.total_enrolled, t('asiye')),
+            stat(r.completed, t('fini')),
+            stat(r.in_progress, t('ap fèt')),
+            stat(r.not_started, t('poko kòmanse')),
+            stat(r.overdue, t('an reta')),
+            stat(`${r.completion_rate}%`, t('to konplete')),
           ),
           h('div', { class: 'table-wrap flush', style: 'margin-top: 16px;' },
             h('table', { class: 'table' },
               h('thead', {}, h('tr', {},
-                h('th', { scope: 'col' }, 'Anplwaye'),
-                h('th', { scope: 'col', class: 'num-col' }, 'Pwogrè'),
-                h('th', { scope: 'col', class: 'hide-sm' }, 'Delè'),
-                h('th', { scope: 'col', class: 'hide-sm' }, 'Fini'),
-                h('th', { scope: 'col', class: 'num-col hide-sm' }, 'Nòt'),
+                h('th', { scope: 'col' }, t('Anplwaye')),
+                h('th', { scope: 'col', class: 'num-col' }, t('Pwogrè')),
+                h('th', { scope: 'col', class: 'hide-sm' }, t('Delè')),
+                h('th', { scope: 'col', class: 'hide-sm' }, t('Fini')),
+                h('th', { scope: 'col', class: 'num-col hide-sm' }, t('Nòt')),
               )),
               h('tbody', {}, ...r.rows.map((row) => h('tr', {},
                 h('td', {},
@@ -543,7 +562,9 @@
                 h('td', { class: 'num-col' }, `${row.progress_percent}%`),
                 h('td', { class: 'cell-muted hide-sm' },
                   row.due_date ? fmt.shortDate(row.due_date) : '—',
-                  row.is_overdue ? h('span', { class: 'badge badge-late', style: 'margin-left: 6px;' }, 'An reta') : null,
+                  row.is_overdue
+                    ? h('span', { class: 'badge badge-late', style: 'margin-inline-start: 6px;' }, t('An reta'))
+                    : null,
                 ),
                 h('td', { class: 'cell-muted hide-sm' }, row.completed_at ? fmt.shortDate(row.completed_at) : '—'),
                 h('td', { class: 'num-col cell-muted hide-sm' }, row.score ?? '—'),

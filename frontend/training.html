@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Fòmasyon — KONMBIT</title>
+  <title data-i18n>Fòmasyon — KONMBIT</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -19,16 +19,16 @@
       <main class="page">
         <div class="page-head-row">
           <div class="page-head">
-            <h1>Fòmasyon</h1>
-            <p id="count-label">Ap chaje…</p>
+            <h1 data-i18n>Fòmasyon</h1>
+            <p id="count-label" data-i18n>Ap chaje…</p>
           </div>
-          <button class="btn btn-primary" type="button" id="add-btn">Nouvo kou</button>
+          <button class="btn btn-primary" type="button" id="add-btn" data-i18n>Nouvo kou</button>
         </div>
 
         <!-- Fòm kreye yon kou -->
         <section class="panel form-panel" id="form-panel" hidden aria-labelledby="form-title">
           <div class="panel-head">
-            <h2 id="form-title">Nouvo kou</h2>
+            <h2 id="form-title" data-i18n>Nouvo kou</h2>
           </div>
 
           <form id="course-form" novalidate>
@@ -36,54 +36,57 @@
 
             <div class="form-grid" style="margin-top: 12px;">
               <div class="field span-2">
-                <label for="f-title">Tit kou a</label>
-                <input class="input" id="f-title" required minlength="2" maxlength="200" autocomplete="off" placeholder="Sekirite nan travay la">
+                <label for="f-title" data-i18n>Tit kou a</label>
+                <input class="input" id="f-title" required minlength="2" maxlength="200" autocomplete="off"
+                       data-i18n-attr="placeholder" placeholder="Sekirite nan travay la">
               </div>
               <div class="field span-2">
-                <label for="f-desc">Deskripsyon</label>
+                <label for="f-desc" data-i18n>Deskripsyon</label>
                 <textarea class="textarea" id="f-desc" rows="3" maxlength="4000"></textarea>
               </div>
               <div class="field">
-                <label for="f-category">Kategori</label>
-                <input class="input" id="f-category" maxlength="100" autocomplete="off" placeholder="Sekirite, Sèvis kliyan...">
+                <label for="f-category" data-i18n>Kategori</label>
+                <input class="input" id="f-category" maxlength="100" autocomplete="off"
+                       data-i18n-attr="placeholder" placeholder="Sekirite, Sèvis kliyan…">
               </div>
               <div class="field">
-                <label for="f-lang">Lang</label>
+                <label for="f-lang" data-i18n>Lang videyo yo</label>
                 <select class="select" id="f-lang">
-                  <option value="ht">Kreyòl</option>
-                  <option value="fr">Fransè</option>
-                  <option value="en">Anglè</option>
-                  <option value="es">Panyòl</option>
+                  <option value="ht" data-i18n>Kreyòl</option>
+                  <option value="fr" data-i18n>Franse</option>
+                  <option value="en" data-i18n>Angle</option>
+                  <option value="es" data-i18n>Panyòl</option>
                 </select>
               </div>
               <div class="field">
-                <label for="f-passing">Nòt pou pase (%)</label>
+                <label for="f-passing" data-i18n>Nòt pou pase (%)</label>
                 <input class="input" id="f-passing" type="number" min="0" max="100" value="70">
               </div>
               <div class="field" style="align-self: end;">
                 <label class="check">
                   <input type="checkbox" id="f-mandatory">
-                  Kou obligatwa
+                  <span data-i18n>Kou obligatwa</span>
                 </label>
               </div>
             </div>
 
             <div class="form-actions">
-              <button class="btn btn-primary" type="submit">Kreye kou a</button>
-              <button class="btn btn-ghost" type="button" id="f-cancel">Anile</button>
+              <button class="btn btn-primary" type="submit" data-i18n>Kreye kou a</button>
+              <button class="btn btn-ghost" type="button" id="f-cancel" data-i18n="Anile|aksyon">Anile</button>
             </div>
           </form>
         </section>
 
         <div class="toolbar">
-          <input class="input" id="search-category" type="search" placeholder="Chèche pa kategori">
+          <input class="input" id="search-category" type="search" data-i18n-attr="placeholder aria-label"
+                 placeholder="Chèche pa kategori" aria-label="Chèche pa kategori">
           <label class="check">
             <input type="checkbox" id="f-mandatory-only">
-            Sèlman obligatwa
+            <span data-i18n>Sèlman obligatwa</span>
           </label>
           <label class="check">
             <input type="checkbox" id="f-show-unpublished" checked>
-            Montre bouyon yo
+            <span data-i18n>Montre bouyon yo</span>
           </label>
         </div>
 
@@ -91,15 +94,15 @@
           <table class="table">
             <thead>
               <tr>
-                <th scope="col">Kou</th>
-                <th scope="col">Estati</th>
-                <th scope="col" class="num-col hide-sm">Leson</th>
-                <th scope="col" class="num-col hide-sm">Dire</th>
-                <th scope="col"><span class="visually-hidden">Aksyon</span></th>
+                <th scope="col" data-i18n>Kou</th>
+                <th scope="col" data-i18n>Estati</th>
+                <th scope="col" class="num-col hide-sm" data-i18n>Leson</th>
+                <th scope="col" class="num-col hide-sm" data-i18n>Dire</th>
+                <th scope="col"><span class="visually-hidden" data-i18n>Aksyon</span></th>
               </tr>
             </thead>
             <tbody id="rows">
-              <tr><td colspan="5" class="loading">Ap chaje…</td></tr>
+              <tr><td colspan="5" class="loading" data-i18n>Ap chaje…</td></tr>
             </tbody>
           </table>
         </div>
@@ -112,7 +115,7 @@
   <script>
   (async function () {
     'use strict';
-    const { api, fmt, h, ApiError, shell } = Konbit;
+    const { api, fmt, h, ApiError, shell, t } = Konbit;
 
     const identity = await shell.mount('training', shell.ADMIN);
     if (!identity) return;
@@ -120,19 +123,17 @@
     const $ = (id) => document.getElementById(id);
 
     function errorMessage(err) {
-      let msg = err instanceof ApiError ? err.message : 'Yon bagay pa mache.';
+      let msg = err instanceof ApiError ? err.message : t('Yon bagay pa mache.');
       if (err && err.fields && err.fields.length) {
         msg += ' ' + err.fields.map((f) => `${f.field}: ${f.message}`).join('; ');
       }
       return msg;
     }
 
+    /** Dire total kou a ("1è 20min", "1 h 20 min", "1h 20m"…). */
     function durationLabel(seconds) {
       if (!seconds) return '—';
-      const h_ = Math.floor(seconds / 3600);
-      const m = Math.floor((seconds % 3600) / 60);
-      if (h_) return `${h_}è ${m}min`;
-      return `${m}min`;
+      return fmt.duration(Math.floor(seconds / 60));
     }
 
     // -----------------------------------------------------------------------
@@ -165,7 +166,7 @@
 
       const title = $('f-title').value.trim();
       if (title.length < 2) {
-        formError.textContent = 'Mete yon tit pou kou a.';
+        formError.textContent = t('Mete yon tit pou kou a.');
         return;
       }
 
@@ -195,7 +196,7 @@
 
     async function loadList() {
       const body = $('rows');
-      body.replaceChildren(h('tr', {}, h('td', { colspan: '5', class: 'loading' }, 'Ap chaje…')));
+      body.replaceChildren(h('tr', {}, h('td', { colspan: '5', class: 'loading' }, t('Ap chaje…'))));
 
       const params = new URLSearchParams();
       if ($('search-category').value.trim()) params.set('category', $('search-category').value.trim());
@@ -204,11 +205,11 @@
 
       try {
         const data = await api.get(`/api/training/courses?${params}`);
-        $('count-label').textContent = data.total === 1 ? '1 kou' : `${data.total} kou`;
+        $('count-label').textContent = data.total === 1 ? t('1 kou') : t('{n} kou', { n: data.total });
 
         if (!data.items.length) {
           body.replaceChildren(h('tr', {}, h('td', { colspan: '5', class: 'empty' },
-            'Ou poko gen okenn kou. Klike "Nouvo kou" pou kòmanse.')));
+            t('Ou poko gen okenn kou. Klike "Nouvo kou" pou kòmanse.'))));
         } else {
           body.replaceChildren(...data.items.map(row));
         }
@@ -218,16 +219,18 @@
     }
 
     function row(course) {
+      // Kategori a ekri pa HR: li rete jan l ye.
+      const meta = [course.category, course.is_mandatory ? t('obligatwa') : null].filter(Boolean).join(' · ');
       return h('tr', {},
         h('td', {},
           h('a', { class: 'who plain-link', href: `training-course.html?id=${course.id}` }, course.title),
-          h('div', { class: 'num' }, [course.category, course.is_mandatory ? 'obligatwa' : null].filter(Boolean).join(' · ') || '—'),
+          h('div', { class: 'num' }, meta || '—'),
         ),
         h('td', {}, h('span', { class: `badge ${course.is_published ? 'badge-approved' : 'badge-pending'}` },
-          course.is_published ? 'Pibliye' : 'Bouyon')),
+          course.is_published ? t('Pibliye') : t('Bouyon'))),
         h('td', { class: 'num-col cell-muted hide-sm' }, String(course.lesson_count)),
         h('td', { class: 'num-col cell-muted hide-sm' }, durationLabel(course.total_duration_seconds)),
-        h('td', { class: 'actions' }, h('a', { class: 'btn btn-ghost btn-sm', href: `training-course.html?id=${course.id}` }, 'Wè')),
+        h('td', { class: 'actions' }, h('a', { class: 'btn btn-ghost btn-sm', href: `training-course.html?id=${course.id}` }, t('Wè'))),
       );
     }
 

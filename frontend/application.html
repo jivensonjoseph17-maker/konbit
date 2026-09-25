@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kandida — KONMBIT</title>
+  <title data-i18n>Kandida — KONMBIT</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -17,9 +17,9 @@
       <header class="topbar" id="topbar"></header>
 
       <main class="page">
-        <a class="back-link" id="back-link" href="jobs.html">Tout òf yo</a>
+        <a class="back-link" id="back-link" href="jobs.html" data-i18n>Tout òf yo</a>
 
-        <div id="content"><p class="loading">Ap chaje…</p></div>
+        <div id="content"><p class="loading" data-i18n>Ap chaje…</p></div>
       </main>
     </div>
   </div>
@@ -29,7 +29,7 @@
   <script>
   (async function () {
     'use strict';
-    const { api, fmt, h, ApiError, shell } = Konbit;
+    const { api, fmt, h, ApiError, shell, t } = Konbit;
 
     const identity = await shell.mount('hiring', shell.ADMIN);
     if (!identity) return;
@@ -39,7 +39,7 @@
     const id = Number(new URLSearchParams(location.search).get('id'));
 
     if (!Number.isInteger(id) || id <= 0) {
-      content.replaceChildren(h('div', { class: 'alert alert-error' }, 'Pa gen kandida chwazi. Retounen nan òf la.'));
+      content.replaceChildren(h('div', { class: 'alert alert-error' }, t('Pa gen kandida chwazi. Retounen nan òf la.')));
       return;
     }
 
@@ -47,10 +47,10 @@
     // KONSTAN
     // -------------------------------------------------------------------
 
-    const STAGE_LABELS = {
-      received: 'Resevwa', screening: 'Seleksyon', interview: 'Antrevi',
-      offer: 'Òf', hired: 'Anboche', rejected: 'Refize', withdrawn: 'Retire',
-    };
+    const stageLabel = (s) => ({
+      received: t('Resevwa'), screening: t('Seleksyon'), interview: t('Antrevi'),
+      offer: t('Òf|etap'), hired: t('Anboche|etap'), rejected: t('Refize'), withdrawn: t('Retire|etap'),
+    })[s] || s;
     const STAGE_BADGE = {
       received: 'badge-pending', screening: 'badge-pending', interview: 'badge-pending',
       offer: 'badge-pending', hired: 'badge-approved', rejected: 'badge-cancelled',
@@ -67,21 +67,30 @@
     };
     const CLOSED_STAGES = ['hired', 'rejected', 'withdrawn'];
 
+    // [kle tradiksyon, klas badge]
     const OFFER_STATUS = {
       draft: ['Bouyon', 'badge-pending'],
-      sent: ['Voye', 'badge-pending'],
+      sent: ['Voye|estati', 'badge-pending'],
       accepted: ['Aksepte', 'badge-approved'],
       declined: ['Refize', 'badge-cancelled'],
       expired: ['Ekspire', 'badge-cancelled'],
     };
-    const EMPLOYMENT_TYPE_LABELS = {
-      full_time: 'Tan plen', part_time: 'Tan pasyèl', contract: 'Kontra',
-      intern: 'Estaj', seasonal: 'Sezon',
-    };
-    const PAYMENT_METHODS = [
-      ['check', 'Chèk'], ['direct_deposit', 'Depo dirèk'], ['moncash', 'MonCash'],
-      ['natcash', 'NatCash'], ['cash', 'Lajan kach'],
+    const EMPLOYMENT_TYPES = ['full_time', 'part_time', 'contract', 'intern', 'seasonal'];
+    const employmentType = (v) => ({
+      full_time: t('Tan plen'), part_time: t('Tan pasyèl'), contract: t('Kontra'),
+      intern: t('Estaj'), seasonal: t('Sezon'),
+    })[v] || v;
+    const paymentMethods = () => [
+      ['check', t('Chèk')], ['direct_deposit', t('Depo dirèk')], ['moncash', 'MonCash'],
+      ['natcash', 'NatCash'], ['cash', t('Lajan kach')],
     ];
+
+    /**
+     * Tèks ki soti nan baz done a (kesyon ak seksyon fòm nan). Kesyon pa defo
+     * yo gen tradiksyon; sa HR ekri yo parèt jan l ekri yo.
+     * Yon tèks ki gen "|" pa pase nan t(): t() ta koupe l (kontèks).
+     */
+    const tr = (text) => (!text || text.includes('|') ? text : t(text));
 
     let detail = null;       // ApplicationDetail
     let offers = [];         // OfferRow pou kandida sa a, pi resan an anvan
@@ -97,7 +106,7 @@
     // -------------------------------------------------------------------
 
     function errorMessage(err) {
-      let msg = err instanceof ApiError ? err.message : 'Yon bagay pa mache.';
+      let msg = err instanceof ApiError ? err.message : t('Yon bagay pa mache.');
       if (err && err.fields && err.fields.length) {
         msg += ' ' + err.fields.map((f) => `${f.field}: ${f.message}`).join('; ');
       }
@@ -145,7 +154,7 @@
       );
     }
 
-    // Dat an kreyòl: fmt nan api.js konnen dat san fizo orè yo se UTC.
+    // fmt nan api.js konnen dat san fizo orè yo se UTC, epi li ekri yo nan lang moun nan.
     const formatDateTime = (value) => fmt.dateTime(value);
     const formatDay = (value) => fmt.date(value);
 
@@ -190,7 +199,7 @@
       const jobId = detail.application.job_posting_id;
 
       backLink.href = `job.html?id=${jobId}`;
-      backLink.textContent = detail.job_title || 'Òf la';
+      backLink.textContent = detail.job_title || t('Òf la');
 
       const offerList = await api.get(`/api/offers?job_posting_id=${jobId}`);
       offers = offerList.items.filter((row) => row.offer.application_id === id);
@@ -222,31 +231,34 @@
       const app = detail.application;
       const cv = safeUrl(app.resume_url);
 
+      // Sous la se sa lyen an te di ("paj karyè", "facebook"…): nou montre l jan l ye.
+      const applied = t('Aplike {date}', { date: formatDateTime(app.created_at) })
+        + (app.source ? ` · ${t('sous: {source}', { source: app.source })}` : '');
+
       const facts = h('div', { style: 'display: grid; gap: 6px;' },
         h('div', { class: 'sub' }, app.email),
         app.phone ? h('div', { class: 'sub' }, app.phone) : null,
-        h('div', { class: 'sub' }, `Aplike ${formatDateTime(app.created_at)}`
-          + (app.source ? ` · sous: ${app.source}` : '')),
+        h('div', { class: 'sub' }, applied),
         cv
-          ? h('a', { href: cv, target: '_blank', rel: 'noopener noreferrer' }, 'Louvri CV a')
-          : (app.resume_url ? h('span', { class: 'hint' }, 'Lyen CV a pa valab.') : null),
+          ? h('a', { href: cv, target: '_blank', rel: 'noopener noreferrer' }, t('Louvri CV a'))
+          : (app.resume_url ? h('span', { class: 'hint' }, t('Lyen CV a pa valab.')) : null),
       );
 
       const letter = app.cover_letter
         ? h('div', { style: 'margin-top: 14px;' },
-            h('p', { class: 'sub-label' }, 'Lèt motivasyon'),
+            h('p', { class: 'sub-label' }, t('Lèt motivasyon')),
             h('p', { style: 'white-space: pre-wrap; margin: 0;' }, app.cover_letter))
         : null;
 
       const rejected = app.stage === 'rejected' && detail.rejected_reason
         ? h('div', { class: 'alert alert-error', style: 'margin-top: 14px;' },
-            `Rezon refi: ${detail.rejected_reason}`)
+            t('Rezon refi: {reason}', { reason: detail.rejected_reason }))
         : null;
 
       return h('section', { class: 'panel' },
         h('div', { class: 'panel-head' },
           h('h2', {}, app.full_name),
-          badge(STAGE_LABELS[app.stage] || app.stage, STAGE_BADGE[app.stage]),
+          badge(stageLabel(app.stage), STAGE_BADGE[app.stage]),
         ),
         facts, letter, rejected,
       );
@@ -260,8 +272,10 @@
     function answerValue(a) {
       const v = a.value;
       if (v === null || v === undefined || v === '') return h('span', { class: 'sub' }, '—');
-      if (a.question_type === 'yes_no') return v ? 'Wi' : 'Non';
-      if (Array.isArray(v)) return v.join(', ');
+      if (a.question_type === 'yes_no') return v ? t('Wi') : t('Non|repons');
+      // Opsyon pa defo yo tradui; valè a li menm rete jan kandida a te chwazi l.
+      if (Array.isArray(v)) return v.map(tr).join(', ');
+      if (a.question_type === 'single_choice') return tr(String(v));
       if (a.question_type === 'date') return fmt.date(v);
       if (a.question_type === 'number') return Number(v).toLocaleString('fr-FR').replace(/[\u202F\u2009]/g, '\u00A0');
       if (a.question_type === 'url') {
@@ -274,8 +288,8 @@
     function answersPanel() {
       const answers = detail.answers || [];
       if (!answers.length) {
-        return panel('Repons fòm nan', null,
-          h('p', { class: 'empty' }, 'Kandida sa a pa t reponn okenn kesyon (li te aplike anvan nouvo fòm nan).'));
+        return panel(t('Repons fòm nan'), null,
+          h('p', { class: 'empty' }, t('Kandida sa a pa t reponn okenn kesyon (li te aplike anvan nouvo fòm nan).')));
       }
 
       const groups = [];
@@ -285,16 +299,18 @@
         g.items.push(a);
       }
 
-      return panel('Repons fòm nan', `${answers.length}`,
+      return panel(t('Repons fòm nan'), `${answers.length}`,
         ...groups.map((g) => h('div', { style: 'margin-top: 14px;' },
-          h('p', { class: 'sub-label' }, g.label),
+          h('p', { class: 'sub-label' }, tr(g.label)),
           h('dl', {
             style: 'display: grid; grid-template-columns: minmax(180px, 1fr) 2fr; gap: 8px 18px; margin: 0;',
           },
             ...g.items.flatMap((a) => [
               h('dt', { class: 'sub', style: 'margin: 0;' },
-                a.label,
-                a.is_sensitive ? h('span', { class: 'badge badge-pending', style: 'margin-left: 8px; font-size: 11px;' }, 'Sansib') : null),
+                tr(a.label),
+                a.is_sensitive
+                  ? h('span', { class: 'badge badge-pending', style: 'margin-inline-start: 8px; font-size: 11px;' }, t('Sansib'))
+                  : null),
               h('dd', { style: 'margin: 0; overflow-wrap: anywhere;' }, answerValue(a)),
             ]),
           ))),
@@ -314,19 +330,19 @@
         app.rating ?? '');
       const ratingMsg = h('span', { class: 'hint', role: 'status' });
       const notes = textarea('ev-notes', drafts.notes ?? detail.internal_notes, { rows: '4' });
-      const save = h('button', { class: 'btn btn-primary btn-sm', type: 'submit' }, 'Sove nòt yo');
+      const save = h('button', { class: 'btn btn-primary btn-sm', type: 'submit' }, t('Sove nòt yo'));
 
       // ★ yo sove menm kote a: pa gen bouton pou moun bliye klike.
       rating.addEventListener('change', async () => {
         ratingMsg.className = 'hint';
-        ratingMsg.textContent = 'Ap sove…';
+        ratingMsg.textContent = t('Ap sove…');
         rating.disabled = true;
         try {
           const updated = await api.patch(`/api/applications/${id}`, {
             rating: rating.value ? Number(rating.value) : null,
           });
           detail.application.rating = updated.rating;
-          ratingMsg.textContent = 'Sove.';
+          ratingMsg.textContent = t('Sove.');
         } catch (err) {
           ratingMsg.className = 'field-error';
           ratingMsg.textContent = errorMessage(err);
@@ -340,8 +356,8 @@
 
       const form = h('form', { novalidate: true, style: 'display: grid; gap: 12px;' },
         h('div', { class: 'field' },
-          h('label', { for: rating.id }, 'Evalyasyon'), rating, ratingMsg),
-        field('Nòt entèn', notes, 'Kandida a pa janm wè nòt sa yo.'),
+          h('label', { for: rating.id }, t('Evalyasyon|nòt')), rating, ratingMsg),
+        field(t('Nòt entèn'), notes, t('Kandida a pa janm wè nòt sa yo.')),
         msg, h('div', {}, save),
       );
 
@@ -357,7 +373,7 @@
           detail.internal_notes = notes.value.trim() || null;
           delete drafts.notes;
           msg.className = 'hint';
-          msg.textContent = 'Sove.';
+          msg.textContent = t('Sove.');
         } catch (err) {
           msg.textContent = errorMessage(err);
         } finally {
@@ -371,10 +387,10 @@
       if (targets.length) {
         const stageMsg = h('p', { class: 'field-error', role: 'status' });
         const moveSelect = select('ev-stage',
-          [[app.stage, STAGE_LABELS[app.stage]],
-           ...targets.filter((t) => t !== 'rejected').map((t) => [t, `→ ${STAGE_LABELS[t]}`])],
+          [[app.stage, stageLabel(app.stage)],
+           ...targets.filter((s) => s !== 'rejected').map((s) => [s, `→ ${stageLabel(s)}`])],
           app.stage);
-        const moveBtn = h('button', { class: 'btn btn-ghost btn-sm', type: 'button', disabled: true }, 'Deplase');
+        const moveBtn = h('button', { class: 'btn btn-ghost btn-sm', type: 'button', disabled: true }, t('Deplase'));
         moveSelect.addEventListener('change', () => { moveBtn.disabled = moveSelect.value === app.stage; });
         moveBtn.addEventListener('click', async () => {
           moveBtn.disabled = true;
@@ -389,14 +405,14 @@
         });
 
         const rejectBtn = targets.includes('rejected')
-          ? h('button', { class: 'btn btn-danger btn-sm', type: 'button' }, 'Refize kandida a')
+          ? h('button', { class: 'btn btn-danger btn-sm', type: 'button' }, t('Refize kandida a'))
           : null;
         if (rejectBtn) {
           rejectBtn.addEventListener('click', async () => {
-            const reason = prompt(`Poukisa ou refize ${app.full_name}?`);
+            const reason = prompt(t('Poukisa ou refize {name}?', { name: app.full_name }));
             if (reason === null) return;
             if (reason.trim().length < 3) {
-              stageMsg.textContent = 'Mete yon rezon ki gen omwen 3 karaktè.';
+              stageMsg.textContent = t('Mete yon rezon ki gen omwen 3 karaktè.');
               return;
             }
             rejectBtn.disabled = true;
@@ -411,14 +427,14 @@
         }
 
         stageBox = h('div', { style: 'margin-top: 18px; display: grid; gap: 8px;' },
-          h('p', { class: 'sub-label' }, 'Etap'),
+          h('p', { class: 'sub-label' }, t('Etap')),
           h('div', { style: 'display: flex; gap: 8px; flex-wrap: wrap; align-items: center;' },
             moveSelect, moveBtn, rejectBtn),
           stageMsg,
         );
       }
 
-      return panel('Evalyasyon', null, form, stageBox);
+      return panel(t('Evalyasyon|nòt'), null, form, stageBox);
     }
 
     // -------------------------------------------------------------------
@@ -434,16 +450,16 @@
       const notes = textarea(`iv-notes-${iv.id}`, iv.notes);
       const done = h('input', { type: 'checkbox', id: `iv-done-${iv.id}` });
       done.checked = Boolean(iv.completed);
-      const save = h('button', { class: 'btn btn-ghost btn-sm', type: 'submit' }, 'Anrejistre rezilta a');
+      const save = h('button', { class: 'btn btn-ghost btn-sm', type: 'submit' }, t('Anrejistre rezilta a'));
 
       const form = h('form', { novalidate: true, style: 'display: grid; gap: 10px; margin-top: 10px;' },
         h('div', { style: 'display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px;' },
-          field('Nòt', score),
+          field(t('Nòt'), score),
           h('div', { class: 'field', style: 'align-self: end;' },
             h('label', { for: done.id, style: 'display: flex; gap: 8px; align-items: center;' },
-              done, 'Antrevi a fèt')),
+              done, t('Antrevi a fèt'))),
         ),
-        field('Kòmantè', notes),
+        field(t('Kòmantè'), notes),
         msg, h('div', {}, save),
       );
 
@@ -469,14 +485,15 @@
         style: 'padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-sm);',
       },
         h('div', { style: 'display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap;' },
-          h('strong', {}, `Wonn ${iv.round_number} · ${formatDateTime(iv.scheduled_at)}`),
-          iv.completed ? badge('Fèt', 'badge-approved') : badge('Planifye', 'badge-pending'),
+          h('strong', {}, t('Wonn {round} · {when}', { round: iv.round_number, when: formatDateTime(iv.scheduled_at) })),
+          iv.completed ? badge(t('Fèt'), 'badge-approved') : badge(t('Planifye|estati'), 'badge-pending'),
         ),
         h('div', { class: 'sub', style: 'margin-top: 4px;' },
-          `${iv.duration_minutes} min · ${iv.interviewer_id ? employeeName(iv.interviewer_id) : 'San entèvyouwè'}`),
+          `${t('{n} min', { n: iv.duration_minutes })} · `
+          + (iv.interviewer_id ? employeeName(iv.interviewer_id) : t('San entèvyouwè'))),
         iv.location
           ? h('div', { class: 'sub' },
-              place ? h('a', { href: place, target: '_blank', rel: 'noopener noreferrer' }, 'Lyen apèl la')
+              place ? h('a', { href: place, target: '_blank', rel: 'noopener noreferrer' }, t('Lyen apèl la'))
                     : iv.location)
           : null,
         form,
@@ -495,21 +512,21 @@
       time.addEventListener('input', () => { drafts.scTime = time.value; });
       const duration = input('sc-duration', '45', { type: 'number', min: '5', max: '480', step: '5' });
       const who = select('sc-who',
-        [['', 'Pa chwazi'], ...employees.map((e) => [String(e.id), `${e.first_name} ${e.last_name}`])], '');
-      const where = input('sc-where', '', { maxlength: '255', placeholder: 'Adrès oswa lyen videyo' });
+        [['', t('Pa chwazi')], ...employees.map((e) => [String(e.id), `${e.first_name} ${e.last_name}`])], '');
+      const where = input('sc-where', '', { maxlength: '255', placeholder: t('Adrès oswa lyen videyo') });
       const round = input('sc-round', String(nextRound), { type: 'number', min: '1' });
-      const submit = h('button', { class: 'btn btn-primary btn-sm', type: 'submit' }, 'Planifye');
+      const submit = h('button', { class: 'btn btn-primary btn-sm', type: 'submit' }, t('Planifye|aksyon'));
 
       const form = h('form', { novalidate: true, style: 'display: grid; gap: 12px; margin-top: 18px;' },
-        h('p', { class: 'sub-label' }, 'Nouvo antrevi'),
+        h('p', { class: 'sub-label' }, t('Nouvo antrevi')),
         h('div', { style: 'display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;' },
-          field('Dat', day),
-          field('Lè', time, 'Lè lokal ou.'),
-          field('Dire (minit)', duration),
-          field('Wonn', round),
-          field('Kiyès k ap fè l', who),
+          field(t('Dat|yon sèl'), day),
+          field(t('Lè'), time, t('Lè lokal ou.')),
+          field(t('Dire (minit)'), duration),
+          field(t('Wonn'), round),
+          field(t('Kiyès k ap fè l'), who),
         ),
-        field('Kote', where),
+        field(t('Kote'), where),
         msg, h('div', {}, submit),
       );
 
@@ -517,10 +534,10 @@
         e.preventDefault();
         msg.textContent = '';
 
-        if (!day.value || !time.value) { msg.textContent = 'Chwazi dat ak lè antrevi a.'; return; }
+        if (!day.value || !time.value) { msg.textContent = t('Chwazi dat ak lè antrevi a.'); return; }
         const iso = localInputToIso(`${day.value}T${time.value}`);
-        if (!iso) { msg.textContent = 'Dat oswa lè a pa valab.'; return; }
-        if (new Date(iso) < new Date()) { msg.textContent = 'Dat la deja pase.'; return; }
+        if (!iso) { msg.textContent = t('Dat oswa lè a pa valab.'); return; }
+        if (new Date(iso) < new Date()) { msg.textContent = t('Dat la deja pase.'); return; }
 
         submit.disabled = true;
         try {
@@ -547,10 +564,10 @@
     function interviewsPanel() {
       const list = detail.interviews.length
         ? h('div', { style: 'display: grid; gap: 12px;' }, ...detail.interviews.map(interviewCard))
-        : h('p', { class: 'empty' }, 'Poko gen antrevi.');
+        : h('p', { class: 'empty' }, t('Poko gen antrevi.'));
 
       const canSchedule = !CLOSED_STAGES.includes(detail.application.stage);
-      return panel('Antrevi', `${detail.interviews.length}`, list, canSchedule ? scheduleForm() : null);
+      return panel(t('Antrevi'), `${detail.interviews.length}`, list, canSchedule ? scheduleForm() : null);
     }
 
     // -------------------------------------------------------------------
@@ -559,36 +576,35 @@
 
     function offerSummary(row) {
       const o = row.offer;
-      const [label, cls] = OFFER_STATUS[o.status] || [o.status, ''];
+      const [key, cls] = OFFER_STATUS[o.status] || [null, ''];
+      const parts = [employmentType(o.employment_type), t('antre {date}', { date: formatDay(o.start_date) })];
+      if (o.expires_at) parts.push(t('ekspire {date}', { date: formatDateTime(o.expires_at) }));
       return h('div', { style: 'display: grid; gap: 4px;' },
         h('div', { style: 'display: flex; gap: 10px; align-items: center; flex-wrap: wrap;' },
           h('strong', { style: 'font-size: 18px;' }, fmt.money(o.salary, o.currency)),
-          badge(label, cls),
-          row.is_expired && o.status !== 'expired' ? badge('Dat la pase', 'badge-cancelled') : null,
+          badge(key ? t(key) : o.status, cls),
+          row.is_expired && o.status !== 'expired' ? badge(t('Dat la pase'), 'badge-cancelled') : null,
         ),
-        h('div', { class: 'sub' },
-          `${EMPLOYMENT_TYPE_LABELS[o.employment_type] || o.employment_type}`
-          + ` · antre ${formatDay(o.start_date)}`
-          + (o.expires_at ? ` · ekspire ${formatDateTime(o.expires_at)}` : '')),
+        h('div', { class: 'sub' }, parts.join(' · ')),
       );
     }
 
     function createOfferForm() {
       const msg = h('p', { class: 'field-error', role: 'status' });
-      const salary = input('of-salary', '', { inputmode: 'decimal', placeholder: 'Egz: 45 000' });
+      const salary = input('of-salary', '', { inputmode: 'decimal', placeholder: t('Egz: 45 000') });
       const currency = select('of-currency', [['HTG', 'HTG'], ['USD', 'USD']], 'HTG');
-      const type = select('of-type', Object.entries(EMPLOYMENT_TYPE_LABELS), 'full_time');
+      const type = select('of-type', EMPLOYMENT_TYPES.map((v) => [v, employmentType(v)]), 'full_time');
       const start = input('of-start', '', { type: 'date' });
       const expires = input('of-expires', '', { type: 'date' });
-      const submit = h('button', { class: 'btn btn-primary btn-sm', type: 'submit' }, 'Kreye bouyon an');
+      const submit = h('button', { class: 'btn btn-primary btn-sm', type: 'submit' }, t('Kreye bouyon an'));
 
       const form = h('form', { novalidate: true, style: 'display: grid; gap: 12px;' },
         h('div', { style: 'display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;' },
-          field('Salè pa mwa', salary),
-          field('Lajan', currency),
-          field('Kalite kontra', type),
-          field('Dat antre', start),
-          field('Repons avan', expires, 'Jouk nan fen jounen sa a.'),
+          field(t('Salè pa mwa'), salary),
+          field(t('Lajan'), currency),
+          field(t('Kalite kontra'), type),
+          field(t('Dat antre'), start),
+          field(t('Repons avan'), expires, t('Jouk nan fen jounen sa a.')),
         ),
         msg, h('div', {}, submit),
       );
@@ -597,12 +613,12 @@
         e.preventDefault();
         msg.textContent = '';
         const cents = fmt.parseMoney(salary.value);
-        if (cents === null || cents <= 0) { msg.textContent = 'Mete yon salè valab.'; return; }
+        if (cents === null || cents <= 0) { msg.textContent = t('Mete yon salè valab.'); return; }
 
         let expiresIso = null;
         if (expires.value) {
           expiresIso = localInputToIso(`${expires.value}T23:59:59`);
-          if (new Date(expiresIso) < new Date()) { msg.textContent = 'Dat repons lan deja pase.'; return; }
+          if (new Date(expiresIso) < new Date()) { msg.textContent = t('Dat repons lan deja pase.'); return; }
         }
 
         submit.disabled = true;
@@ -646,11 +662,11 @@
       const oid = row.offer.id;
       return h('div', { style: 'display: grid; gap: 8px; margin-top: 14px;' },
         h('p', { class: 'hint' },
-          'Sistèm lan pa voye imel. Voye dokiman an bay kandida a, epi make l "voye" isit la.'),
+          t('Sistèm lan pa voye imel. Voye dokiman an bay kandida a, epi make l "voye" isit la.')),
         h('div', { style: 'display: flex; gap: 8px; flex-wrap: wrap;' },
-          actionButton('Make l voye', 'btn-primary', () => api.post(`/api/offers/${oid}/send`), msg),
-          actionButton('Efase bouyon an', 'btn-danger', async () => {
-            if (!confirm('Efase bouyon pwopozisyon sa a?')) throw new ApiError(0, 'Anile.');
+          actionButton(t('Make l voye'), 'btn-primary', () => api.post(`/api/offers/${oid}/send`), msg),
+          actionButton(t('Efase bouyon an'), 'btn-danger', async () => {
+            if (!confirm(t('Efase bouyon pwopozisyon sa a?'))) throw new ApiError(0, t('Anile'));
             await api.del(`/api/offers/${oid}`);
           }, msg),
         ),
@@ -661,15 +677,15 @@
     function sentActions(row) {
       const msg = h('p', { class: 'field-error', role: 'status' });
       const oid = row.offer.id;
-      const note = input('of-note', '', { maxlength: '500', placeholder: 'Egz: Li aksepte pa telefòn' });
+      const note = input('of-note', '', { maxlength: '500', placeholder: t('Egz: Li aksepte pa telefòn') });
       const respond = (accept) => () => api.post(`/api/offers/${oid}/respond`, {
         accept, note: note.value.trim() || null,
       });
       return h('div', { style: 'display: grid; gap: 10px; margin-top: 14px;' },
-        field('Nòt sou repons lan', note),
+        field(t('Nòt sou repons lan'), note),
         h('div', { style: 'display: flex; gap: 8px; flex-wrap: wrap;' },
-          actionButton('Kandida a aksepte', 'btn-primary', respond(true), msg),
-          actionButton('Kandida a refize', 'btn-danger', respond(false), msg),
+          actionButton(t('Kandida a aksepte'), 'btn-primary', respond(true), msg),
+          actionButton(t('Kandida a refize'), 'btn-danger', respond(false), msg),
         ),
         msg,
       );
@@ -682,7 +698,7 @@
 
       const firstName = input('hi-first', first, { maxlength: '100' });
       const lastName = input('hi-last', last, { maxlength: '100' });
-      const pay = select('hi-pay', PAYMENT_METHODS, 'check');
+      const pay = select('hi-pay', paymentMethods(), 'check');
 
       // Detay peman yo parèt dapre metòd la. San yo, yon "Depo dirèk" san
       // nimewo kont te fini pa peye pa chèk san pèsonn pa remake.
@@ -690,9 +706,9 @@
       const bankAccount = input('hi-account', '', { maxlength: '50', inputmode: 'numeric' });
       const mobile = input('hi-mobile', app.phone || '', { type: 'tel', maxlength: '30' });
       const bankBox = h('div', { style: 'display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;' },
-        field('Bank', bankName), field('Nimewo kont', bankAccount));
+        field(t('Bank'), bankName), field(t('Nimewo kont'), bankAccount));
       const mobileBox = h('div', { style: 'display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;' },
-        field('Nimewo telefòn peman an', mobile, 'Nimewo kont MonCash oswa NatCash la.'));
+        field(t('Nimewo telefòn peman an'), mobile, t('Nimewo kont MonCash oswa NatCash la.')));
       function syncPayFields() {
         bankBox.hidden = pay.value !== 'direct_deposit';
         mobileBox.hidden = !['moncash', 'natcash'].includes(pay.value);
@@ -702,23 +718,23 @@
       const makeLogin = h('input', { type: 'checkbox', id: 'hi-login' });
       makeLogin.checked = true;
       const loginEmail = input('hi-email', app.email, { type: 'email' });
-      const role = select('hi-role', [['employee', 'Anplwaye'], ['manager', 'Manadjè']], 'employee');
+      const role = select('hi-role', [['employee', t('Anplwaye')], ['manager', t('Manadjè')]], 'employee');
       const loginBox = h('div', { style: 'display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;' },
-        field('Imel koneksyon', loginEmail), field('Wòl', role));
+        field(t('Imel koneksyon'), loginEmail), field(t('Wòl'), role));
       makeLogin.addEventListener('change', () => { loginBox.hidden = !makeLogin.checked; });
 
-      const submit = h('button', { class: 'btn btn-primary', type: 'submit' }, 'Anboche');
+      const submit = h('button', { class: 'btn btn-primary', type: 'submit' }, t('Anboche|aksyon'));
 
       const form = h('form', { novalidate: true, style: 'display: grid; gap: 12px; margin-top: 16px;' },
-        h('p', { class: 'sub-label' }, 'Anboche kandida a'),
+        h('p', { class: 'sub-label' }, t('Anboche kandida a')),
         h('p', { class: 'hint' },
-          'Salè, dat antre ak kalite kontra a soti nan pwopozisyon an. HR ka konplete rès dosye a apre.'),
+          t('Salè, dat antre ak kalite kontra a soti nan pwopozisyon an. HR ka konplete rès dosye a apre.')),
         h('div', { style: 'display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;' },
-          field('Prenon', firstName), field('Non', lastName), field('Peman', pay)),
+          field(t('Prenon'), firstName), field(t('Non|moun'), lastName), field(t('Peman'), pay)),
         bankBox,
         mobileBox,
         h('label', { for: makeLogin.id, style: 'display: flex; gap: 8px; align-items: center;' },
-          makeLogin, 'Kreye yon kont koneksyon'),
+          makeLogin, t('Kreye yon kont koneksyon')),
         loginBox,
         msg, h('div', {}, submit),
       );
@@ -727,18 +743,19 @@
         e.preventDefault();
         msg.textContent = '';
         if (!firstName.value.trim() || !lastName.value.trim()) {
-          msg.textContent = 'Prenon ak non obligatwa.';
+          msg.textContent = t('Prenon ak non obligatwa.');
           return;
         }
         if (pay.value === 'direct_deposit' && (!bankName.value.trim() || !bankAccount.value.trim())) {
-          msg.textContent = 'Pou depo dirèk, mete non bank lan ak nimewo kont lan.';
+          msg.textContent = t('Pou depo dirèk, mete non bank lan ak nimewo kont lan.');
           return;
         }
         if (['moncash', 'natcash'].includes(pay.value) && !mobile.value.trim()) {
-          msg.textContent = 'Mete nimewo telefòn kote l ap resevwa peman an.';
+          msg.textContent = t('Mete nimewo telefòn kote l ap resevwa peman an.');
           return;
         }
-        if (!confirm(`Anboche ${firstName.value.trim()} ${lastName.value.trim()}? Sa kreye dosye anplwaye a.`)) return;
+        const fullName = `${firstName.value.trim()} ${lastName.value.trim()}`;
+        if (!confirm(t('Anboche {name}? Sa kreye dosye anplwaye a.', { name: fullName }))) return;
 
         submit.disabled = true;
         try {
@@ -770,19 +787,19 @@
 
       let credentials = null;
       if (hireResult.temporary_password) {
-        const copy = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, 'Kopye');
+        const copy = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, t('Kopye'));
         copy.addEventListener('click', async () => {
           try {
             await navigator.clipboard.writeText(hireResult.temporary_password);
-            copyMsg.textContent = 'Kopye.';
+            copyMsg.textContent = t('Kopye ✓');
           } catch {
-            copyMsg.textContent = 'Kopye l alamen.';
+            copyMsg.textContent = t('Kopye l alamen.');
           }
         });
         credentials = h('div', { style: 'display: grid; gap: 6px; margin-top: 10px;' },
-          h('div', {}, `Imel: ${hireResult.login_email}`),
+          h('div', {}, t('Imel koneksyon: {email}', { email: hireResult.login_email })),
           h('div', { style: 'display: flex; gap: 10px; align-items: center; flex-wrap: wrap;' },
-            h('code', { style: 'font-size: 16px; padding: 6px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm);' },
+            h('code', { style: 'font-size: 16px; padding: 6px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); direction: ltr; unicode-bidi: isolate;' },
               hireResult.temporary_password),
             copy, copyMsg),
         );
@@ -791,13 +808,16 @@
       return h('div', {
         style: 'padding: 16px; border: 2px solid var(--line); border-radius: var(--radius-sm); margin-top: 14px;',
       },
-        h('strong', {}, `${emp.first_name} ${emp.last_name} anboche (${emp.employee_number}).`),
+        h('strong', {}, t('{name} anboche ({number}).', {
+          name: `${emp.first_name} ${emp.last_name}`, number: emp.employee_number,
+        })),
         credentials,
+        // Nòt sa a soti nan backend la (an kreyòl): li rete jan l ye.
         h('p', { class: 'hint', style: 'display: block; margin-top: 10px;' }, hireResult.note),
         hireResult.job_closed ? h('p', { class: 'hint', style: 'display: block;' },
-          'Tout pòs yo ranpli: òf la fèmen otomatikman.') : null,
+          t('Tout pòs yo ranpli: òf la fèmen otomatikman.')) : null,
         h('a', { href: `employee.html?id=${emp.id}`, class: 'btn btn-primary btn-sm', style: 'margin-top: 10px;' },
-          'Louvri dosye anplwaye a'),
+          t('Louvri dosye anplwaye a')),
       );
     }
 
@@ -815,20 +835,20 @@
       } else if (['interview', 'offer'].includes(stage)) {
         body.push(createOfferForm());
       } else if (!CLOSED_STAGES.includes(stage)) {
-        body.push(h('p', { class: 'empty' }, 'Fè omwen yon antrevi anvan ou fè yon pwopozisyon.'));
+        body.push(h('p', { class: 'empty' }, t('Fè omwen yon antrevi anvan ou fè yon pwopozisyon.')));
       } else if (!offers.length) {
-        body.push(h('p', { class: 'empty' }, 'Pa gen pwopozisyon.'));
+        body.push(h('p', { class: 'empty' }, t('Pa gen pwopozisyon.')));
       }
 
       body.push(hireResultBox());
 
       if (past.length) {
         body.push(h('div', { style: 'margin-top: 18px; display: grid; gap: 10px;' },
-          h('p', { class: 'sub-label' }, 'Ansyen pwopozisyon'),
+          h('p', { class: 'sub-label' }, t('Ansyen pwopozisyon')),
           ...past.map(offerSummary)));
       }
 
-      return panel('Pwopozisyon travay', null, ...body);
+      return panel(t('Pwopozisyon travay'), null, ...body);
     }
 
     // -------------------------------------------------------------------

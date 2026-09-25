@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Rekritman — KONMBIT</title>
+  <title data-i18n>Rekritman — KONMBIT</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -19,12 +19,12 @@
       <main class="page">
         <div class="page-head-row">
           <div class="page-head">
-            <h1>Rekritman</h1>
-            <p id="count-label">Ap chaje…</p>
+            <h1 data-i18n>Rekritman</h1>
+            <p id="count-label" data-i18n>Ap chaje…</p>
           </div>
           <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-            <button class="btn btn-ghost" type="button" id="copy-link-btn">Kopye lyen paj karyè a</button>
-            <button class="btn btn-primary" type="button" id="add-btn">Nouvo òf</button>
+            <button class="btn btn-ghost" type="button" id="copy-link-btn" data-i18n>Kopye lyen paj karyè a</button>
+            <button class="btn btn-primary" type="button" id="add-btn" data-i18n>Nouvo òf</button>
           </div>
         </div>
         <p class="hint" id="copy-link-msg" role="status" style="display: block; margin: -12px 0 16px;"></p>
@@ -32,97 +32,101 @@
         <!-- Fòm kreye yon òf -->
         <section class="panel form-panel" id="form-panel" hidden aria-labelledby="form-title">
           <div class="panel-head">
-            <h2 id="form-title">Nouvo òf travay</h2>
+            <h2 id="form-title" data-i18n>Nouvo òf travay</h2>
           </div>
 
           <form id="job-form" novalidate>
             <div class="alert alert-error" id="form-error" role="alert"></div>
 
             <div class="form-grid" style="margin-top: 12px;">
-              <p class="form-section-title">Baz</p>
+              <p class="form-section-title" data-i18n>Baz</p>
 
               <div class="field span-2">
-                <label for="f-title">Tit pòs la</label>
-                <input class="input" id="f-title" required minlength="3" maxlength="200" autocomplete="off" placeholder="Kesye, Enjenyè Lojisyèl...">
+                <label for="f-title" data-i18n>Tit pòs la</label>
+                <input class="input" id="f-title" required minlength="3" maxlength="200" autocomplete="off"
+                       data-i18n-attr="placeholder" placeholder="Kesye, Enjenyè Lojisyèl…">
               </div>
               <div class="field">
-                <label for="f-location">Kote</label>
-                <input class="input" id="f-location" maxlength="200" autocomplete="off" placeholder="Pòtoprens, Ayiti">
+                <label for="f-location" data-i18n>Kote</label>
+                <input class="input" id="f-location" maxlength="200" autocomplete="off" placeholder="Port-au-Prince">
               </div>
               <div class="field">
-                <label for="f-type">Kalite kontra</label>
+                <label for="f-type" data-i18n>Kalite kontra</label>
                 <select class="select" id="f-type">
-                  <option value="full_time">Tan plen</option>
-                  <option value="part_time">Tan pasyèl</option>
-                  <option value="contract">Kontra</option>
-                  <option value="intern">Estaj</option>
-                  <option value="seasonal">Sezon</option>
+                  <option value="full_time" data-i18n>Tan plen</option>
+                  <option value="part_time" data-i18n>Tan pasyèl</option>
+                  <option value="contract" data-i18n>Kontra</option>
+                  <option value="intern" data-i18n>Estaj</option>
+                  <option value="seasonal" data-i18n>Sezon</option>
                 </select>
               </div>
               <div class="field span-2">
                 <label class="check" style="margin-top: 8px;">
                   <input type="checkbox" id="f-remote">
-                  Travay la ka fèt adistans
+                  <span data-i18n>Travay la ka fèt adistans</span>
                 </label>
               </div>
 
-              <p class="form-section-title">Deskripsyon</p>
+              <p class="form-section-title" data-i18n>Deskripsyon</p>
 
               <div class="field span-2">
-                <label for="f-desc">Deskripsyon pòs la</label>
+                <label for="f-desc" data-i18n>Deskripsyon pòs la</label>
                 <textarea class="textarea" id="f-desc" rows="4" maxlength="4000"></textarea>
-                <span class="hint">Obligatwa anvan ou ka pibliye òf la.</span>
+                <span class="hint" data-i18n>Obligatwa anvan ou ka pibliye òf la.</span>
               </div>
               <div class="field span-2">
-                <label for="f-req">Kalifikasyon mande</label>
+                <label for="f-req" data-i18n>Kalifikasyon mande</label>
                 <textarea class="textarea" id="f-req" rows="3" maxlength="4000"></textarea>
               </div>
               <div class="field span-2">
-                <label for="f-resp">Responsablite</label>
+                <label for="f-resp" data-i18n>Responsablite</label>
                 <textarea class="textarea" id="f-resp" rows="3" maxlength="4000"></textarea>
               </div>
 
-              <p class="form-section-title">Salè ak kantite pòs</p>
+              <p class="form-section-title" data-i18n>Salè ak kantite pòs</p>
 
               <div class="field">
-                <label for="f-salmin">Salè minimòm (HTG)</label>
-                <input class="input" id="f-salmin" inputmode="decimal" placeholder="Opsyonèl" autocomplete="off">
+                <label for="f-salmin" data-i18n>Salè minimòm (HTG)</label>
+                <input class="input" id="f-salmin" inputmode="decimal" autocomplete="off"
+                       data-i18n-attr="placeholder" placeholder="Opsyonèl">
               </div>
               <div class="field">
-                <label for="f-salmax">Salè maksimòm (HTG)</label>
-                <input class="input" id="f-salmax" inputmode="decimal" placeholder="Opsyonèl" autocomplete="off">
+                <label for="f-salmax" data-i18n>Salè maksimòm (HTG)</label>
+                <input class="input" id="f-salmax" inputmode="decimal" autocomplete="off"
+                       data-i18n-attr="placeholder" placeholder="Opsyonèl">
               </div>
               <div class="field span-2">
                 <label class="check">
                   <input type="checkbox" id="f-showsal">
-                  Montre salè a sou paj karyè piblik la
+                  <span data-i18n>Montre salè a sou paj karyè piblik la</span>
                 </label>
               </div>
               <div class="field">
-                <label for="f-openings">Kantite pòs louvri</label>
+                <label for="f-openings" data-i18n>Kantite pòs louvri</label>
                 <input class="input" id="f-openings" type="number" min="1" max="999" value="1">
               </div>
               <div class="field">
-                <label for="f-closes">Dat fèmti (opsyonèl)</label>
+                <label for="f-closes" data-i18n>Dat fèmti (opsyonèl)</label>
                 <input class="input" id="f-closes" type="date">
-                <span class="hint">Òf la fèmen nan fen jounen sa a, lè lokal.</span>
+                <span class="hint" data-i18n>Òf la fèmen nan fen jounen sa a, lè lokal.</span>
               </div>
             </div>
 
             <div class="form-actions">
-              <button class="btn btn-primary" type="submit">Kreye òf la</button>
-              <button class="btn btn-ghost" type="button" id="f-cancel">Anile</button>
+              <button class="btn btn-primary" type="submit" data-i18n>Kreye òf la</button>
+              <button class="btn btn-ghost" type="button" id="f-cancel" data-i18n="Anile|aksyon">Anile</button>
             </div>
           </form>
         </section>
 
         <div class="toolbar">
-          <input class="input" id="search" type="search" placeholder="Chèche pa tit">
-          <select class="select" id="f-status" aria-label="Estati">
-            <option value="">Tout estati</option>
-            <option value="draft">Bouyon</option>
-            <option value="published">Pibliye</option>
-            <option value="closed">Fèmen</option>
+          <input class="input" id="search" type="search" data-i18n-attr="placeholder aria-label"
+                 placeholder="Chèche pa tit" aria-label="Chèche pa tit">
+          <select class="select" id="f-status" data-i18n-attr="aria-label" aria-label="Estati">
+            <option value="" data-i18n>Tout estati</option>
+            <option value="draft" data-i18n>Bouyon</option>
+            <option value="published" data-i18n>Pibliye</option>
+            <option value="closed" data-i18n="Fèmen|estati">Fèmen</option>
           </select>
         </div>
 
@@ -130,15 +134,15 @@
           <table class="table">
             <thead>
               <tr>
-                <th scope="col">Tit</th>
-                <th scope="col">Estati</th>
-                <th scope="col" class="num-col hide-sm">Kandida</th>
-                <th scope="col" class="num-col hide-sm">Pòs louvri</th>
-                <th scope="col"><span class="visually-hidden">Aksyon</span></th>
+                <th scope="col" data-i18n>Tit</th>
+                <th scope="col" data-i18n>Estati</th>
+                <th scope="col" class="num-col hide-sm" data-i18n="Kandida|plizyè">Kandida</th>
+                <th scope="col" class="num-col hide-sm" data-i18n>Pòs louvri</th>
+                <th scope="col"><span class="visually-hidden" data-i18n>Aksyon</span></th>
               </tr>
             </thead>
             <tbody id="rows">
-              <tr><td colspan="5" class="loading">Ap chaje…</td></tr>
+              <tr><td colspan="5" class="loading" data-i18n>Ap chaje…</td></tr>
             </tbody>
           </table>
         </div>
@@ -151,23 +155,24 @@
   <script>
   (async function () {
     'use strict';
-    const { api, fmt, h, ApiError, shell } = Konbit;
+    const { api, fmt, h, ApiError, shell, t } = Konbit;
 
     const identity = await shell.mount('hiring', shell.ADMIN);
     if (!identity) return;
 
     const $ = (id) => document.getElementById(id);
 
+    // [kle tradiksyon, klas badge]
     const JOB_STATUS = {
       draft: ['Bouyon', 'badge-pending'],
       published: ['Pibliye', 'badge-approved'],
-      closed: ['Fèmen', 'badge-cancelled'],
+      closed: ['Fèmen|estati', 'badge-cancelled'],
     };
 
     const state = { q: '', status: '', items: [] };
 
     function errorMessage(err) {
-      let msg = err instanceof ApiError ? err.message : 'Yon bagay pa mache.';
+      let msg = err instanceof ApiError ? err.message : t('Yon bagay pa mache.');
       if (err && err.fields && err.fields.length) {
         msg += ' ' + err.fields.map((f) => `${f.field}: ${f.message}`).join('; ');
       }
@@ -175,8 +180,8 @@
     }
 
     function statusBadge(status) {
-      const [label, cls] = JOB_STATUS[status] || [status, ''];
-      return h('span', { class: `badge ${cls}` }, label);
+      const [key, cls] = JOB_STATUS[status] || [null, ''];
+      return h('span', { class: `badge ${cls}` }, key ? t(key) : status);
     }
 
     /**
@@ -205,9 +210,9 @@
         const url = new URL(info.path, location.href).href;
         try {
           await navigator.clipboard.writeText(url);
-          msg.textContent = `Lyen an kopye: ${url}`;
+          msg.textContent = t('Lyen an kopye: {url}', { url });
         } catch {
-          msg.textContent = `Kopye lyen sa a: ${url}`;
+          msg.textContent = t('Kopye lyen sa a: {url}', { url });
         }
       } catch (err) {
         msg.textContent = errorMessage(err);
@@ -245,20 +250,20 @@
 
       const title = $('f-title').value.trim();
       if (title.length < 3) {
-        formError.textContent = 'Tit la dwe gen omwen 3 karaktè.';
+        formError.textContent = t('Tit la dwe gen omwen 3 karaktè.');
         return;
       }
 
       const salMin = $('f-salmin').value.trim() ? fmt.parseMoney($('f-salmin').value) : null;
       const salMax = $('f-salmax').value.trim() ? fmt.parseMoney($('f-salmax').value) : null;
       if (($('f-salmin').value.trim() && salMin === null) || ($('f-salmax').value.trim() && salMax === null)) {
-        formError.textContent = 'Salè a pa yon chif valab.';
+        formError.textContent = t('Salè a pa yon chif valab.');
         return;
       }
 
       const closesAt = endOfLocalDayIso($('f-closes').value);
       if (closesAt && new Date(closesAt) < new Date()) {
-        formError.textContent = 'Dat fèmti a deja pase.';
+        formError.textContent = t('Dat fèmti a deja pase.');
         return;
       }
 
@@ -294,7 +299,7 @@
 
     async function loadList() {
       const body = $('rows');
-      body.replaceChildren(h('tr', {}, h('td', { colspan: '5', class: 'loading' }, 'Ap chaje…')));
+      body.replaceChildren(h('tr', {}, h('td', { colspan: '5', class: 'loading' }, t('Ap chaje…'))));
 
       const params = new URLSearchParams();
       if (state.q) params.set('q', state.q);
@@ -303,13 +308,13 @@
       try {
         const data = await api.get(`/api/jobs?${params}`);
         state.items = data.items;
-        $('count-label').textContent = data.total === 1 ? '1 òf' : `${data.total} òf`;
+        $('count-label').textContent = data.total === 1 ? t('1 òf') : t('{n} òf', { n: data.total });
 
         if (!data.items.length) {
           body.replaceChildren(h('tr', {}, h('td', { colspan: '5', class: 'empty' },
             state.q || state.status
-              ? 'Pa gen òf ki koresponn ak filtè a.'
-              : 'Ou poko gen okenn òf travay. Klike "Nouvo òf" pou kòmanse.')));
+              ? t('Pa gen òf ki koresponn ak filtè a.')
+              : t('Ou poko gen okenn òf travay. Klike "Nouvo òf" pou kòmanse.'))));
         } else {
           body.replaceChildren(...data.items.map(row));
         }
@@ -319,15 +324,18 @@
     }
 
     function row(job) {
+      const place = job.location
+        ? (job.is_remote ? t('{place} · adistans', { place: job.location }) : job.location)
+        : null;
       return h('tr', {},
         h('td', {},
           h('a', { class: 'who plain-link', href: `job.html?id=${job.id}` }, job.title),
-          job.location ? h('div', { class: 'num' }, job.is_remote ? `${job.location} · adistans` : job.location) : null,
+          place ? h('div', { class: 'num' }, place) : null,
         ),
         h('td', {}, statusBadge(job.status)),
         h('td', { class: 'num-col cell-muted hide-sm' }, String(job.application_count)),
         h('td', { class: 'num-col cell-muted hide-sm' }, String(job.openings)),
-        h('td', { class: 'actions' }, h('a', { class: 'btn btn-ghost btn-sm', href: `job.html?id=${job.id}` }, 'Wè')),
+        h('td', { class: 'actions' }, h('a', { class: 'btn btn-ghost btn-sm', href: `job.html?id=${job.id}` }, t('Wè'))),
       );
     }
 

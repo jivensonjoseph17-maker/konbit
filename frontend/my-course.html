@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kou — KONMBIT</title>
+  <title data-i18n>Kou — KONMBIT</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -17,9 +17,9 @@
       <header class="topbar" id="topbar"></header>
 
       <main class="page">
-        <a class="back-link" href="dashboard.html">Tablo de bò</a>
+        <a class="back-link" href="dashboard.html" data-i18n>Tablo de bò</a>
 
-        <div id="content"><p class="loading">Ap chaje…</p></div>
+        <div id="content"><p class="loading" data-i18n>Ap chaje…</p></div>
       </main>
     </div>
   </div>
@@ -29,7 +29,7 @@
   <script>
   (async function () {
     'use strict';
-    const { api, fmt, h, ApiError, shell } = Konbit;
+    const { api, fmt, h, ApiError, shell, t } = Konbit;
 
     // Pa gen restriksyon wòl — nenpòt moun konekte ka gade pwòp kou li.
     const identity = await shell.mount(null);
@@ -39,7 +39,7 @@
     const courseId = Number(new URLSearchParams(location.search).get('id'));
 
     if (!Number.isInteger(courseId) || courseId <= 0) {
-      content.replaceChildren(h('div', { class: 'alert alert-error' }, 'Pa gen kou chwazi.'));
+      content.replaceChildren(h('div', { class: 'alert alert-error' }, t('Pa gen kou chwazi.')));
       return;
     }
 
@@ -49,7 +49,7 @@
     let videoEl = null;
 
     function errorMessage(err) {
-      return err instanceof ApiError ? err.message : 'Yon bagay pa mache.';
+      return err instanceof ApiError ? err.message : t('Yon bagay pa mache.');
     }
 
     // -------------------------------------------------------------------
@@ -92,6 +92,8 @@
     // SOVE PWOGRÈ
     // -------------------------------------------------------------------
 
+    let updateProgressUI = () => {};
+
     async function saveProgress(lessonId, secondsWatched, lastPosition, completed) {
       try {
         const result = await api.post('/api/training/me/progress', {
@@ -121,7 +123,7 @@
       const lessonListWrap = h('div', {});
       const playerWrap = h('div', {});
       const completeMsg = h('p', { class: 'field-error', role: 'status' });
-      const completeBtn = h('button', { class: 'btn btn-primary', type: 'button' }, 'Fini kou a');
+      const completeBtn = h('button', { class: 'btn btn-primary', type: 'button' }, t('Fini kou a'));
 
       completeBtn.addEventListener('click', async () => {
         completeMsg.textContent = '';
@@ -131,7 +133,7 @@
           data.enrollment = enr;
           updateProgressUI();
           completeMsg.className = 'hint';
-          completeMsg.textContent = 'Bravo! Ou fini kou a.';
+          completeMsg.textContent = t('Bravo! Ou fini kou a.');
         } catch (err) {
           completeMsg.className = 'field-error';
           completeMsg.textContent = errorMessage(err);
@@ -140,7 +142,7 @@
         }
       });
 
-      function updateProgressUI() {
+      updateProgressUI = function () {
         const pct = data.enrollment.progress_percent;
         const done = Boolean(data.enrollment.completed_at);
         progressWrap.replaceChildren(
@@ -148,11 +150,11 @@
             h('span', { style: `width: ${pct}%;` }),
           ),
           h('p', { class: 'sub', style: 'margin-top: 6px;' },
-            done ? `Fini — ${pct}%` : `${pct}% konplete`),
+            done ? t('Fini — {pct}%', { pct }) : t('{pct}% konplete', { pct })),
         );
         completeBtn.hidden = done || pct < 100;
         renderLessonList();
-      }
+      };
 
       function renderLessonList() {
         lessonListWrap.replaceChildren(
@@ -163,6 +165,7 @@
               href: '#',
               class: 'plain-link',
               style: isActive ? 'font-weight: 700; color: var(--text);' : '',
+              'aria-current': isActive ? 'true' : null,
             }, `${item.completed ? '✓ ' : ''}${l.title}`);
             link.addEventListener('click', (e) => {
               e.preventDefault();
@@ -174,6 +177,7 @@
         );
       }
 
+      /** 125 → "2:05" (minit:segonn), menm fòma nan tout lang. */
       function durationLabel(seconds) {
         const m = Math.floor(seconds / 60);
         const s = seconds % 60;
@@ -197,7 +201,7 @@
 
         const item = data.lessons.find((x) => x.lesson.id === activeLessonId);
         if (!item) {
-          playerWrap.replaceChildren(h('p', { class: 'empty' }, 'Pa gen leson.'));
+          playerWrap.replaceChildren(h('p', { class: 'empty' }, t('Pa gen leson.')));
           return;
         }
         const lesson = item.lesson;
@@ -242,9 +246,10 @@
           videoEl = v;
           blocks.push(v);
         } else {
-          blocks.push(h('p', { class: 'empty' }, 'Pa gen videyo pou leson sa a.'));
+          blocks.push(h('p', { class: 'empty' }, t('Pa gen videyo pou leson sa a.')));
         }
 
+        // Deskripsyon an ekri pa HR: li rete jan l ye.
         if (lesson.description) {
           blocks.push(h('p', { class: 'sub', style: 'margin-top: 14px; white-space: pre-wrap;' }, lesson.description));
         }
@@ -254,15 +259,15 @@
 
       function manualWatchedButton(item, lesson) {
         const btn = h('button', { class: 'btn btn-ghost btn-sm', type: 'button', style: 'margin-top: 12px;' },
-          item.completed ? 'Videyo make fini ✓' : 'Mwen fini gade videyo sa a');
+          item.completed ? t('Videyo make fini ✓') : t('Mwen fini gade videyo sa a'));
         btn.disabled = item.completed;
         btn.addEventListener('click', async () => {
           btn.disabled = true;
           await saveProgress(lesson.id, lesson.duration_seconds || 0, lesson.duration_seconds || 0, true);
-          btn.textContent = 'Videyo make fini ✓';
+          btn.textContent = t('Videyo make fini ✓');
         });
         return h('div', {}, btn,
-          h('p', { class: 'hint' }, 'Videyo ki soti sou YouTube/Vimeo pa ka swiv pwogrè otomatikman — klike lè w fini gade l.'));
+          h('p', { class: 'hint' }, t('Videyo ki soti sou YouTube/Vimeo pa ka swiv pwogrè otomatikman — klike lè w fini gade l.')));
       }
 
       renderLessonList();
@@ -272,7 +277,9 @@
       content.replaceChildren(
         h('div', { class: 'page-head' },
           h('h1', {}, data.course.title),
-          data.enrollment.due_date ? h('p', {}, `Delè: ${fmt.shortDate(data.enrollment.due_date)}`) : null,
+          data.enrollment.due_date
+            ? h('p', {}, t('Delè: {date}', { date: fmt.shortDate(data.enrollment.due_date) }))
+            : null,
           progressWrap,
         ),
         h('div', { class: 'grid' },
@@ -282,7 +289,7 @@
           ),
           h('div', { class: 'col' },
             h('section', { class: 'panel' },
-              h('div', { class: 'panel-head' }, h('h2', {}, 'Leson yo')),
+              h('div', { class: 'panel-head' }, h('h2', {}, t('Leson yo'))),
               lessonListWrap,
             ),
           ),

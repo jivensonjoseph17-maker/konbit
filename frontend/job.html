@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Òf travay — KONMBIT</title>
+  <title data-i18n>Òf travay — KONMBIT</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -17,9 +17,9 @@
       <header class="topbar" id="topbar"></header>
 
       <main class="page">
-        <a class="back-link" href="jobs.html">Tout òf yo</a>
+        <a class="back-link" href="jobs.html" data-i18n>Tout òf yo</a>
 
-        <div id="content"><p class="loading">Ap chaje…</p></div>
+        <div id="content"><p class="loading" data-i18n>Ap chaje…</p></div>
       </main>
     </div>
   </div>
@@ -29,7 +29,7 @@
   <script>
   (async function () {
     'use strict';
-    const { api, fmt, h, ApiError, shell } = Konbit;
+    const { api, fmt, h, ApiError, shell, t } = Konbit;
 
     const identity = await shell.mount('hiring', shell.ADMIN);
     if (!identity) return;
@@ -38,27 +38,28 @@
     const id = Number(new URLSearchParams(location.search).get('id'));
 
     if (!Number.isInteger(id) || id <= 0) {
-      content.replaceChildren(h('div', { class: 'alert alert-error' }, 'Pa gen òf chwazi. Retounen nan lis la.'));
+      content.replaceChildren(h('div', { class: 'alert alert-error' }, t('Pa gen òf chwazi. Retounen nan lis la.')));
       return;
     }
 
     let job = null;
 
+    // [kle tradiksyon, klas badge]
     const JOB_STATUS = {
       draft: ['Bouyon', 'badge-pending'],
       published: ['Pibliye', 'badge-approved'],
-      closed: ['Fèmen', 'badge-cancelled'],
+      closed: ['Fèmen|estati', 'badge-cancelled'],
     };
 
-    const EMPLOYMENT_TYPE_LABELS = {
-      full_time: 'Tan plen', part_time: 'Tan pasyèl', contract: 'Kontra',
-      intern: 'Estaj', seasonal: 'Sezon',
-    };
+    const employmentType = (v) => ({
+      full_time: t('Tan plen'), part_time: t('Tan pasyèl'), contract: t('Kontra'),
+      intern: t('Estaj'), seasonal: t('Sezon'),
+    })[v] || v;
 
-    const STAGE_LABELS = {
-      received: 'Resevwa', screening: 'Seleksyon', interview: 'Antrevi',
-      offer: 'Òf', hired: 'Anboche', rejected: 'Refize', withdrawn: 'Retire',
-    };
+    const stageLabel = (s) => ({
+      received: t('Resevwa'), screening: t('Seleksyon'), interview: t('Antrevi'),
+      offer: t('Òf|etap'), hired: t('Anboche|etap'), rejected: t('Refize'), withdrawn: t('Retire|etap'),
+    })[s] || s;
 
     // 'hired' pa nan lis la — backend refize yon chanjman dirèk vè 'hired'
     // (sa mande yon Offer akepte, gade backend/app/routers/offers.py).
@@ -78,7 +79,7 @@
     // -------------------------------------------------------------------
 
     function errorMessage(err) {
-      let msg = err instanceof ApiError ? err.message : 'Yon bagay pa mache.';
+      let msg = err instanceof ApiError ? err.message : t('Yon bagay pa mache.');
       if (err && err.fields && err.fields.length) {
         msg += ' ' + err.fields.map((f) => `${f.field}: ${f.message}`).join('; ');
       }
@@ -86,8 +87,8 @@
     }
 
     function statusBadge(status) {
-      const [label, cls] = JOB_STATUS[status] || [status, ''];
-      return h('span', { class: `badge ${cls}` }, label);
+      const [key, cls] = JOB_STATUS[status] || [null, ''];
+      return h('span', { class: `badge ${cls}` }, key ? t(key) : status);
     }
 
     function field(label, inputEl, hint) {
@@ -110,6 +111,7 @@
       return el;
     }
 
+    // Toujou fr-FR pou chan yo: parseMoney li l nan tout lang, epi chif yo rete 0-9.
     function centsToInput(cents) {
       if (cents === null || cents === undefined) return '';
       return (cents / 100).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
@@ -183,7 +185,7 @@
       const actions = [];
 
       if (job.status === 'draft') {
-        const publishBtn = h('button', { class: 'btn btn-primary btn-sm', type: 'button' }, 'Pibliye');
+        const publishBtn = h('button', { class: 'btn btn-primary btn-sm', type: 'button' }, t('Pibliye|aksyon'));
         publishBtn.addEventListener('click', async () => {
           actionMsg.textContent = '';
           publishBtn.disabled = true;
@@ -199,13 +201,13 @@
       }
 
       if (job.status === 'published') {
-        const closeBtn = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, 'Fèmen');
+        const closeBtn = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, t('Fèmen òf la'));
         closeBtn.addEventListener('click', async () => {
-          if (!confirm(`Fèmen òf "${job.title}"? Li p ap parèt sou paj karyè a ankò.`)) return;
+          if (!confirm(t('Fèmen òf "{title}"? Li p ap parèt sou paj karyè a ankò.', { title: job.title }))) return;
           const rejectRest = confirm(
-            'Ou vle refize otomatikman kandida ki poko fini (resevwa, seleksyon, antrevi)?'
+            t('Ou vle refize otomatikman kandida ki poko fini (resevwa, seleksyon, antrevi)?'),
           );
-          const note = rejectRest ? (prompt('Nòt refi (opsyonèl):') || null) : null;
+          const note = rejectRest ? (prompt(t('Nòt refi (opsyonèl):')) || null) : null;
 
           actionMsg.textContent = '';
           closeBtn.disabled = true;
@@ -217,7 +219,7 @@
             job = result.job;
             if (result.rejected_applications) {
               actionMsg.className = 'hint';
-              actionMsg.textContent = `${result.rejected_applications} kandida refize otomatikman.`;
+              actionMsg.textContent = t('{n} kandida refize otomatikman.', { n: result.rejected_applications });
             }
             render();
             loadPipeline();
@@ -231,9 +233,9 @@
       }
 
       if (job.status === 'closed') {
-        const reopenBtn = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, 'Louvri ankò');
+        const reopenBtn = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, t('Louvri ankò'));
         reopenBtn.addEventListener('click', async () => {
-          if (!confirm(`Remèt òf "${job.title}" nan estati Pibliye?`)) return;
+          if (!confirm(t('Remèt òf "{title}" nan estati Pibliye?', { title: job.title }))) return;
           actionMsg.textContent = '';
           reopenBtn.disabled = true;
           try {
@@ -248,9 +250,9 @@
       }
 
       if (job.status === 'draft' && job.application_count === 0) {
-        const deleteBtn = h('button', { class: 'btn btn-danger btn-sm', type: 'button' }, 'Efase');
+        const deleteBtn = h('button', { class: 'btn btn-danger btn-sm', type: 'button' }, t('Efase'));
         deleteBtn.addEventListener('click', async () => {
-          if (!confirm(`Efase bouyon "${job.title}" nèt? Sa pa ka defèt.`)) return;
+          if (!confirm(t('Efase bouyon "{title}" nèt? Sa pa ka defèt.', { title: job.title }))) return;
           deleteBtn.disabled = true;
           try {
             await api.del(`/api/jobs/${id}`);
@@ -268,10 +270,12 @@
           h('h1', {}, job.title),
           h('p', { class: 'emp-meta' },
             statusBadge(job.status),
-            h('span', {}, `${job.application_count} kandida`),
-            h('span', {}, `${job.openings} pòs louvri`),
-            h('span', {}, EMPLOYMENT_TYPE_LABELS[job.employment_type] || job.employment_type),
-            job.location ? h('span', {}, job.is_remote ? `${job.location} · adistans` : job.location) : null,
+            h('span', {}, t('{n} kandida', { n: job.application_count })),
+            h('span', {}, t('{n} pòs louvri', { n: job.openings })),
+            h('span', {}, employmentType(job.employment_type)),
+            job.location
+              ? h('span', {}, job.is_remote ? t('{place} · adistans', { place: job.location }) : job.location)
+              : null,
           ),
         ),
         h('div', { class: 'emp-actions' }, ...actions),
@@ -308,32 +312,32 @@
       const closes = input('e-closes', closesInitial, { type: 'date' });
 
       const msg = h('p', { class: 'field-error', role: 'status' });
-      const saveBtn = h('button', { class: 'btn btn-primary', type: 'submit' }, 'Sove chanjman yo');
+      const saveBtn = h('button', { class: 'btn btn-primary', type: 'submit' }, t('Sove chanjman yo'));
 
       const form = h('form', { novalidate: true },
         h('div', { class: 'form-grid' },
-          h('div', { class: 'field span-2' }, field('Tit pòs la', title)),
-          field('Kote', location_),
+          h('div', { class: 'field span-2' }, field(t('Tit pòs la'), title)),
+          field(t('Kote'), location_),
           h('div', { class: 'field' },
-            h('label', {}, 'Kalite kontra'),
+            h('label', {}, t('Kalite kontra')),
             h('p', { style: 'padding-top: 10px; color: var(--muted);' },
-              EMPLOYMENT_TYPE_LABELS[job.employment_type] || job.employment_type,
-              h('span', { class: 'hint', style: 'display: block;' }, 'Pa ka chanje apre kreyasyon.'),
+              employmentType(job.employment_type),
+              h('span', { class: 'hint', style: 'display: block;' }, t('Pa ka chanje apre kreyasyon.')),
             ),
           ),
           h('div', { class: 'field span-2' },
-            h('label', {}, h('span', { class: 'check' }, remote, ' Travay la ka fèt adistans')),
+            h('label', {}, h('span', { class: 'check' }, remote, ` ${t('Travay la ka fèt adistans')}`)),
           ),
-          h('div', { class: 'field span-2' }, field('Deskripsyon', desc)),
-          h('div', { class: 'field span-2' }, field('Kalifikasyon mande', req)),
-          h('div', { class: 'field span-2' }, field('Responsablite', resp)),
-          field('Salè minimòm (HTG)', salMin),
-          field('Salè maksimòm (HTG)', salMax),
+          h('div', { class: 'field span-2' }, field(t('Deskripsyon'), desc)),
+          h('div', { class: 'field span-2' }, field(t('Kalifikasyon mande'), req)),
+          h('div', { class: 'field span-2' }, field(t('Responsablite'), resp)),
+          field(t('Salè minimòm (HTG)'), salMin),
+          field(t('Salè maksimòm (HTG)'), salMax),
           h('div', { class: 'field span-2' },
-            h('label', {}, h('span', { class: 'check' }, showSal, ' Montre salè a sou paj karyè piblik la')),
+            h('label', {}, h('span', { class: 'check' }, showSal, ` ${t('Montre salè a sou paj karyè piblik la')}`)),
           ),
-          field('Kantite pòs louvri', openings),
-          field('Dat fèmti (opsyonèl)', closes, 'Òf la fèmen nan fen jounen sa a, lè lokal.'),
+          field(t('Kantite pòs louvri'), openings),
+          field(t('Dat fèmti (opsyonèl)'), closes, t('Òf la fèmen nan fen jounen sa a, lè lokal.')),
         ),
         msg,
         h('div', { class: 'form-actions' }, saveBtn),
@@ -346,7 +350,7 @@
         const newSalMin = salMin.value.trim() ? fmt.parseMoney(salMin.value) : null;
         const newSalMax = salMax.value.trim() ? fmt.parseMoney(salMax.value) : null;
         if ((salMin.value.trim() && newSalMin === null) || (salMax.value.trim() && newSalMax === null)) {
-          msg.textContent = 'Salè a pa yon chif valab.';
+          msg.textContent = t('Salè a pa yon chif valab.');
           return;
         }
 
@@ -388,7 +392,7 @@
 
         if (!Object.keys(changes).length) {
           msg.className = 'hint';
-          msg.textContent = 'Pa gen anyen ki chanje.';
+          msg.textContent = t('Pa gen anyen ki chanje.');
           return;
         }
 
@@ -396,7 +400,7 @@
         try {
           job = await api.patch(`/api/jobs/${id}`, changes);
           msg.className = 'hint';
-          msg.textContent = 'Chanjman yo sove.';
+          msg.textContent = t('Chanjman yo sove.');
           render();
         } catch (err) {
           msg.className = 'field-error';
@@ -406,7 +410,7 @@
       });
 
       return h('section', { class: 'panel', style: 'margin-top: 20px;' },
-        h('div', { class: 'panel-head' }, h('h2', {}, 'Detay òf la')),
+        h('div', { class: 'panel-head' }, h('h2', {}, t('Detay òf la'))),
         form,
       );
     }
@@ -416,13 +420,13 @@
     // -------------------------------------------------------------------
 
     function pipelinePanel() {
-      const body = h('div', {}, h('p', { class: 'loading' }, 'Ap chaje…'));
+      const body = h('div', {}, h('p', { class: 'loading' }, t('Ap chaje…')));
       const historyLine = h('p', { class: 'hint', style: 'display: block; margin-top: 14px;' });
 
       const el = h('section', { class: 'panel', style: 'margin-top: 20px;' },
         h('div', { class: 'panel-head' },
-          h('h2', {}, 'Kandida yo'),
-          h('span', { class: 'meta' }, 'resevwa → seleksyon → antrevi → òf'),
+          h('h2', {}, t('Kandida yo')),
+          h('span', { class: 'meta' }, ACTIVE_STAGES.map(stageLabel).join(' → ')),
         ),
         body,
         historyLine,
@@ -451,9 +455,9 @@
         const done = byStage.hired ? byStage.hired.count : 0;
         const rej = byStage.rejected ? byStage.rejected.count : 0;
         const wd = byStage.withdrawn ? byStage.withdrawn.count : 0;
-        el._historyLine.textContent =
-          `Istwa: ${done} anboche · ${rej} refize · ${wd} retire pa yo menm. `
-          + 'Klike sou non yon kandida pou planifye antrevi, fè pwopozisyon an epi anboche l.';
+        el._historyLine.textContent = `${t('Istwa: {hired} anboche · {rejected} refize · {withdrawn} retire pa yo menm.',
+          { hired: done, rejected: rej, withdrawn: wd })} `
+          + t('Klike sou non yon kandida pou planifye antrevi, fè pwopozisyon an epi anboche l.');
       } catch (err) {
         el._body.replaceChildren(h('p', { class: 'empty' }, errorMessage(err)));
       }
@@ -462,7 +466,7 @@
     function stageColumn(stage, colData) {
       const items = colData ? colData.items : [];
       return h('div', {},
-        h('p', { class: 'sub-label' }, `${STAGE_LABELS[stage]} (${items.length})`),
+        h('p', { class: 'sub-label' }, `${stageLabel(stage)} (${items.length})`),
         h('div', { style: 'display: grid; gap: 10px;' },
           ...(items.length ? items.map((app) => candidateCard(app)) : [
             h('p', { class: 'empty', style: 'font-size: 13px;' }, '—'),
@@ -476,10 +480,10 @@
 
       const targets = ALLOWED_TRANSITIONS[app.stage] || [];
       const moveSelect = h('select', { class: 'select', style: 'font-size: 13px;' },
-        h('option', { value: app.stage }, STAGE_LABELS[app.stage]),
-        ...targets.map((t) => h('option', { value: t }, `→ ${STAGE_LABELS[t]}`)),
+        h('option', { value: app.stage }, stageLabel(app.stage)),
+        ...targets.map((s) => h('option', { value: s }, `→ ${stageLabel(s)}`)),
       );
-      const moveBtn = h('button', { class: 'btn btn-ghost btn-sm', type: 'button', disabled: true }, 'Deplase');
+      const moveBtn = h('button', { class: 'btn btn-ghost btn-sm', type: 'button', disabled: true }, t('Deplase'));
 
       moveSelect.addEventListener('change', () => {
         moveBtn.disabled = moveSelect.value === app.stage;
@@ -497,12 +501,12 @@
         }
       });
 
-      const rejectBtn = h('button', { class: 'btn btn-danger btn-sm', type: 'button' }, 'Refize');
+      const rejectBtn = h('button', { class: 'btn btn-danger btn-sm', type: 'button' }, t('Refize|aksyon'));
       rejectBtn.addEventListener('click', async () => {
-        const reason = prompt(`Poukisa ou refize ${app.full_name}?`);
+        const reason = prompt(t('Poukisa ou refize {name}?', { name: app.full_name }));
         if (reason === null) return;
         if (reason.trim().length < 3) {
-          msg.textContent = 'Mete yon rezon ki gen omwen 3 karaktè.';
+          msg.textContent = t('Mete yon rezon ki gen omwen 3 karaktè.');
           return;
         }
         rejectBtn.disabled = true;
@@ -531,7 +535,7 @@
         app.phone ? h('div', { class: 'sub', style: 'font-size: 12.5px;' }, app.phone) : null,
         app.rating ? h('div', { class: 'sub', style: 'font-size: 12.5px;' }, '★'.repeat(app.rating)) : null,
         cv
-          ? h('a', { class: 'plain-link', href: cv, target: '_blank', rel: 'noopener noreferrer', style: 'font-size: 12.5px;' }, 'Wè CV')
+          ? h('a', { class: 'plain-link', href: cv, target: '_blank', rel: 'noopener noreferrer', style: 'font-size: 12.5px;' }, t('Wè CV'))
           : null,
         h('div', { class: 'sub', style: 'font-size: 12px;' }, fmt.shortDate(app.created_at)),
         h('div', { style: 'display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px;' }, moveSelect, moveBtn, rejectBtn),
@@ -540,7 +544,7 @@
           class: 'btn btn-ghost btn-sm',
           href: `application.html?id=${app.id}`,
           style: 'justify-self: start;',
-        }, 'Louvri dosye a'),
+        }, t('Louvri dosye a')),
       );
     }
 
