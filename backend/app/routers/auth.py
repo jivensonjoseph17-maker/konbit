@@ -26,8 +26,7 @@ from sqlalchemy.orm import Session
 from ..config import settings
 from ..database import get_db
 from ..deps import CurrentUser, DbSession
-from ..i18n import SUPPORTED as SUPPORTED_LANGUAGES
-from ..i18n import resolve_language
+from ..i18n import UI_LANGUAGES, requested_language
 from ..models import AuditLog, Employee, Organization, User, UserRole
 from ..schemas import (
     LoginRequest,
@@ -172,8 +171,8 @@ def signup(payload: SignupRequest, request: Request, db: DbSession):
     org_data["slug"] = slug
 
     # Lang admin lan chwazi sou paj enskripsyon an (api.js voye l nan
-    # Accept-Language). Konsa kont lan kòmanse nan bon lang lan.
-    language = resolve_language(request.headers.get("accept-language"))
+    # Accept-Language, egz: "es, en;q=0.5"). Konsa kont lan kòmanse nan bon lang lan.
+    language = requested_language(request.headers.get("accept-language"))
 
     try:
         org = Organization(**org_data)
@@ -289,8 +288,8 @@ class MeUpdate(BaseModel):
         if v is None:
             return None
         v = v.strip().lower()
-        if v not in SUPPORTED_LANGUAGES:
-            raise ValueError("Lang lan dwe youn nan: ht, fr, en.")
+        if v not in UI_LANGUAGES:
+            raise ValueError("Lang sa a pa disponib.")
         return v
 
 
