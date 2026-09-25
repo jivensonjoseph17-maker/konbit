@@ -62,10 +62,12 @@
     { code: 'es', label: 'Español', locale: 'es-ES' },
     { code: 'pt', label: 'Português', locale: 'pt-BR' },
     { code: 'de', label: 'Deutsch', locale: 'de-DE' },
+    { code: 'zh', label: '中文（简体）', locale: 'zh-CN' },
+    { code: 'ar', label: 'العربية', locale: 'ar' },
     // Pwochen lang yo (fichye yo ap vini youn apre lòt):
-    // zh 中文 · ar العربية · hi हिन्दी · bn বাংলা · ru Русский · ja 日本語
-    // it Italiano · ko 한국어 · tr Türkçe · vi Tiếng Việt · id Bahasa Indonesia
-    // sw Kiswahili · nl Nederlands · pl Polski
+    // hi हिन्दी · bn বাংলা · ru Русский · ja 日本語 · it Italiano · ko 한국어
+    // tr Türkçe · vi Tiếng Việt · id Bahasa Indonesia · sw Kiswahili
+    // nl Nederlands · pl Polski
   ];
   const RTL = new Set(['ar', 'ur', 'fa', 'he']);
   const DEFAULT_LANG = 'ht';

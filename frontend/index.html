@@ -153,7 +153,7 @@
     .mega-menu {
       position: absolute;
       top: 100%;
-      left: 0;
+      inset-inline-start: 0;
       width: 330px;
       background: var(--bg-card);
       border: 1px solid var(--border-color);
@@ -180,7 +180,7 @@
       color: var(--text-main);
       font: inherit;
       font-size: 0.9rem;
-      text-align: left;
+      text-align: start;
       text-decoration: none;
       cursor: pointer;
       transition: background 0.2s, color 0.2s;
@@ -482,7 +482,7 @@
       border: 1px solid var(--border-color);
       padding: 24px;
       border-radius: 12px;
-      text-align: left;
+      text-align: start;
       color: inherit;
       font: inherit;
       cursor: pointer;
@@ -721,6 +721,9 @@
       .pv-clock { grid-template-columns: auto 1fr; }
       .pv-btn { grid-column: 1 / -1; text-align: center; }
     }
+
+    /* Lang ki ekri de dwat a goch (arab…): flèch yo vire bò kote. */
+    [dir="rtl"] .fa-chevron-right { transform: scaleX(-1); }
 
     @media (prefers-reduced-motion: reduce) {
       html { scroll-behavior: auto; }
