@@ -33,6 +33,10 @@ DYNAMIC_KEYS_FILE = HERE / "dynamic_keys.json"
 T_CALL = re.compile(r"""(?<![\w.])t\(\s*(?P<q>['"])(?P<key>(?:\\.|(?!(?P=q)).)*?)(?P=q)""")
 # Meni shell.js: label: 'Tèks' / group: 'Tèks'
 MAP_VALUE = re.compile(r"""(?:label|group):\s*'((?:\\.|[^'])*)'""")
+# Estati ak badge: { draft: ['Bouyon', 'badge-pending'] }
+BADGE_MAP = re.compile(r"""\[\s*'((?:\\.|[^'])*)'\s*,\s*'badge-""")
+# Etikèt: label('Jou:', ...) — label() rele t() sou premye agiman an.
+LABEL_CALL = re.compile(r"""(?<![\w.])label\(\s*'((?:\\.|[^'])*)'""")
 
 
 def js_unescape(s: str) -> str:
@@ -79,6 +83,8 @@ def used_keys() -> set[str]:
         text = path.read_text(encoding="utf-8-sig")
         for m in T_CALL.finditer(text):
             keys.add(js_unescape(m.group("key")))
+        keys |= {js_unescape(v) for v in BADGE_MAP.findall(text)}
+        keys |= {js_unescape(v) for v in LABEL_CALL.findall(text)}
         if path.suffix == ".html":
             parser = I18nParser()
             parser.feed(text)
