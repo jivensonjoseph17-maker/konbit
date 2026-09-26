@@ -13,8 +13,15 @@
 (function () {
   'use strict';
 
-  // Chanje sa pou pwodiksyon, oswa defini window.KONBIT_API_URL anvan fichye sa a.
-  const API_URL = window.KONBIT_API_URL || 'http://localhost:8000';
+  // Adrès backend la:
+  //   - window.KONBIT_API_URL si yon paj defini l anvan fichye sa a;
+  //   - sou konmbit.com (ak www.) → https://api.konmbit.com;
+  //   - otreman (Live Server, 127.0.0.1) → backend lokal la.
+  const API_URL = window.KONBIT_API_URL || (
+    /(^|\.)konmbit\.com$/.test(location.hostname)
+      ? 'https://api.konmbit.com'
+      : 'http://localhost:8000'
+  );
 
   const KEYS = {
     access: 'konbit.access_token',

@@ -6,6 +6,8 @@ Chanjman prensipal parapò ak vèsyon anvan an:
     Sa anpeche ou voye yon kle piblik nan pwodiksyon san w pa konnen.
   - `environment` pou ou ka fè verifikasyon pi sevè nan pwodiksyon.
   - Refresh token separe ak access token.
+  - `database_url`: "postgres://" ak "postgresql://" (fòma Render bay la)
+    vin "postgresql+psycopg://" otomatikman (Psycopg 3).
 """
 
 from typing import List, Literal
@@ -35,6 +37,7 @@ class Settings(BaseSettings):
     max_failed_logins: int = 5
 
     # --- CORS ---
+    # Nan varyab anviwonman: ALLOWED_ORIGINS=["https://konmbit.com","https://www.konmbit.com"]
     frontend_url: str = "http://localhost:3000"
     allowed_origins: List[str] = ["http://localhost:3000"]
 
@@ -64,6 +67,20 @@ class Settings(BaseSettings):
         extra="ignore",
         case_sensitive=False,
     )
+
+    @field_validator("database_url")
+    @classmethod
+    def use_psycopg3_driver(cls, v: str) -> str:
+        """
+        Render (ak lòt sèvis) bay "postgres://…" oswa "postgresql://…".
+        San drayv la nan adrès la, SQLAlchemy chèche psycopg2, ki pa enstale:
+        app la ta kraze nan demaraj. Nou mete Psycopg 3 esplisitman.
+        """
+        v = v.strip()
+        for prefix in ("postgres://", "postgresql://"):
+            if v.startswith(prefix):
+                return "postgresql+psycopg://" + v[len(prefix):]
+        return v
 
     @field_validator("secret_key")
     @classmethod

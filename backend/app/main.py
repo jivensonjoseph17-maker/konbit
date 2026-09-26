@@ -23,6 +23,7 @@ from .routers import (
     auth, employees, hierarchy, attendance, leaves,
     payroll, training, feedback,
     jobs, applications, offers, application_questions, timesheets,
+    calculator,
 )
 
 # --- Router ki poko pare ---
@@ -190,6 +191,8 @@ app.include_router(
     prefix="/api/application-questions",
     tags=["Kesyon aplikasyon"],
 )
+# Piblik (san koneksyon): paj frontend/calculator.html
+app.include_router(calculator.router, prefix="/api/calculator", tags=["Kalkilatè peyòl"])
 
 # --- Poko pare ---
 # app.include_router(companies.router,    prefix="/api/companies",    tags=["Biznis"])
