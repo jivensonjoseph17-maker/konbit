@@ -5,6 +5,10 @@
 # 2. Migrasyon Alembic yo sou yon VRÈ PostgreSQL 16 — menm vèsyon ak Render.
 #    Se sa DEPLOYMENT.md (Etap 4) mande anvan pwodiksyon.
 # 3. Tradiksyon yo: pa gen fraz ki manke nan okenn lang.
+#
+# SECRET_KEY: pa gen okenn kle ekri nan fichye sa a. Chak run jenere pwòp
+# kle o aza pa l, ki disparèt lè machin CI a fèmen. Kle PWODIKSYON an rete
+# SÈLMAN nan Render (Environment) ak nan jeretè modpas ou.
 
 name: CI
 
@@ -13,18 +17,24 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   tests:
     runs-on: ubuntu-latest
-    env:
-      SECRET_KEY: Qm7vR2xLp9wZ4nH8bK3yT6cF1jD5sG0aEuN
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.14"
           cache: pip
           cache-dependency-path: backend/requirements.txt
+      - name: Jenere yon SECRET_KEY pou run sa a sèlman
+        run: |
+          KEY="$(python -c 'import secrets; print(secrets.token_hex(48))')"
+          echo "::add-mask::$KEY"
+          echo "SECRET_KEY=$KEY" >> "$GITHUB_ENV"
       - name: Enstale depandans yo
         run: pip install -r backend/requirements.txt "psycopg[binary]>=3.2"
       - name: pytest
@@ -49,18 +59,23 @@ jobs:
           --health-cmd "pg_isready -U konmbit"
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      SECRET_KEY: Qm7vR2xLp9wZ4nH8bK3yT6cF1jD5sG0aEuN
+      # Baz done tanporè CI a sèlman (li disparèt apre run lan). Pa yon sekrè.
       DATABASE_URL: postgresql://konmbit:konmbit@localhost:5432/konmbit_ci
     defaults:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.14"
           cache: pip
           cache-dependency-path: backend/requirements.txt
+      - name: Jenere yon SECRET_KEY pou run sa a sèlman
+        run: |
+          KEY="$(python -c 'import secrets; print(secrets.token_hex(48))')"
+          echo "::add-mask::$KEY"
+          echo "SECRET_KEY=$KEY" >> "$GITHUB_ENV"
       - name: Enstale depandans yo
         run: pip install -r requirements.txt "psycopg[binary]>=3.2"
       - name: alembic upgrade head (PostgreSQL)
