@@ -635,9 +635,24 @@ PATTERNS: list[tuple[re.Pattern[str], dict[str, str]]] = [
        "Si vous continuez, elles recevront leur salaire de base mais PAS les heures supplémentaires.",
        "Hours for {n} people are not yet approved by their managers: {names}. "
        "If you continue, they will receive their base salary but NOT overtime."),
+    _p(r"^Peryòd la nan estati '(?P<s>[^']+)'\. Ou pa ka chanje dat peman an\.$",
+       "La période est au statut '{s}'. Vous ne pouvez pas changer la date de paiement.",
+       "The period is in status '{s}'. You cannot change the payment date."),
     _p(r"^Peryòd la nan estati '(?P<s>[^']+)'\.$",
        "La période est au statut '{s}'.",
        "The period is in status '{s}'."),
+    _p(r"^Fich yo te kalkile pou yon peman (?P<planned>\S+) \(retni sou bonis (?P<prate>\S+)\), "
+       r"men peman an fèt (?P<paid>\S+) \(retni (?P<arate>\S+)\)\. (?P<n>\d+) fich gen bonis oswa "
+       r"èdtan siplemantè\. Chanje dat peman an pou (?P<paid2>\S+), verifye fich yo, apwouve peyòl "
+       r"la ankò, epi make l peye\.$",
+       "Les fiches ont été calculées pour un paiement le {planned} (retenue sur les primes {prate}), "
+       "mais le paiement a lieu le {paid} (retenue {arate}). {n} fiche(s) comportent des primes ou "
+       "des heures supplémentaires. Changez la date de paiement pour le {paid2}, vérifiez les fiches, "
+       "approuvez de nouveau la paie, puis marquez-la comme payée.",
+       "The payslips were calculated for a payment on {planned} ({prate} bonus withholding), "
+       "but the payment is made on {paid} ({arate} withholding). {n} payslip(s) include bonuses or "
+       "overtime. Change the payment date to {paid2}, review the payslips, approve the payroll "
+       "again, then mark it as paid."),
     _p(r"^Fich la nan estati '(?P<s>[^']+)'\. Sèlman yon bouyon ka ajiste\.$",
        "La fiche est au statut '{s}'. Seul un brouillon peut être ajusté.",
        "The payslip is in status '{s}'. Only a draft can be adjusted."),
