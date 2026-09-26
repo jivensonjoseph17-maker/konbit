@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#030712">
+  <meta name="description" data-i18n-attr="content" content="Kiyès ki dèyè KONMBIT: yon ekip devlopè ayisyen k ap konstwi yon platfòm peyòl ak resous imèn pou biznis ayisyen.">
+  <title data-i18n>Kiyès nou ye — KONMBIT</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    /* Menm "rad" ak index.html: paj klè, ba navigasyon ble fonse. */
+    :root {
+      --bg: #ffffff;
+      --bg-card: #f8fafc;
+      --bg-inset: #f1f5f9;
+      --primary: #0051cf;
+      --accent-blue: #2563eb;
+      --accent-gold: #a8841a;
+      --text-main: #0f172a;
+      --text-strong: #020617;
+      --text-secondary: #475569;
+      --text-faint: #64748b;
+      --border-color: #e2e8f0;
+      --border-strong: #cbd5e1;
+    }
+
+    /* Zòn fonse yo: ba navigasyon an. */
+    .navbar {
+      --bg-card: #0b0f19;
+      --bg-inset: #0d1426;
+      --accent-blue: #3b82f6;
+      --accent-gold: #d4af37;
+      --text-main: #f3f4f6;
+      --text-strong: #ffffff;
+      --text-secondary: #9ca3af;
+      --text-faint: #6b7280;
+      --border-color: #1f2937;
+      color: var(--text-main);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; scroll-padding-top: 90px; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    a { color: inherit; }
+
+    :focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; border-radius: 4px; }
+
+    /* ---------------- NAVBAR ---------------- */
+
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 40px;
+      background-color: rgba(3, 7, 18, 0.98);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .logo {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-decoration: none;
+      gap: 3px;
+    }
+
+    .logo-graphic {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(212, 175, 55, 0.1));
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .logo-k-letter {
+      font-size: 1.6rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--accent-gold) 0%, var(--accent-blue) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -1px;
+    }
+
+    .logo-swoosh {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      border-top-color: var(--accent-gold);
+      border-right-color: var(--accent-blue);
+      animation: rotateSwoosh 6s linear infinite;
+    }
+
+    @keyframes rotateSwoosh { to { transform: rotate(360deg); } }
+
+    .logo-text {
+      font-weight: 900;
+      font-size: 0.85rem;
+      letter-spacing: 1.5px;
+      background: linear-gradient(135deg, #ffffff 30%, var(--accent-gold) 70%, var(--accent-blue) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .nav-links { display: flex; gap: 26px; align-items: center; }
+    .nav-links a {
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover, .nav-links a[aria-current="page"] { color: var(--accent-gold); }
+
+    .nav-actions { display: flex; gap: 10px; align-items: center; }
+
+    .icon-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-main);
+      font: inherit;
+      font-size: 1.1rem;
+      cursor: pointer;
+      min-width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      text-decoration: none;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .icon-btn:hover { background: rgba(255, 255, 255, 0.08); color: var(--accent-gold); }
+
+    .lang-picker { position: relative; }
+    .lang-btn { padding: 0 12px; }
+    .lang-code { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em; }
+
+    .lang-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      inset-inline-end: 0;
+      min-width: 200px;
+      max-height: min(70vh, 460px);
+      overflow-y: auto;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 8px;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.7);
+      display: grid;
+      gap: 2px;
+      z-index: 2100;
+    }
+
+    .lang-menu[hidden] { display: none; }
+
+    .lang-option {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: none;
+      border: 0;
+      color: var(--text-main);
+      font: inherit;
+      font-size: 0.9rem;
+      text-align: start;
+      cursor: pointer;
+    }
+
+    .lang-option:hover { background: rgba(212, 175, 55, 0.12); color: var(--accent-gold); }
+    .lang-option[aria-current="true"] { font-weight: 700; }
+    .lang-option i { font-size: 0.8rem; color: var(--accent-gold); }
+
+    /* ---------------- BOUTON ---------------- */
+
+    .btn-sales, .btn-outline {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50px;
+      padding: 11px 22px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      text-decoration: none;
+      cursor: pointer;
+      transition: opacity 0.2s, background 0.2s;
+    }
+
+    .btn-sales {
+      background: linear-gradient(135deg, var(--primary), var(--accent-blue));
+      color: #fff;
+      border: none;
+      box-shadow: 0 4px 12px rgba(0, 81, 207, 0.3);
+    }
+
+    .btn-sales:hover { opacity: 0.9; }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text-main);
+      border: 1px solid var(--border-strong);
+    }
+
+    .btn-outline:hover { background: var(--bg-inset); }
+
+    /* ---------------- KONTNI ---------------- */
+
+    .main-container {
+      flex: 1;
+      padding: 56px 40px 40px;
+      max-width: 1100px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent-gold);
+      margin-bottom: 14px;
+    }
+
+    .hero-title {
+      font-size: clamp(2.1rem, 4.4vw, 3.2rem);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      color: var(--text-strong);
+      margin-bottom: 18px;
+    }
+
+    .hero-desc {
+      color: var(--text-secondary);
+      font-size: 1.15rem;
+      line-height: 1.6;
+      max-width: 60ch;
+    }
+
+    .section { margin-top: 72px; }
+
+    .section-title {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--text-strong);
+      margin-bottom: 18px;
+      letter-spacing: -0.01em;
+    }
+
+    .section-sub { color: var(--text-secondary); line-height: 1.6; max-width: 62ch; margin-bottom: 24px; }
+
+    .prose p {
+      color: var(--text-main);
+      font-size: 1.05rem;
+      line-height: 1.75;
+      max-width: 68ch;
+    }
+
+    .prose p + p { margin-top: 16px; }
+
+    /* --- Istwa non an: yon bann ak liy lò sou kote --- */
+
+    .story {
+      display: grid;
+      grid-template-columns: 0.8fr 1.2fr;
+      gap: 40px;
+      align-items: start;
+      padding: 36px;
+      border-radius: 16px;
+      background:
+        radial-gradient(ellipse 50% 80% at 100% 0%, rgba(37, 99, 235, 0.07), transparent 70%),
+        var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-inline-start: 4px solid var(--accent-gold);
+    }
+
+    .story .section-title { margin-bottom: 10px; }
+
+    .word {
+      font-size: 2.6rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      color: var(--text-strong);
+      line-height: 1;
+      margin-top: 8px;
+    }
+
+    .word small {
+      display: block;
+      margin-top: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-faint);
+      letter-spacing: 0;
+    }
+
+    /* --- Fondatè a --- */
+
+    .founder {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 32px;
+      align-items: start;
+    }
+
+    .avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 1.3rem;
+      letter-spacing: 0.02em;
+      color: #fff;
+      background: linear-gradient(135deg, #0b1f4b, #2563eb);
+      box-shadow: 0 0 0 4px #fff, 0 0 0 5px var(--border-color);
+      flex: none;
+    }
+
+    .avatar.lg { width: 104px; height: 104px; font-size: 1.8rem; }
+
+    .signature { margin-top: 20px; font-weight: 700; color: var(--text-strong); }
+    .signature span { display: block; font-weight: 500; font-size: 0.9rem; color: var(--text-faint); margin-top: 2px; }
+
+    /* --- Ekip la --- */
+
+    .team {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 20px;
+    }
+
+    .member {
+      padding: 26px 24px;
+      border-radius: 14px;
+      border: 1px solid var(--border-color);
+      background: var(--bg);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+      display: grid;
+      gap: 6px;
+      align-content: start;
+    }
+
+    .member .avatar { margin-bottom: 12px; }
+    .member h3 { font-size: 1.1rem; color: var(--text-strong); }
+    .member .role { font-size: 0.86rem; font-weight: 600; color: var(--primary); }
+    .member .from { font-size: 0.85rem; color: var(--text-faint); display: flex; gap: 6px; align-items: center; }
+    .member .from i { font-size: 0.75rem; }
+    .member p { color: var(--text-secondary); font-size: 0.92rem; line-height: 1.55; margin-top: 6px; }
+
+    /* --- Angajman --- */
+
+    .commitments {
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .commitments li {
+      display: grid;
+      grid-template-columns: 40px 1fr;
+      gap: 14px;
+      padding: 22px;
+      border-radius: 14px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-card);
+    }
+
+    .commitments .ic {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: rgba(37, 99, 235, 0.1);
+      color: var(--primary);
+    }
+
+    .commitments strong { display: block; color: var(--text-strong); margin-bottom: 4px; }
+    .commitments p { color: var(--text-secondary); font-size: 0.93rem; line-height: 1.55; }
+
+    /* --- Kontak + CTA --- */
+
+    .contact {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px 28px;
+      align-items: center;
+    }
+
+    .contact a, .contact span.item {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+
+    .contact a:hover { color: var(--primary); }
+    .contact i { color: var(--primary); }
+
+    .cta-section {
+      margin-top: 72px;
+      padding: 40px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #030712, #0b1f4b);
+      color: #f3f4f6;
+      display: grid;
+      grid-template-columns: 1.3fr 1fr;
+      gap: 32px;
+      align-items: center;
+    }
+
+    .cta-section h2 { font-size: 1.7rem; margin-bottom: 10px; color: #fff; }
+    .cta-section p { color: #cbd5e1; line-height: 1.6; }
+    .cta-actions { display: flex; flex-direction: column; gap: 12px; }
+    .cta-actions a { width: 100%; }
+    .cta-section .btn-outline { color: #f3f4f6; border-color: #334155; }
+    .cta-section .btn-outline:hover { background: rgba(255, 255, 255, 0.06); }
+
+    /* ---------------- PYE PAJ ---------------- */
+
+    .site-footer {
+      padding: 32px 40px;
+      border-top: 1px solid var(--border-color);
+      color: var(--text-faint);
+      font-size: 0.85rem;
+      margin-top: 72px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .site-footer .where { margin-top: 4px; }
+    .site-footer .where a { text-decoration: none; color: var(--text-secondary); }
+    .footer-links { display: flex; gap: 18px; flex-wrap: wrap; }
+    .footer-links a { text-decoration: none; color: var(--text-secondary); }
+    .footer-links a:hover, .site-footer .where a:hover { color: var(--primary); }
+
+    /* ---------------- MOBIL ---------------- */
+
+    @media (max-width: 900px) {
+      .navbar { padding: 12px 20px; }
+      .nav-links { display: none; }
+      .main-container { padding: 36px 20px 28px; }
+      .story, .cta-section { grid-template-columns: 1fr; }
+      .story { padding: 24px; gap: 16px; }
+      .team { grid-template-columns: 1fr; }
+      .commitments { grid-template-columns: 1fr; }
+      .site-footer { padding: 28px 20px; }
+    }
+
+    @media (max-width: 620px) {
+      .founder { grid-template-columns: 1fr; gap: 18px; }
+      .btn-sales.nav-cta { display: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .logo-swoosh { animation: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar" data-i18n-attr="aria-label" aria-label="Meni prensipal">
+    <a href="index.html" class="logo" data-i18n-attr="aria-label" aria-label="KONMBIT — akèy">
+      <div class="logo-graphic" aria-hidden="true">
+        <div class="logo-swoosh"></div>
+        <span class="logo-k-letter">K</span>
+      </div>
+      <span class="logo-text">KONMBIT</span>
+    </a>
+
+    <div class="nav-links">
+      <a href="index.html" data-i18n>Akèy</a>
+      <a href="index.html#kijan" data-i18n>Kijan li mache</a>
+      <a href="calculator.html" data-i18n>Kalkilatè peyòl</a>
+      <a href="about.html" aria-current="page" data-i18n>Kiyès nou ye</a>
+    </div>
+
+    <div class="nav-actions">
+      <div class="lang-picker">
+        <button class="icon-btn lang-btn" id="lang-btn" type="button"
+                aria-haspopup="true" aria-expanded="false" aria-controls="lang-menu"
+                data-i18n-attr="aria-label title" aria-label="Chwazi lang" title="Chwazi lang">
+          <i class="fas fa-globe" aria-hidden="true"></i>
+          <span class="lang-code" id="lang-code" aria-hidden="true">HT</span>
+        </button>
+        <div class="lang-menu" id="lang-menu" hidden></div>
+      </div>
+      <a class="icon-btn" id="account-link" href="login.html"
+         data-i18n-attr="title aria-label" title="Konekte" aria-label="Konekte">
+        <i class="fas fa-user" aria-hidden="true"></i>
+      </a>
+      <a href="login.html#enskri" class="btn-sales nav-cta" data-i18n>Enskri biznis ou</a>
+    </div>
+  </nav>
+
+  <main class="main-container">
+
+    <!-- ---------------- ANLÈ ---------------- -->
+    <header>
+      <span class="eyebrow" data-i18n>Kiyès nou ye</span>
+      <h1 class="hero-title" data-i18n>Ansanm, n ap mete men.</h1>
+      <p class="hero-desc" data-i18n>KONMBIT se yon platfòm resous imèn ak peyòl ki fèt pou biznis ayisyen, soti nan ti boutik rive nan gwo konpayi.</p>
+    </header>
+
+    <!-- ---------------- NON AN ---------------- -->
+    <section class="section story" aria-labelledby="story-title">
+      <div>
+        <h2 class="section-title" id="story-title" data-i18n>Poukisa non KONMBIT</h2>
+        <p class="word" aria-hidden="true">Konbit<small>Kare · Sen Lwi di Nò</small></p>
+      </div>
+      <div class="prose">
+        <p data-i18n>Nan Nòdwès peyi a, lè yon plantè gen yon gwo travay pou l fè, vwazen yo vin ede l. Nan Sen Lwi di Nò yo rele sa kare, men tout moun konnen l sou non konbit. Chak moun pote fòs pa l, yon moun kowòdone, epi travay ki t ap pran yon semèn fini nan yon jou.</p>
+        <p data-i18n>Se konsa mwen te grandi, ap gade papa m plante e ap fè konbit. Se lide sa a nou mete nan yon lojisyèl: tout travay ki gen pou fè pou jere yon ekip nan yon sèl kote, byen kowòdone. Sa gen ladan l prezans, konje, peyòl, fòmasyon ak rekritman. Konsa chak moun konnen wòl li, e pèsonn pa pèdi tan ap refè sa yon lòt deja fè.</p>
+      </div>
+    </section>
+
+    <!-- ---------------- FONDATÈ A ---------------- -->
+    <section class="section" aria-labelledby="founder-title">
+      <h2 class="section-title" id="founder-title" data-i18n>Mo fondatè a</h2>
+      <div class="founder">
+        <!-- Lè w gen yon foto: ranplase div sa a pa
+             <img class="avatar lg" src="img/jivenson.jpg" alt="Jivenson Joseph"> -->
+        <div class="avatar lg" aria-hidden="true">JJ</div>
+        <div class="prose">
+          <p data-i18n>Mwen rele Jivenson Joseph. Mwen fèt e mwen grandi Balatye, nan Sen Lwi di Nò. Mwen fè lekòl primè m nan Lekòl Nasyonal Rivyè dè Ba (Zabriko), epi mwen fini klasik mwen nan Lise Jean-Marie de Lamennais nan Sen Lwi di Nò.</p>
+          <p data-i18n>Mwen etidye enfòmatik biwotik nan Alyans, epi syans enfòmatik nan Inivèsite Episkopal Ayiti (UNEPH), Pòtoprens. Mwen se devlopè lojisyèl, e mwen travay ak baz done MySQL, Oracle ak Access. Mwen travay tou nan klimatizasyon (HVAC) Ozetazini, kote m te wè ki jan yon ekip sou teren òganize travay li.</p>
+          <p data-i18n>Moun ki konnen m konnen mwen renmen aprann, e mwen renmen pataje sa m konnen. Mwen bay fòmasyon enfòmatik gratis nan Legliz Mamre, Pòtoprens. KONMBIT se menm lide a: pran konesans ak zouti ki egziste lòt kote, epi mete yo nan men biznis ayisyen, nan lang yo, pou reyalite yo.</p>
+          <p class="signature">Jivenson Joseph<span data-i18n>Fondatè · Administratè baz done</span></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------------- EKIP LA ---------------- -->
+    <section class="section" aria-labelledby="team-title">
+      <h2 class="section-title" id="team-title" data-i18n>Ekip la</h2>
+      <p class="section-sub" data-i18n>Nou twa se ansyen etidyan UNEPH, e nou soti nan diferan kwen peyi a.</p>
+
+      <div class="team">
+        <article class="member">
+          <div class="avatar" aria-hidden="true">JJ</div>
+          <h3>Jivenson Joseph</h3>
+          <div class="role" data-i18n>Fondatè · Administratè baz done</div>
+          <div class="from"><i class="fas fa-location-dot" aria-hidden="true"></i><span data-i18n>Balatye, Sen Lwi di Nò (Nòdwès)</span></div>
+          <p data-i18n>Li jere baz done yo, sipò kliyan ak IT.</p>
+        </article>
+
+        <article class="member">
+          <div class="avatar" aria-hidden="true">JY</div>
+          <h3>Jeffrey H. Youthe</h3>
+          <div class="role" data-i18n>Kofondatè · Devlopè frontend</div>
+          <div class="from"><i class="fas fa-location-dot" aria-hidden="true"></i><span data-i18n>Basen Ble (Nòdwès)</span></div>
+          <p data-i18n>Li konstwi paj ak ekran moun itilize yo, e li fè IT tou.</p>
+        </article>
+
+        <article class="member">
+          <div class="avatar" aria-hidden="true">JO</div>
+          <h3>Jean Blaisile Oulbadam</h3>
+          <div class="role" data-i18n>Kofondatè · Devlopè backend</div>
+          <div class="from"><i class="fas fa-location-dot" aria-hidden="true"></i><span data-i18n>Pòtoprens (Lwès)</span></div>
+          <p data-i18n>Li konstwi sèvè a ak kalkil yo, e li jere rezo a.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ---------------- ANGAJMAN ---------------- -->
+    <section class="section" aria-labelledby="promise-title">
+      <h2 class="section-title" id="promise-title" data-i18n>Angajman nou</h2>
+
+      <ul class="commitments">
+        <li>
+          <span class="ic" aria-hidden="true"><i class="fas fa-building-lock"></i></span>
+          <div>
+            <strong data-i18n>Done biznis ou se pou ou.</strong>
+            <p data-i18n>Chak biznis separe nèt de lòt yo, e pèsonn deyò biznis ou pa ka wè done li.</p>
+          </div>
+        </li>
+        <li>
+          <span class="ic" aria-hidden="true"><i class="fas fa-user-shield"></i></span>
+          <div>
+            <strong data-i18n>Enfòmasyon sansib yo pwoteje.</strong>
+            <p data-i18n>Nimewo idantite ak kont labank pa parèt nan lis yo, e chak fwa yon moun gade yo, sa ekri nan yon jounal.</p>
+          </div>
+        </li>
+        <!-- Pou mete apre deplwaman an, lè backup chak jou a mache vre:
+        <li>
+          <span class="ic" aria-hidden="true"><i class="fas fa-database"></i></span>
+          <div>
+            <strong data-i18n>Kopi sekirite chak jou.</strong>
+            <p data-i18n>Baz done a kopye chak jou, e kopi yo chifre.</p>
+          </div>
+        </li>
+        -->
+        <li>
+          <span class="ic" aria-hidden="true"><i class="fas fa-language"></i></span>
+          <div>
+            <strong data-i18n>Kreyòl dabò.</strong>
+            <p data-i18n>Sistèm lan pale kreyòl, franse, angle ak lòt lang. Anplwaye a li fich li nan lang pa l.</p>
+          </div>
+        </li>
+        <li>
+          <span class="ic" aria-hidden="true"><i class="fas fa-scale-balanced"></i></span>
+          <div>
+            <strong data-i18n>Règ ayisyen yo.</strong>
+            <p data-i18n>IRI, ONA, OFATMA, CFGDCT ak FDU/CAS kalkile dapre lwa ayisyen, e yo mete ajou lè lwa a chanje.</p>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- ---------------- KONTAK ---------------- -->
+    <section class="section" aria-labelledby="contact-title">
+      <h2 class="section-title" id="contact-title" data-i18n>Kontak</h2>
+      <div class="contact">
+        <a href="mailto:kontak@konmbit.com"><i class="fas fa-envelope" aria-hidden="true"></i>kontak@konmbit.com</a>
+        <span class="item"><i class="fas fa-location-dot" aria-hidden="true"></i><span data-i18n>Pòtoprens, Ayiti</span></span>
+      </div>
+    </section>
+
+    <!-- ---------------- CTA ---------------- -->
+    <section class="cta-section" aria-labelledby="cta-title">
+      <div>
+        <h2 id="cta-title" data-i18n>Mete ekip ou sou KONMBIT jodi a</h2>
+        <p data-i18n>Kreye espas biznis ou an kèk minit. W ap vin premye administratè a, epi w ap ka ajoute anplwaye ou yo apre sa.</p>
+      </div>
+      <div class="cta-actions">
+        <a href="login.html#enskri" class="btn-sales" data-i18n>Enskri biznis ou</a>
+        <a href="login.html" class="btn-outline" id="cta-login" data-i18n>Mwen deja gen yon kont</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div>
+      <p data-i18n>© 2026 KONMBIT. Fèt an Ayiti, pou biznis ayisyen.</p>
+      <p class="where"><span data-i18n>Pòtoprens, Ayiti</span> · <a href="mailto:kontak@konmbit.com">kontak@konmbit.com</a></p>
+    </div>
+    <nav class="footer-links" data-i18n-attr="aria-label" aria-label="Lyen pye paj">
+      <a href="index.html#kijan" data-i18n>Kijan li mache</a>
+      <a href="index.html#faq" data-i18n>Kesyon moun poze</a>
+      <a href="calculator.html" data-i18n>Kalkilatè peyòl</a>
+      <a href="about.html" data-i18n>Kiyès nou ye</a>
+      <a href="login.html" data-i18n>Konekte</a>
+    </nav>
+  </footer>
+
+  <script src="api.js"></script>
+  <script>
+  (async function () {
+    'use strict';
+    const { auth, h, i18n, t } = Konbit;
+
+    await i18n.ready;
+
+    // --- Chwa lang (menm jan ak index.html) ---
+    const langBtn = document.getElementById('lang-btn');
+    const langMenu = document.getElementById('lang-menu');
+    document.getElementById('lang-code').textContent = i18n.lang.toUpperCase();
+
+    langMenu.replaceChildren(...i18n.LANGS.map((l) => {
+      const current = l.code === i18n.lang;
+      const btn = h('button', {
+        class: 'lang-option', type: 'button', lang: l.code,
+        dir: ['ar', 'ur', 'fa', 'he'].includes(l.code) ? 'rtl' : 'ltr',
+        'aria-current': current ? 'true' : null,
+      }, h('span', {}, l.label), current ? h('i', { class: 'fas fa-check', 'aria-hidden': 'true' }) : null);
+      btn.addEventListener('click', () => {
+        if (current) { closeLang(); return; }
+        langMenu.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+        i18n.change(l.code);
+      });
+      return btn;
+    }));
+
+    function closeLang() {
+      langMenu.hidden = true;
+      langBtn.setAttribute('aria-expanded', 'false');
+    }
+
+    langBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (langMenu.hidden) {
+        langMenu.hidden = false;
+        langBtn.setAttribute('aria-expanded', 'true');
+        const first = langMenu.querySelector('[aria-current="true"]') || langMenu.querySelector('button');
+        if (first) first.focus();
+      } else {
+        closeLang();
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.lang-picker')) closeLang();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !langMenu.hidden) { closeLang(); langBtn.focus(); }
+    });
+
+    // --- Moun ki deja konekte ---
+    if (auth.isLoggedIn()) {
+      const account = document.getElementById('account-link');
+      account.href = 'dashboard.html';
+      account.title = t('Tablo de bò mwen');
+      account.setAttribute('aria-label', t('Tablo de bò mwen'));
+      const cta = document.getElementById('cta-login');
+      cta.href = 'dashboard.html';
+      cta.textContent = t('Ale nan tablo de bò mwen');
+    }
+  })();
+  </script>
+</body>
+</html>

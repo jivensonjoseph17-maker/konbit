@@ -12,17 +12,35 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
+    /* Paj la klè. Ba navigasyon an ak apèsi tablo de bò a rete ble fonse:
+       yo redefini menm varyab yo pou tout sa ki anndan yo. */
     :root {
-      --bg-dark: #030712;
+      --bg: #ffffff;
+      --bg-card: #f8fafc;
+      --bg-inset: #f1f5f9;
+      --primary: #0051cf;
+      --accent-blue: #2563eb;
+      --accent-gold: #a8841a;      /* lò ki li byen sou blan */
+      --text-main: #0f172a;
+      --text-strong: #020617;
+      --text-secondary: #475569;
+      --text-faint: #64748b;
+      --border-color: #e2e8f0;
+      --border-strong: #cbd5e1;
+    }
+
+    .navbar, .preview {
       --bg-card: #0b0f19;
       --bg-inset: #0d1426;
-      --primary: #0051cf;
       --accent-blue: #3b82f6;
       --accent-gold: #d4af37;
       --text-main: #f3f4f6;
+      --text-strong: #ffffff;
       --text-secondary: #9ca3af;
       --text-faint: #6b7280;
       --border-color: #1f2937;
+      --border-strong: #374151;
+      color: var(--text-main);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -31,7 +49,7 @@
 
     body {
       font-family: 'Inter', system-ui, sans-serif;
-      background-color: var(--bg-dark);
+      background-color: var(--bg);
       color: var(--text-main);
       min-height: 100vh;
       display: flex;
@@ -159,7 +177,7 @@
       border: 1px solid var(--border-color);
       border-radius: 12px;
       padding: 12px;
-      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.7);
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
       display: none;
       flex-direction: column;
       gap: 4px;
@@ -241,7 +259,7 @@
       border: 1px solid var(--border-color);
       border-radius: 12px;
       padding: 8px;
-      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.7);
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
       display: grid;
       gap: 2px;
       z-index: 2100;
@@ -288,7 +306,7 @@
       background: linear-gradient(135deg, var(--primary), var(--accent-blue));
       color: #fff;
       border: none;
-      box-shadow: 0 4px 12px rgba(0, 81, 207, 0.4);
+      box-shadow: 0 4px 12px rgba(0, 81, 207, 0.3);
     }
 
     .btn-sales:hover { opacity: 0.9; }
@@ -296,10 +314,10 @@
     .btn-outline {
       background: transparent;
       color: var(--text-main);
-      border: 1px solid #374151;
+      border: 1px solid var(--border-strong);
     }
 
-    .btn-outline:hover { background: rgba(255, 255, 255, 0.05); }
+    .btn-outline:hover { background: var(--bg-inset); }
 
     /* ---------------- HERO ---------------- */
 
@@ -325,7 +343,7 @@
       line-height: 1.1;
       letter-spacing: -0.02em;
       margin-bottom: 20px;
-      color: #ffffff;
+      color: var(--text-strong);
       max-width: 17ch;
     }
 
@@ -340,8 +358,8 @@
     .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
 
     /* ---------------- APÈSI PWODWI ----------------
-       Se vrè tablo de bò a, an miniati. Minitè a se sèl bagay ki bouje
-       sou tout paj la — li montre sa pwodwi a fè san yon mo. */
+       Se vrè tablo de bò a, an miniati. Li rete fonse sou paj klè a:
+       se li ki atire je a. */
 
     .preview {
       position: relative;
@@ -349,7 +367,7 @@
       border: 1px solid var(--border-color);
       border-radius: 18px;
       padding: 22px;
-      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.55);
+      box-shadow: 0 30px 60px rgba(2, 6, 23, 0.28);
       display: grid;
       gap: 14px;
     }
@@ -411,7 +429,7 @@
     }
 
     .pv-btn {
-      border: 1px solid #374151;
+      border: 1px solid var(--border-strong);
       border-radius: 999px;
       padding: 9px 16px;
       font-size: 0.8rem;
@@ -468,7 +486,7 @@
 
     .section { margin-top: 72px; }
     .section:first-of-type { margin-top: 0; }
-    .section-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; }
+    .section-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; color: var(--text-strong); }
     .section-sub { color: var(--text-secondary); margin-bottom: 22px; max-width: 62ch; line-height: 1.55; }
 
     .card-grid {
@@ -486,13 +504,17 @@
       color: inherit;
       font: inherit;
       cursor: pointer;
-      transition: transform 0.2s, border-color 0.2s;
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
     }
 
-    .feature-card:hover { transform: translateY(-4px); border-color: var(--accent-gold); }
+    .feature-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--accent-gold);
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+    }
 
     .feature-card i { color: var(--accent-gold); font-size: 1.3rem; margin-bottom: 14px; display: block; }
-    .feature-card h3 { font-size: 1.1rem; margin-bottom: 8px; color: #fff; }
+    .feature-card h3 { font-size: 1.1rem; margin-bottom: 8px; color: var(--text-strong); }
     .feature-card p { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.55; }
 
     /* --- Fèt pou Ayiti: lis dwat, pa kat — se detay konkrè, pa modil. --- */
@@ -506,14 +528,14 @@
       border-radius: 16px;
       border: 1px solid var(--border-color);
       background:
-        radial-gradient(ellipse 50% 80% at 100% 0%, rgba(59, 130, 246, 0.09), transparent 70%),
+        radial-gradient(ellipse 50% 80% at 100% 0%, rgba(59, 130, 246, 0.07), transparent 70%),
         var(--bg-card);
     }
 
     .local-list { list-style: none; display: grid; gap: 22px; }
     .local-list li { display: grid; grid-template-columns: 28px 1fr; gap: 14px; }
     .local-list i { color: var(--accent-gold); font-size: 1.05rem; padding-top: 3px; }
-    .local-list strong { display: block; margin-bottom: 4px; }
+    .local-list strong { display: block; margin-bottom: 4px; color: var(--text-strong); }
     .local-list p { color: var(--text-secondary); font-size: 0.92rem; line-height: 1.55; }
 
     .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
@@ -521,7 +543,7 @@
       padding: 6px 12px;
       border-radius: 999px;
       border: 1px solid var(--border-color);
-      background: var(--bg-inset);
+      background: var(--bg);
       font-size: 0.8rem;
       font-weight: 600;
       font-variant-numeric: tabular-nums;
@@ -558,7 +580,7 @@
       font-weight: 800;
     }
 
-    .steps h3 { font-size: 1.05rem; margin-bottom: 8px; }
+    .steps h3 { font-size: 1.05rem; margin-bottom: 8px; color: var(--text-strong); }
     .steps p { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.55; }
 
     /* --- Kesyon moun poze --- */
@@ -576,6 +598,7 @@
       cursor: pointer;
       padding: 18px 20px;
       font-weight: 600;
+      color: var(--text-strong);
       display: flex;
       justify-content: space-between;
       gap: 16px;
@@ -586,12 +609,13 @@
     .faq details[open] summary::after { content: '–'; }
     .faq details p { padding: 0 20px 18px; color: var(--text-secondary); line-height: 1.6; max-width: 70ch; }
 
-    /* ---------------- APÈL POU AKSYON ---------------- */
+    /* ---------------- APÈL POU AKSYON ----------------
+       Bann ble fonse: fèmen paj la ak menm koulè ak ba navigasyon an. */
 
     .cta-section {
       margin-top: 72px;
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
+      background: linear-gradient(135deg, #030712, #0b1f4b);
+      color: #f3f4f6;
       padding: 40px;
       border-radius: 16px;
       display: grid;
@@ -601,16 +625,18 @@
     }
 
     .cta-section h2 { font-size: 1.8rem; margin-bottom: 10px; color: #fff; }
-    .cta-section p { color: var(--text-secondary); line-height: 1.6; }
+    .cta-section p { color: #cbd5e1; line-height: 1.6; }
     .cta-actions { display: flex; flex-direction: column; gap: 12px; }
     .cta-actions a { width: 100%; }
+    .cta-section .btn-outline { color: #f3f4f6; border-color: #334155; }
+    .cta-section .btn-outline:hover { background: rgba(255, 255, 255, 0.06); }
 
     /* ---------------- MODAL ---------------- */
 
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(3, 7, 18, 0.85);
+      background: rgba(3, 7, 18, 0.55);
       backdrop-filter: blur(6px);
       display: none;
       align-items: center;
@@ -622,13 +648,13 @@
     .modal-overlay.active { display: flex; }
 
     .modal-box {
-      background: var(--bg-card);
+      background: var(--bg);
       border: 1px solid var(--border-color);
       width: 100%;
       max-width: 560px;
       border-radius: 16px;
       padding: 28px;
-      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8);
+      box-shadow: 0 25px 50px rgba(2, 6, 23, 0.35);
     }
 
     .modal-header {
@@ -638,7 +664,7 @@
       margin-bottom: 18px;
     }
 
-    .modal-header h3 { font-size: 1.2rem; color: #fff; }
+    .modal-header h3 { font-size: 1.2rem; color: var(--text-strong); }
 
     .close-btn {
       background: none;
@@ -651,10 +677,10 @@
       border-radius: 50%;
     }
 
-    .close-btn:hover { background: rgba(255, 255, 255, 0.06); color: #fff; }
+    .close-btn:hover { background: var(--bg-inset); color: var(--text-strong); }
 
     .modal-body {
-      background: #000;
+      background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: 10px;
       padding: 28px 20px;
@@ -662,7 +688,7 @@
     }
 
     .modal-body i { font-size: 2.8rem; color: var(--accent-gold); margin-bottom: 12px; display: block; }
-    .modal-body p { color: var(--text-secondary); font-size: 0.92rem; line-height: 1.55; max-width: 440px; margin: 0 auto; }
+    .modal-body p { color: var(--text-secondary); font-size: 0.95rem; line-height: 1.6; max-width: 440px; margin: 0 auto; }
     .modal-body .btn-sales { margin-top: 20px; }
 
     /* ---------------- PYE PAJ ---------------- */
@@ -680,9 +706,11 @@
       flex-wrap: wrap;
     }
 
+    .site-footer .where { margin-top: 4px; }
+    .site-footer .where a { text-decoration: none; color: var(--text-secondary); }
     .footer-links { display: flex; gap: 18px; flex-wrap: wrap; }
     .footer-links a { text-decoration: none; color: var(--text-secondary); }
-    .footer-links a:hover { color: var(--accent-gold); }
+    .footer-links a:hover, .site-footer .where a:hover { color: var(--primary); }
 
     /* ---------------- MOBIL ---------------- */
 
@@ -783,7 +811,7 @@
       <div class="nav-item">
         <button class="nav-link" type="button" aria-expanded="false"><span data-i18n>Konpayi</span> <i class="fas fa-chevron-down" aria-hidden="true"></i></button>
         <div class="mega-menu">
-          <button class="mega-item" type="button" data-preview="about"><span data-i18n>Kiyès nou ye</span> <i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+          <a class="mega-item" href="about.html"><span data-i18n>Kiyès nou ye</span> <i class="fas fa-chevron-right" aria-hidden="true"></i></a>
           <button class="mega-item" type="button" data-preview="security"><span data-i18n>Sekirite done yo</span> <i class="fas fa-chevron-right" aria-hidden="true"></i></button>
         </div>
       </div>
@@ -1015,11 +1043,15 @@
   </div>
 
   <footer class="site-footer">
-    <p data-i18n>© 2026 KONMBIT. Fèt an Ayiti, pou biznis ayisyen.</p>
+    <div>
+      <p data-i18n>© 2026 KONMBIT. Fèt an Ayiti, pou biznis ayisyen.</p>
+      <p class="where"><span data-i18n>Pòtoprens, Ayiti</span> · <a href="mailto:kontak@konmbit.com">kontak@konmbit.com</a></p>
+    </div>
     <nav class="footer-links" data-i18n-attr="aria-label" aria-label="Lyen pye paj">
       <a href="#kijan" data-i18n>Kijan li mache</a>
       <a href="#faq" data-i18n>Kesyon moun poze</a>
       <a href="calculator.html" data-i18n>Kalkilatè peyòl</a>
+      <a href="about.html" data-i18n>Kiyès nou ye</a>
       <a href="login.html" data-i18n>Konekte</a>
     </nav>
   </footer>
@@ -1160,6 +1192,7 @@
     // -------------------------------------------------------------------
     // FENÈT DETAY YO
     // [ikòn, tit (kle), tèks (kle)]
+    // "Kiyès nou ye" se yon vrè paj kounye a (about.html).
     // -------------------------------------------------------------------
 
     const previews = {
@@ -1191,8 +1224,6 @@
         'Peyòl an goud oswa an dola, yon dosye konplè pou chak anplwaye, epi chak fwa yon moun gade done sansib, sa ekri nan yon jounal.'],
       industry: ['fas fa-helmet-safety', 'Faktori ak konstriksyon',
         'Anpil travayè, anpil èdtan: prezans sou telefòn, èdtan siplemantè kalkile, epi manadjè a apwouve èdtan chak moun anvan HR peye.'],
-      about: ['fas fa-building', 'Kiyès nou ye',
-        'KONMBIT se yon platfòm resous imèn ki fèt an Ayiti pou antrepriz ayisyen — soti nan ti boutik rive nan gwo konpayi. Li pale kreyòl, franse, angle ak lòt lang.'],
       security: ['fas fa-shield-halved', 'Sekirite done yo',
         'Chak biznis separe nèt de lòt yo. Enfòmasyon sansib tankou nimewo idantite ak nimewo kont labank pa parèt nan lis yo, epi chak fwa yon moun gade yo, sa ekri nan yon jounal.'],
     };
