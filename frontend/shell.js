@@ -16,7 +16,7 @@
  */
 (function () {
   'use strict';
-  const { api, auth, fmt, h, i18n, t } = Konbit;
+  const { api, auth, fmt, h, i18n, t, theme } = Konbit;
 
   const ADMIN = ['super_admin', 'org_admin', 'hr'];
   const MANAGERS = ['super_admin', 'org_admin', 'hr', 'manager'];
@@ -144,6 +144,7 @@
           h('div', { class: 'role' }, fmt.role(user.role)),
         ),
         h('span', { class: 'avatar', 'aria-hidden': 'true' }, initials(user.full_name)),
+        theme.button(),
         langPicker,
         logout,
       ),
@@ -242,7 +243,7 @@
         position: absolute; inset-inline: 0; top: calc(100% + 4px); z-index: 60;
         max-height: 280px; overflow-y: auto; padding: 6px; display: grid; gap: 2px;
         border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
-        background: var(--bg); box-shadow: 0 16px 32px rgba(0, 0, 0, 0.45);
+        background: var(--input-bg, var(--bg)); box-shadow: var(--shadow);
       }
       .emp-picker-list[hidden] { display: none; }
       .emp-picker-option {

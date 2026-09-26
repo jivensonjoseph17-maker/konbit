@@ -12,7 +12,52 @@
  * Sèl eksepsyon yo (box-shadow, transform) gen yon règ [dir="rtl"] apa.
  */
 
+/* Tèm KLÈ = pa defo. Tèm NWA = <html data-theme="dark"> (gade theme.js).
+   Pa janm ekri yon koulè dirèkteman nan yon règ: sèvi ak yon varyab isit la,
+   pou de tèm yo toujou rete an akò. */
 :root {
+  --bg: #f5f7fb;
+  --surface: #ffffff;
+  --surface-2: #eef2f8;
+  --line: #e2e8f0;
+  --line-strong: #cbd5e1;
+  --text: #0f172a;
+  --muted: #475569;
+  --faint: #64748b;
+  --blue: #2563eb;
+  --blue-hover: #1d4fd8;
+  --blue-soft: rgba(37, 99, 235, 0.10);
+  --gold: #b7791f;
+  --gold-soft: rgba(183, 121, 31, 0.12);
+  --green: #15803d;
+  --green-soft: rgba(21, 128, 61, 0.10);
+  --red: #dc2626;
+  --red-soft: rgba(220, 38, 38, 0.08);
+
+  /* Tèks sou yon fon koulè (badge, alèt) */
+  --info-text: #1d4ed8;
+  --success-text: #166534;
+  --warning-text: #92400e;
+  --danger-text: #b91c1c;
+
+  --input-bg: #ffffff;
+  --sidebar-bg: #ffffff;
+  --topbar-bg: rgba(255, 255, 255, 0.9);
+  --auth-glow: rgba(37, 99, 235, 0.08);
+  --shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
+
+  --radius-lg: 18px;
+  --radius: 12px;
+  --radius-sm: 8px;
+
+  /* Inter pa gen lèt arab ni chinwa: navigatè a pran polis sistèm lan pou yo. */
+  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', 'Noto Sans Arabic',
+    'PingFang SC', 'Microsoft YaHei', sans-serif;
+
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
   --bg: #070b18;
   --surface: #0d1426;
   --surface-2: #121b31;
@@ -31,13 +76,16 @@
   --red: #e2555b;
   --red-soft: rgba(226, 85, 91, 0.13);
 
-  --radius-lg: 18px;
-  --radius: 12px;
-  --radius-sm: 8px;
+  --info-text: #a9c1f6;
+  --success-text: #8fd6b1;
+  --warning-text: #e7c47a;
+  --danger-text: #f0a4a7;
 
-  /* Inter pa gen lèt arab ni chinwa: navigatè a pran polis sistèm lan pou yo. */
-  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', 'Noto Sans Arabic',
-    'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --input-bg: #070b18;
+  --sidebar-bg: #070b18;
+  --topbar-bg: rgba(7, 11, 24, 0.86);
+  --auth-glow: rgba(37, 99, 235, 0.16);
+  --shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
 
   color-scheme: dark;
 }
@@ -177,7 +225,7 @@ button { font: inherit; color: inherit; }
   padding: 10px 14px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line-strong);
-  background: var(--bg);
+  background: var(--input-bg);
   color: var(--text);
   font: inherit;
   transition: border-color 0.15s;
@@ -185,7 +233,7 @@ button { font: inherit; color: inherit; }
 
 .textarea { min-height: 84px; resize: vertical; }
 
-.input:hover, .select:hover, .textarea:hover { border-color: #3a4a6e; }
+.input:hover, .select:hover, .textarea:hover { border-color: var(--faint); }
 .input:focus, .select:focus, .textarea:focus { outline: none; border-color: var(--blue); }
 
 .input[aria-invalid="true"] { border-color: var(--red); }
@@ -207,8 +255,8 @@ button { font: inherit; color: inherit; }
   font-size: 14px;
 }
 
-.alert-error { background: var(--red-soft); color: #f3a6a9; border: 1px solid rgba(226, 85, 91, 0.3); }
-.alert-ok { background: var(--green-soft); color: #9fdcbd; border: 1px solid rgba(63, 182, 122, 0.3); }
+.alert-error { background: var(--red-soft); color: var(--danger-text); border: 1px solid rgba(226, 85, 91, 0.3); }
+.alert-ok { background: var(--green-soft); color: var(--success-text); border: 1px solid rgba(63, 182, 122, 0.3); }
 
 .alert:empty { display: none; }
 
@@ -229,7 +277,7 @@ button { font: inherit; color: inherit; }
   justify-content: space-between;
   border-inline-end: 1px solid var(--line);
   background:
-    radial-gradient(ellipse 70% 50% at 20% 110%, rgba(37, 99, 235, 0.16), transparent 70%),
+    radial-gradient(ellipse 70% 50% at 20% 110%, var(--auth-glow), transparent 70%),
     var(--bg);
 }
 
@@ -354,7 +402,7 @@ button { font: inherit; color: inherit; }
   justify-content: space-between;
   gap: 16px;
   padding: 14px 28px;
-  background: rgba(7, 11, 24, 0.86);
+  background: var(--topbar-bg);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
 }
@@ -523,7 +571,7 @@ button { font: inherit; color: inherit; }
   padding: 6px 12px;
   border-radius: 999px;
   background: var(--blue-soft);
-  color: #a9c1f6;
+  color: var(--info-text);
   font-size: 13.5px;
   font-weight: 600;
 }
@@ -555,7 +603,7 @@ button { font: inherit; color: inherit; }
 
 .row .k { color: var(--muted); }
 .row.total { border-top: 1px solid var(--line); padding-top: 8px; font-weight: 700; }
-.row.minus .v { color: #f0a4a7; }
+.row.minus .v { color: var(--danger-text); }
 
 /* --- Òganigram --- */
 
@@ -583,7 +631,7 @@ button { font: inherit; color: inherit; }
 .chain .who { font-weight: 600; font-size: 14px; }
 .chain .num { color: var(--faint); font-size: 12.5px; }
 
-.chain li.me .avatar { border-color: var(--blue); color: #a9c1f6; }
+.chain li.me .avatar { border-color: var(--blue); color: var(--info-text); }
 
 /* --- Konje --- */
 
@@ -627,10 +675,10 @@ button { font: inherit; color: inherit; }
   white-space: nowrap;
 }
 
-.badge-pending { background: var(--gold-soft); color: #e7c47a; }
-.badge-approved { background: var(--green-soft); color: #8fd6b1; }
-.badge-rejected, .badge-cancelled { background: var(--red-soft); color: #f0a4a7; }
-.badge-late { background: var(--red-soft); color: #f0a4a7; }
+.badge-pending { background: var(--gold-soft); color: var(--warning-text); }
+.badge-approved { background: var(--green-soft); color: var(--success-text); }
+.badge-rejected, .badge-cancelled { background: var(--red-soft); color: var(--danger-text); }
+.badge-late { background: var(--red-soft); color: var(--danger-text); }
 
 /* --- Fòmasyon --- */
 
@@ -661,7 +709,7 @@ button { font: inherit; color: inherit; }
   padding: 16px 18px;
   border-radius: var(--radius);
   background: var(--blue-soft);
-  color: #b9cdf7;
+  color: var(--info-text);
   font-size: 14px;
 }
 
@@ -698,7 +746,7 @@ button { font: inherit; color: inherit; }
   gap: 28px;
   padding: 18px 14px;
   border-inline-end: 1px solid var(--line);
-  background: var(--bg);
+  background: var(--sidebar-bg);
   overflow-y: auto;
 }
 
@@ -767,13 +815,13 @@ a.nav-item:hover { background: var(--surface); color: var(--text); }
     z-index: 50;
     transform: translateX(-100%);
     transition: transform 0.2s ease;
-    box-shadow: 20px 0 40px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--shadow);
   }
 
   /* Arab: tiwa a soti sou bò dwat la. */
   [dir="rtl"] #sidebar {
     transform: translateX(100%);
-    box-shadow: -20px 0 40px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--shadow);
   }
 
   body.nav-open #sidebar { transform: translateX(0); }
@@ -854,9 +902,9 @@ a.nav-item:hover { background: var(--surface); color: var(--text); }
 .table .cell-muted { color: var(--muted); }
 .table .actions { text-align: end; white-space: nowrap; }
 
-.badge-active { background: var(--green-soft); color: #8fd6b1; }
-.badge-on_leave { background: var(--gold-soft); color: #e7c47a; }
-.badge-suspended, .badge-terminated { background: var(--red-soft); color: #f0a4a7; }
+.badge-active { background: var(--green-soft); color: var(--success-text); }
+.badge-on_leave { background: var(--gold-soft); color: var(--warning-text); }
+.badge-suspended, .badge-terminated { background: var(--red-soft); color: var(--danger-text); }
 
 .pager {
   display: flex;
@@ -900,7 +948,7 @@ a.nav-item:hover { background: var(--surface); color: var(--text); }
 }
 
 .secret h2 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
-.secret p { color: #e7d3a6; font-size: 13.5px; }
+.secret p { color: var(--warning-text); font-size: 13.5px; }
 
 .secret-row {
   display: flex;
@@ -916,7 +964,7 @@ a.nav-item:hover { background: var(--surface); color: var(--text); }
   letter-spacing: 0.04em;
   padding: 8px 12px;
   border-radius: var(--radius-sm);
-  background: var(--bg);
+  background: var(--input-bg);
   border: 1px solid var(--line-strong);
   user-select: all;
   direction: ltr;
@@ -948,7 +996,7 @@ a.nav-item:hover { background: var(--surface); color: var(--text); }
 .back-link:hover { color: var(--text); }
 
 .plain-link { color: inherit; text-decoration: none; }
-.plain-link:hover { color: #a9c1f6; text-decoration: underline; }
+.plain-link:hover { color: var(--info-text); text-decoration: underline; }
 
 .emp-head {
   display: flex;
@@ -988,11 +1036,11 @@ a.nav-item:hover { background: var(--surface); color: var(--text); }
    PEYÒL
    ========================================================================= */
 
-.badge-info { background: var(--blue-soft); color: #a9c1f6; }
+.badge-info { background: var(--blue-soft); color: var(--info-text); }
 
 .alert-warn {
   background: var(--gold-soft);
-  color: #ecd49b;
+  color: var(--warning-text);
   border: 1px solid rgba(214, 166, 58, 0.35);
   margin-bottom: 16px;
 }
@@ -1053,7 +1101,7 @@ a.nav-item:hover { background: var(--surface); color: var(--text); }
 }
 
 .stepper li.done { color: var(--muted); }
-.stepper li.done .step-n { background: var(--green-soft); border-color: transparent; color: #8fd6b1; }
+.stepper li.done .step-n { background: var(--green-soft); border-color: transparent; color: var(--success-text); }
 .stepper li.current { color: var(--text); box-shadow: inset 0 0 0 1px var(--blue); }
 .stepper li.current .step-n { background: var(--blue); border-color: var(--blue); color: #fff; }
 
@@ -1102,3 +1150,15 @@ a.nav-item:hover { background: var(--surface); color: var(--text); }
 @media (max-width: 760px) {
   .breakdown-grid { grid-template-columns: 1fr; }
 }
+
+
+/* =========================================================================
+   BOUTON TÈM (klè / nwa) — ba anlè a
+   ========================================================================= */
+
+.theme-btn {
+  display: inline-grid; place-items: center; width: 36px; height: 36px;
+  border-radius: 999px; border: 1px solid var(--line); background: transparent;
+  color: var(--text); cursor: pointer;
+}
+.theme-btn:hover { background: var(--surface-2); }

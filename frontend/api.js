@@ -245,7 +245,7 @@
         max-height: min(70vh, 460px); overflow-y: auto; padding: 6px;
         display: grid; gap: 2px; z-index: 3000; border-radius: 12px;
         border: 1px solid var(--line, #1f2937); background: var(--bg, #0b0f19);
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        box-shadow: var(--shadow, 0 20px 40px rgba(0, 0, 0, 0.5));
       }
       .lang-picker-menu[hidden] { display: none; }
       .lang-picker-option {
@@ -856,5 +856,61 @@
     return el;
   }
 
-  window.Konbit = { API_URL, api, auth, fmt, h, ApiError, i18n, t };
+  // -------------------------------------------------------------------------
+  // TÈM — klè (pa defo) oswa nwa. theme.js aplike chwa a nan <head> la.
+  // -------------------------------------------------------------------------
+
+  const THEME_KEY = 'konbit.theme';
+
+  function svgIcon(paths) {
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(NS, 'svg');
+    for (const [k, v] of Object.entries({
+      viewBox: '0 0 24 24', width: '18', height: '18', fill: 'none', stroke: 'currentColor',
+      'stroke-width': '1.8', 'stroke-linecap': 'round', 'aria-hidden': 'true',
+    })) svg.setAttribute(k, v);
+    for (const d of paths) {
+      const path = document.createElementNS(NS, 'path');
+      path.setAttribute('d', d);
+      svg.append(path);
+    }
+    return svg;
+  }
+
+  const MOON = ['M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z'];
+  const SUN = ['M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10z',
+    'M12 1.5v2M12 20.5v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1.5 12h2M20.5 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4'];
+
+  const theme = {
+    get current() {
+      return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    },
+    set(value) {
+      const dark = value === 'dark';
+      if (dark) document.documentElement.setAttribute('data-theme', 'dark');
+      else document.documentElement.removeAttribute('data-theme');
+      storageSet(THEME_KEY, dark ? 'dark' : 'light');
+    },
+    /** Bouton ☾/☀: ikòn nan montre tèm ou ap pase ladan l si w klike. */
+    button() {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'theme-btn';
+      const render = () => {
+        const dark = theme.current === 'dark';
+        const label = dark ? t('Tèm klè') : t('Tèm nwa');
+        btn.setAttribute('aria-label', label);
+        btn.title = label;
+        btn.replaceChildren(svgIcon(dark ? SUN : MOON));
+      };
+      btn.addEventListener('click', () => {
+        theme.set(theme.current === 'dark' ? 'light' : 'dark');
+        render();
+      });
+      render();
+      return btn;
+    },
+  };
+
+  window.Konbit = { API_URL, api, auth, fmt, h, ApiError, i18n, t, theme };
 })();
