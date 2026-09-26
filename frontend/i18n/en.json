@@ -872,5 +872,8 @@
  "Ekip ki travay lajounen ak lannwit: manadjè a planifye orè chak moun pa semèn, chak moun antre ak soti sou telefòn li, èdtan siplemantè kalkile, epi manadjè a apwouve èdtan yo anvan peyòl.": "Day and night crews: the manager plans everyone's weekly schedule, everyone clocks in on their phone, overtime is calculated, and the manager approves hours before payroll.",
  "Manadjè a planifye orè ekip li pa semèn — maten, apremidi, lannwit — epi li kopye semèn anvan an pou rotasyon yo. Anplwaye a wè orè li sou telefòn li lè manadjè a pibliye l.": "Managers plan their team's weekly shifts — morning, afternoon, night — and copy the previous week for rotations. Employees see their schedule on their phone once the manager publishes it.",
  "Tèm klè": "Light theme",
- "Tèm nwa": "Dark theme"
+ "Tèm nwa": "Dark theme",
+ "Chanje dat la": "Change date",
+ "Dat peman an chanje.": "Payment date changed.",
+ "Dat peman an chanje. {count} fich rekalkile: verifye yo epi apwouve peyòl la ankò.": "Payment date changed. {count} payslip(s) recalculated: review them and approve the payroll again."
 }

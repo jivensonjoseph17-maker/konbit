@@ -129,6 +129,43 @@
       }[m] || m;
     }
 
+    /**
+     * Chanje dat peman an. Retni sou bonis la depann de dat sa a (10% → 15%
+     * nan dat 1ye okt 2026). Backend la rekalkile tout fich yo; si yon chif
+     * chanje nan yon peyòl apwouve, li retounen an bouyon pou HR apwouve l ankò.
+     */
+    function payDateControl(period, msg) {
+      const input = h('input', { class: 'input', id: 'pay-date', type: 'date',
+        min: period.end_date, style: 'max-width: 180px;' });
+      input.value = period.pay_date;
+      const btn = h('button', { class: 'btn btn-ghost', type: 'button' }, t('Chanje dat la'));
+
+      btn.addEventListener('click', async () => {
+        msg.textContent = '';
+        if (!input.value || input.value === period.pay_date) return;
+        if (input.value < period.end_date) {
+          msg.textContent = t('Dat peman an pa ka anvan fen peryòd la.');
+          return;
+        }
+        btn.disabled = true;
+        try {
+          const res = await api.post(`/api/payroll/periods/${period.id}/pay-date`,
+            { pay_date: input.value });
+          lastWarnings = [res.reopened
+            ? t('Dat peman an chanje. {count} fich rekalkile: verifye yo epi apwouve peyòl la ankò.',
+                { count: res.changed_slips })
+            : t('Dat peman an chanje.')];
+          await refresh();
+        } catch (err) {
+          msg.textContent = errorMessage(err);
+          btn.disabled = false;
+        }
+      });
+
+      return h('div', { class: 'field inline-field' },
+        h('label', { for: 'pay-date' }, t('Dat peman')), input, btn);
+    }
+
     function selectPeriod(id) {
       selectedId = id;
       lastWarnings = [];
@@ -470,6 +507,12 @@
             msg.textContent = errorMessage(err);
             payBtn.disabled = false;
             payBtn.textContent = t('Make l peye');
+            // 409: dat peman jodi a pa gen menm to bonis ak dat prevwa a.
+            // Nou prepare chan "Dat peman" an ak jodi a pou HR ka korije l.
+            if (err instanceof ApiError && err.status === 409) {
+              const pd = $('pay-date');
+              if (pd) { pd.value = fmt.todayIso(); pd.focus(); }
+            }
           }
         });
 
@@ -481,6 +524,10 @@
             : null,
           payBtn,
         );
+      }
+
+      if (period.status === 'draft' || period.status === 'approved') {
+        actions.append(payDateControl(period, msg));
       }
 
       // --- Rezime ---

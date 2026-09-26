@@ -872,5 +872,8 @@
  "Ekip ki travay lajounen ak lannwit: manadjè a planifye orè chak moun pa semèn, chak moun antre ak soti sou telefòn li, èdtan siplemantè kalkile, epi manadjè a apwouve èdtan yo anvan peyòl.": "白班和夜班团队：经理按周安排每个人的班次，每个人用手机打卡，加班自动计算，经理在发工资前审批工时。",
  "Manadjè a planifye orè ekip li pa semèn — maten, apremidi, lannwit — epi li kopye semèn anvan an pou rotasyon yo. Anplwaye a wè orè li sou telefòn li lè manadjè a pibliye l.": "经理按周安排团队班次（早班、午班、夜班），并复制上一周用于轮班。经理发布后，员工即可在手机上查看自己的排班。",
  "Tèm klè": "浅色主题",
- "Tèm nwa": "深色主题"
+ "Tèm nwa": "深色主题",
+ "Chanje dat la": "更改日期",
+ "Dat peman an chanje.": "支付日期已更改。",
+ "Dat peman an chanje. {count} fich rekalkile: verifye yo epi apwouve peyòl la ankò.": "支付日期已更改。已重新计算 {count} 张工资单：请核对后重新审批工资。"
 }

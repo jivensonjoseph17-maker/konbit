@@ -9,6 +9,7 @@ Endpoint yo:
     POST   /api/payroll/periods/{id}/run     Jenere fich peye yo
     POST   /api/payroll/periods/{id}/approve Apwouve peyòl la
     POST   /api/payroll/periods/{id}/pay     Make l peye
+    POST   /api/payroll/periods/{id}/pay-date  Chanje dat peman an (rekalkile retni yo)
     GET    /api/payroll/periods/{id}/payslips  Tout fich peye yon peryòd
     GET    /api/payroll/me/payslips          Pwòp fich peye mwen
     GET    /api/payroll/payslips/{id}        Yon fich peye
@@ -27,6 +28,14 @@ DEDIKSYON AYITI (valè pa defo — chak biznis ka gen pwòp to pa l):
   - Yon moun ki gen pwentaj nan peryòd la dwe gen èdtan APWOUVE.
   - Si non, /run refize (409) jiskaske HR konfime ak `confirm_unapproved=true`.
     Lè sa a, moun sa yo touche salè de baz yo, men PA èdtan siplemantè.
+
+DAT PEMAN AN (retni sou bonis 10% → 15% nan dat 1ye okt 2026):
+  - Fich yo kalkile ak dat peman PREVWA peryòd la (period.pay_date).
+  - /pay konvèti dat peman REYÈL la an lè lokal biznis la. Si to bonis la
+    pa menm jan ak to dat prevwa a, e gen fich ki gen bonis oswa èdtan
+    siplemantè, li refize (409).
+  - /pay-date chanje dat prevwa a epi rekalkile tout fich yo. Si yon chif
+    chanje nan yon peyòl ki te apwouve, li retounen an bouyon.
 
 ATANSYON: to sa yo se yon pwen depa. Yon kontab ayisyen dwe verifye yo
 anvan ou sèvi ak sistèm lan pou vrè peyòl.
@@ -74,7 +83,7 @@ from ..schemas import (
     PayslipAdjust,
     PayslipOut,
 )
-from ..timezone_utils import get_local_today
+from ..timezone_utils import get_local_today, get_org_timezone
 from .timesheets import approved_employee_ids, has_time_entries
 
 logger = logging.getLogger("konbit")
@@ -176,6 +185,17 @@ def _notify(db: Session, org_id: int, user_id: Optional[int],
         db.commit()
     except Exception:
         db.rollback()
+
+
+def _local_date_of(db: Session, org_id: int, when: datetime) -> date:
+    """
+    Dat LOKAL biznis la pou yon moman. Yon peman a 8:30 PM an Ayiti nan
+    dat 30 sept se 1ye okt an UTC: se dat lokal la ki konte pou to a.
+    Yon datetime san fizo orè (SQLite, oswa kliyan ki pa voye l) = UTC.
+    """
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=timezone.utc)
+    return when.astimezone(get_org_timezone(db, org_id)).date()
 
 
 def _annual_iri(annual_taxable_cents: int) -> int:
@@ -786,6 +806,12 @@ def mark_paid(
     """
     Make peyòl la peye epi avèti chak anplwaye.
     Si ou bay `check_start_number`, nou asiyen nimewo chèk yo otomatikman.
+
+    GAD TO BONIS LA: retni sou bonis/èdtan siplemantè a depann de dat
+    peman an (10% → 15% nan dat 1ye okt 2026). Fich yo te kalkile ak dat
+    PREVWA a. Si dat REYÈL la (lè lokal) tonbe sou yon lòt to, e gen fich
+    ki gen bonis oswa èdtan siplemantè, nou refize: HR dwe chanje dat
+    peman an (/pay-date), verifye nouvo chif yo, epi apwouve ankò.
     """
     period = _get_period_or_404(db, org_id, period_id)
 
@@ -796,7 +822,32 @@ def mark_paid(
         )
 
     slips = db.query(Payslip).filter(Payslip.pay_period_id == period.id).all()
+
     paid_at = payload.paid_at or datetime.now(timezone.utc)
+    if paid_at.tzinfo is None:
+        paid_at = paid_at.replace(tzinfo=timezone.utc)
+    paid_on = _local_date_of(db, org_id, paid_at)
+
+    planned_rate = supplemental_tax_rate(period.pay_date)
+    actual_rate = supplemental_tax_rate(paid_on)
+    if actual_rate != planned_rate:
+        affected = [
+            s for s in slips
+            if (s.overtime_amount or 0) + (s.bonus_amount or 0) > 0
+        ]
+        if affected:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    f"Fich yo te kalkile pou yon peman {period.pay_date:%d/%m/%Y} "
+                    f"(retni sou bonis {planned_rate:.0%}), men peman an fèt "
+                    f"{paid_on:%d/%m/%Y} (retni {actual_rate:.0%}). "
+                    f"{len(affected)} fich gen bonis oswa èdtan siplemantè. "
+                    f"Chanje dat peman an pou {paid_on:%d/%m/%Y}, verifye fich yo, "
+                    "apwouve peyòl la ankò, epi make l peye."
+                ),
+            )
+
     check_no = payload.check_start_number
 
     by_method: dict[str, int] = {}
@@ -840,13 +891,99 @@ def mark_paid(
             )
 
     _audit(db, request, user, "mark_paid", "pay_period", period.id,
-           changes=f"{len(slips)} fich peye. Total net: {total_net}.")
+           changes=f"{len(slips)} fich peye {paid_on:%d/%m/%Y} (lè lokal); "
+                   f"dat prevwa {period.pay_date:%d/%m/%Y}. Total net: {total_net}.")
 
     return MarkPaidResult(
         period_id=period.id,
         paid_count=len(slips),
         total_net=total_net,
         by_method=by_method,
+    )
+
+
+# ---------------------------------------------------------------------------
+# CHANJE DAT PEMAN AN
+# ---------------------------------------------------------------------------
+
+class PayDateChange(BaseModel):
+    pay_date: date
+
+
+class PayDateChangeResult(BaseModel):
+    period: PayPeriodOut
+    changed_slips: int      # fich ki gen omwen yon chif ki chanje
+    reopened: bool          # peyòl apwouve a retounen an bouyon
+
+
+@router.post(
+    "/periods/{period_id}/pay-date",
+    response_model=PayDateChangeResult,
+    dependencies=[Depends(require_hr)],
+)
+def change_pay_date(
+    period_id: int,
+    payload: PayDateChange,
+    user: CurrentUser,
+    org_id: TenantId,
+    request: Request,
+    db: DbSession,
+):
+    """
+    Chanje dat peman yon peryòd epi rekalkile retni tout fich yo.
+
+    Si peyòl la te APWOUVE e yon chif chanje, li retounen an BOUYON:
+    moun ki apwouve a pa t wè nouvo chif yo, kidonk li dwe apwouve ankò.
+    """
+    period = _get_period_or_404(db, org_id, period_id)
+
+    if period.status not in (PayrollStatus.DRAFT, PayrollStatus.APPROVED):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Peryòd la nan estati '{period.status.value}'. Ou pa ka chanje dat peman an.",
+        )
+    if payload.pay_date < period.end_date:
+        raise HTTPException(
+            status_code=400,
+            detail="Dat peyman an pa ka anvan fen peryòd la.",
+        )
+
+    old_date = period.pay_date
+    if payload.pay_date == old_date:
+        return PayDateChangeResult(period=_period_out(db, period), changed_slips=0, reopened=False)
+
+    period.pay_date = payload.pay_date
+    slips = db.query(Payslip).filter(Payslip.pay_period_id == period.id).all()
+
+    def snapshot(s: Payslip) -> tuple:
+        return (s.net_amount, *(getattr(s, f) for f in DEDUCTION_FIELDS))
+
+    changed = 0
+    for slip in slips:
+        before = snapshot(slip)
+        _recompute(slip, period)
+        if snapshot(slip) != before:
+            changed += 1
+
+    reopened = False
+    if changed and period.status == PayrollStatus.APPROVED:
+        period.status = PayrollStatus.DRAFT
+        period.approved_by_id = None
+        period.approved_at = None
+        for slip in slips:
+            slip.status = PayrollStatus.DRAFT
+        reopened = True
+
+    db.commit()
+    db.refresh(period)
+
+    _audit(db, request, user, "change_pay_date", "pay_period", period.id,
+           changes=(f"{old_date:%d/%m/%Y} -> {period.pay_date:%d/%m/%Y}. "
+                    f"{changed} fich rekalkile."
+                    + (" Retounen an bouyon." if reopened else "")))
+
+    return PayDateChangeResult(
+        period=_period_out(db, period), changed_slips=changed, reopened=reopened,
     )
 
 

@@ -872,5 +872,8 @@
  "Ekip ki travay lajounen ak lannwit: manadjè a planifye orè chak moun pa semèn, chak moun antre ak soti sou telefòn li, èdtan siplemantè kalkile, epi manadjè a apwouve èdtan yo anvan peyòl.": "Des équipes de jour et de nuit : le manager planifie l'horaire de chacun par semaine, chacun pointe sur son téléphone, les heures supplémentaires sont calculées et le manager approuve les heures avant la paie.",
  "Manadjè a planifye orè ekip li pa semèn — maten, apremidi, lannwit — epi li kopye semèn anvan an pou rotasyon yo. Anplwaye a wè orè li sou telefòn li lè manadjè a pibliye l.": "Le manager planifie les horaires de son équipe par semaine — matin, après-midi, nuit — et copie la semaine précédente pour les rotations. L'employé voit son horaire sur son téléphone dès que le manager le publie.",
  "Tèm klè": "Thème clair",
- "Tèm nwa": "Thème sombre"
+ "Tèm nwa": "Thème sombre",
+ "Chanje dat la": "Changer la date",
+ "Dat peman an chanje.": "La date de paiement a été modifiée.",
+ "Dat peman an chanje. {count} fich rekalkile: verifye yo epi apwouve peyòl la ankò.": "La date de paiement a été modifiée. {count} fiche(s) recalculée(s) : vérifiez-les puis approuvez de nouveau la paie."
 }
