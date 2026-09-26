@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n>Kalkilatè peyòl — KONMBIT</title>
+  <meta name="description" data-i18n-attr="content"
+        content="Kalkile salè nèt yon anplwaye an Ayiti: IRI, ONA, OFATMA, CFGDCT, FDU/CAS ak retni sou bonis.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
+  <style>
+    .calc-page { max-width: 1040px; margin: 0 auto; padding: 24px 20px 64px; }
+    .calc-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 28px; }
+    .calc-head { margin-bottom: 24px; max-width: 62ch; }
+    .calc-head h1 { font-size: clamp(26px, 3.2vw, 34px); font-weight: 800; letter-spacing: -0.02em; }
+    .calc-head p { color: var(--muted); margin-top: 8px; }
+    .calc-grid { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 20px; align-items: start; }
+    .calc-form { display: grid; gap: 14px; }
+    .net-label { color: var(--muted); font-size: 14px; }
+    .net-amount {
+      font-size: clamp(30px, 4vw, 40px); font-weight: 800; letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums; margin: 2px 0 14px;
+    }
+    .rate { color: var(--faint); font-size: 12.5px; margin-inline-start: 6px; }
+    .calc-cta { margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .how { margin-top: 20px; }
+    .how summary { cursor: pointer; font-weight: 600; }
+    .how ul { margin: 12px 0 0; padding-inline-start: 20px; color: var(--muted); display: grid; gap: 6px; font-size: 14px; }
+    @media (max-width: 820px) { .calc-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main class="calc-page">
+    <div class="calc-top">
+      <a class="brand" href="index.html" data-i18n-attr="aria-label" aria-label="KONMBIT — akèy">
+        <span class="brand-mark" aria-hidden="true">K</span>
+        <span class="brand-name">KONMBIT</span>
+      </a>
+      <div id="lang-slot"></div>
+    </div>
+
+    <div class="calc-head">
+      <h1 data-i18n>Kalkilatè peyòl</h1>
+      <p data-i18n>Wè konbyen yon anplwaye ap touche nèt apre retni ayisyen yo: IRI, ONA, OFATMA, CFGDCT ak FDU/CAS.</p>
+    </div>
+
+    <div class="calc-grid">
+      <section class="panel" aria-labelledby="form-title">
+        <div class="panel-head"><h2 id="form-title" data-i18n>Salè a</h2></div>
+        <form class="calc-form" id="calc-form" novalidate>
+          <div class="field">
+            <label for="c-gross" data-i18n>Salè brit pou peryòd la (HTG)</label>
+            <input class="input" id="c-gross" inputmode="decimal" autocomplete="off" placeholder="50 000">
+          </div>
+          <div class="field">
+            <label for="c-frequency" data-i18n>Chak ki lè li peye?</label>
+            <select class="select" id="c-frequency">
+              <option value="monthly" data-i18n>Chak mwa</option>
+              <option value="semimonthly" data-i18n>Chak kenzèn</option>
+              <option value="weekly" data-i18n>Chak semèn</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="c-bonus" data-i18n>Bonis oswa èdtan siplemantè (HTG)</label>
+            <input class="input" id="c-bonus" inputmode="decimal" autocomplete="off"
+                   data-i18n-attr="placeholder" placeholder="Opsyonèl">
+          </div>
+          <div class="field">
+            <label for="c-date" data-i18n>Dat peman</label>
+            <input class="input" id="c-date" type="date">
+            <span class="hint" data-i18n>Retni sou bonis la depann de dat peman an.</span>
+          </div>
+          <p class="field-error" id="c-error" role="alert"></p>
+        </form>
+      </section>
+
+      <section class="panel" aria-labelledby="result-title" aria-live="polite">
+        <div class="panel-head"><h2 id="result-title" data-i18n>Rezilta</h2></div>
+        <div id="result"><p class="empty" data-i18n>Tape yon salè pou wè kalkil la.</p></div>
+      </section>
+    </div>
+
+    <div class="alert alert-warn" style="margin-top: 20px;" data-i18n>Rezilta sa a se yon estimasyon. To yo baze sou piblikasyon DGI yo; fè yon kontab verifye yo anvan ou peye anplwaye ou yo.</div>
+
+    <details class="panel how">
+      <summary data-i18n>Kijan nou kalkile</summary>
+      <ul id="how-list"></ul>
+    </details>
+
+    <div class="calc-cta">
+      <a class="btn btn-primary" href="login.html#enskri" data-i18n>Kalkile peyòl tout ekip ou otomatikman</a>
+      <a class="btn btn-ghost" href="index.html" data-i18n>Dekouvri KONMBIT</a>
+    </div>
+  </main>
+
+  <script src="api.js"></script>
+  <script>
+  (async function () {
+    'use strict';
+    const { api, fmt, h, ApiError, i18n, t } = Konbit;
+
+    await i18n.ready;
+    document.getElementById('lang-slot').append(i18n.switcher());
+
+    const $ = (id) => document.getElementById(id);
+    const PUBLIC = { auth: false };
+    const pct = (rate) => `${Math.round(rate * 1000) / 10}%`;
+
+    $('c-date').value = fmt.todayIso();
+
+    function row(label, cents, { minus = false, rate = null, strong = false } = {}) {
+      return h('div', { class: `row${minus ? ' minus' : ''}${strong ? ' total' : ''}` },
+        h('span', { class: minus ? 'k' : '' }, label, rate ? h('span', { class: 'rate' }, rate) : null),
+        h('span', { class: minus ? 'v' : '' }, `${minus ? '−' : ''}${fmt.money(cents)}`));
+    }
+
+    function render(r) {
+      const rows = [
+        row(t('Salè brit'), r.gross_salary),
+        r.bonus ? row(t('Bonis oswa èdtan siplemantè'), r.bonus) : null,
+        r.bonus ? row(t('Brit total'), r.total_gross) : null,
+        row(t('Enpo sou salè (IRI)'), r.tax_amount, { minus: true }),
+        r.bonus ? row(t('Retni sou bonis / èdtan siplemantè'), r.supplemental_tax_amount,
+          { minus: true, rate: pct(r.supplemental_tax_rate) }) : null,
+        row('ONA', r.ona_amount, { minus: true, rate: pct(r.ona_rate) }),
+        row('OFATMA', r.ofatma_amount, { minus: true, rate: pct(r.ofatma_rate) }),
+        row('CFGDCT', r.cfgdct_amount, { minus: true, rate: r.cfgdct_applies ? pct(r.cfgdct_rate) : null }),
+        row('FDU / CAS', r.fdu_cas_amount, { minus: true, rate: pct(r.fdu_cas_rate) }),
+        row(t('Total retni'), r.total_deductions, { strong: true }),
+      ];
+      $('result').replaceChildren(
+        h('p', { class: 'net-label' }, t('Net pou anplwaye a')),
+        h('p', { class: 'net-amount' }, fmt.money(r.net_amount)),
+        h('div', { class: 'rows' }, ...rows),
+      );
+
+      // Esplikasyon an sèvi ak to backend la VRÈMAN itilize yo.
+      $('how-list').replaceChildren(...[
+        t('IRI: baremn pwogresif DGI a aplike sou {share} salè a (abatman {abatement}), kalkile sou ane a epi divize pa kantite peman.',
+          { share: pct(1 - r.salary_abatement), abatement: pct(r.salary_abatement) }),
+        t('Bonis, prim ak èdtan siplemantè: retni fiks {old} jiska 30 septanm 2026, {new} apati 1ye oktòb 2026.',
+          { old: '10%', new: '15%' }),
+        t('ONA {ona} ak OFATMA {ofatma} sou tout salè brit la. Yo pa redwi baz IRI a.',
+          { ona: pct(r.ona_rate), ofatma: pct(r.ofatma_rate) }),
+        t('CFGDCT {rate} sèlman si salè a rive {floor} pa mwa oswa plis.',
+          { rate: pct(r.cfgdct_rate), floor: fmt.money(r.cfgdct_monthly_floor) }),
+        t('FDU/CAS {rate} sou tout salè brit la.', { rate: pct(r.fdu_cas_rate) }),
+      ].map((text) => h('li', {}, text)));
+    }
+
+    let timer = null;
+    let requestNo = 0;
+
+    async function calculate() {
+      $('c-error').textContent = '';
+      const grossText = $('c-gross').value.trim();
+      const bonusText = $('c-bonus').value.trim();
+      if (!grossText && !bonusText) {
+        $('result').replaceChildren(h('p', { class: 'empty' }, t('Tape yon salè pou wè kalkil la.')));
+        return;
+      }
+      const gross = grossText ? fmt.parseMoney(grossText) : 0;
+      const bonus = bonusText ? fmt.parseMoney(bonusText) : 0;
+      if (gross === null || bonus === null) {
+        $('c-error').textContent = t('Montan yo dwe chif valab.');
+        return;
+      }
+
+      const mine = ++requestNo;
+      try {
+        const r = await api.post('/api/calculator', {
+          gross_salary: gross,
+          bonus,
+          frequency: $('c-frequency').value,
+          pay_date: $('c-date').value || null,
+        }, PUBLIC);
+        if (mine === requestNo) render(r);
+      } catch (err) {
+        if (mine !== requestNo) return;
+        let msg = err instanceof ApiError ? err.message : t('Yon bagay pa mache.');
+        if (err.fields && err.fields.length) msg += ' ' + err.fields.map((f) => f.message).join(' ');
+        $('c-error').textContent = msg;
+      }
+    }
+
+    function schedule() {
+      clearTimeout(timer);
+      timer = setTimeout(calculate, 300);
+    }
+
+    ['c-gross', 'c-bonus'].forEach((id) => $(id).addEventListener('input', schedule));
+    ['c-frequency', 'c-date'].forEach((id) => $(id).addEventListener('change', calculate));
+    $('calc-form').addEventListener('submit', (e) => { e.preventDefault(); calculate(); });
+  })();
+  </script>
+</body>
+</html>

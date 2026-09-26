@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n>Orè travay — KONMBIT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
+  <style>
+    .week-nav { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .week-label { font-weight: 600; min-width: 220px; text-align: center; }
+    .sched th.day { text-align: center; min-width: 108px; }
+    .sched th.day .d { display: block; color: var(--faint); font-weight: 500; font-size: 12px; }
+    .sched td.day { text-align: center; padding: 6px; }
+    .shift-cell {
+      width: 100%; min-height: 48px; padding: 6px 4px; border-radius: var(--radius-sm);
+      border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text);
+      font: inherit; font-size: 13px; cursor: pointer; display: grid; gap: 2px; place-items: center;
+      font-variant-numeric: tabular-nums;
+    }
+    .shift-cell:hover { border-color: var(--blue); }
+    .shift-cell.empty { background: transparent; border-style: dashed; color: var(--faint); font-size: 18px; }
+    .shift-cell.draft { border-style: dashed; border-color: var(--gold); }
+    .shift-cell .tpl { color: var(--muted); font-size: 11.5px; }
+    .legend { display: flex; gap: 16px; flex-wrap: wrap; color: var(--muted); font-size: 13px; margin: 10px 0 16px; }
+    .legend span::before { content: ''; display: inline-block; width: 12px; height: 12px; border-radius: 3px;
+      margin-inline-end: 6px; vertical-align: -1px; border: 1px solid var(--line-strong); background: var(--surface-2); }
+    .legend .lg-draft::before { border-style: dashed; border-color: var(--gold); }
+    dialog.editor {
+      width: min(440px, 92vw); border: 1px solid var(--line-strong); border-radius: var(--radius-lg);
+      background: var(--surface); color: var(--text); padding: 22px;
+    }
+    dialog.editor::backdrop { background: rgba(3, 7, 18, 0.7); }
+    .editor form { display: grid; gap: 12px; }
+    .tpl-list { display: grid; gap: 8px; }
+    .tpl-item { display: flex; justify-content: space-between; align-items: center; gap: 10px;
+      padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+    .tpl-form { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      margin-top: 14px; align-items: end; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside id="sidebar"></aside>
+
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+
+      <main class="page">
+        <div class="page-head-row">
+          <div class="page-head">
+            <h1 data-i18n>Orè travay</h1>
+            <p data-i18n>Planifye ki moun ki travay ki lè, semèn pa semèn.</p>
+          </div>
+          <div class="week-nav">
+            <button class="btn btn-ghost btn-sm" type="button" id="prev-week"
+                    data-i18n-attr="aria-label title" aria-label="Semèn anvan" title="Semèn anvan">‹</button>
+            <span class="week-label" id="week-label"></span>
+            <button class="btn btn-ghost btn-sm" type="button" id="next-week"
+                    data-i18n-attr="aria-label title" aria-label="Semèn apre" title="Semèn apre">›</button>
+            <button class="btn btn-quiet btn-sm" type="button" id="this-week" data-i18n>Semèn sa a</button>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <input class="input" id="search" type="search" data-i18n-attr="placeholder aria-label"
+                 placeholder="Chèche pa non oswa nimewo" aria-label="Chèche pa non oswa nimewo">
+          <button class="btn btn-ghost" type="button" id="copy-btn" data-i18n>Kopye semèn anvan an</button>
+          <button class="btn btn-primary" type="button" id="publish-btn" data-i18n>Pibliye semèn nan</button>
+        </div>
+        <p class="hint" id="action-msg" role="status" style="display: block; min-height: 18px;"></p>
+        <div id="unpublished-note"></div>
+
+        <div class="legend" aria-hidden="true">
+          <span data-i18n>Pibliye: anplwaye a wè l</span>
+          <span class="lg-draft" data-i18n>Poko pibliye</span>
+        </div>
+
+        <div class="table-wrap">
+          <table class="table sched">
+            <thead><tr id="head-row"></tr></thead>
+            <tbody id="rows"><tr><td class="loading" data-i18n>Ap chaje…</td></tr></tbody>
+          </table>
+        </div>
+
+        <div class="pager" id="pager" hidden>
+          <span id="pager-label"></span>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-ghost btn-sm" type="button" id="prev" data-i18n>Anvan</button>
+            <button class="btn btn-ghost btn-sm" type="button" id="next" data-i18n>Apre</button>
+          </div>
+        </div>
+
+        <section class="panel" id="templates-panel" style="margin-top: 24px;" hidden>
+          <div class="panel-head"><h2 data-i18n>Modèl orè yo</h2></div>
+          <p class="hint" style="display: block; margin-bottom: 12px;" data-i18n>Kreye orè biznis ou itilize pi souvan yo (maten, apremidi, lannwit). Manadjè yo ap chwazi nan lis sa a.</p>
+          <div class="tpl-list" id="tpl-list"></div>
+          <form class="tpl-form" id="tpl-form" novalidate>
+            <div class="field"><label for="tp-name" data-i18n>Non modèl la</label>
+              <input class="input" id="tp-name" maxlength="80" data-i18n-attr="placeholder" placeholder="Maten"></div>
+            <div class="field"><label for="tp-start" data-i18n>Kòmanse</label>
+              <input class="input" id="tp-start" type="time" value="07:00"></div>
+            <div class="field"><label for="tp-end" data-i18n="Fini|lè">Fini</label>
+              <input class="input" id="tp-end" type="time" value="15:00"></div>
+            <div class="field"><label for="tp-break" data-i18n>Poz (minit)</label>
+              <input class="input" id="tp-break" type="number" min="0" max="240" value="60"></div>
+            <div><button class="btn btn-primary" type="submit" data-i18n>Ajoute modèl la</button></div>
+          </form>
+          <p class="field-error" id="tpl-msg" role="status"></p>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <dialog class="editor" id="editor" aria-labelledby="ed-title">
+    <form method="dialog" id="ed-form" novalidate>
+      <h2 id="ed-title" style="font-size: 17px;"></h2>
+      <div class="field">
+        <label for="ed-template" data-i18n>Orè</label>
+        <select class="select" id="ed-template"></select>
+      </div>
+      <div class="form-row" id="ed-custom">
+        <div class="field"><label for="ed-start" data-i18n>Kòmanse</label>
+          <input class="input" id="ed-start" type="time"></div>
+        <div class="field"><label for="ed-end" data-i18n="Fini|lè">Fini</label>
+          <input class="input" id="ed-end" type="time"></div>
+      </div>
+      <div class="field" id="ed-break-field">
+        <label for="ed-break" data-i18n>Poz (minit)</label>
+        <input class="input" id="ed-break" type="number" min="0" max="240" value="0">
+      </div>
+      <div class="field">
+        <label for="ed-note" data-i18n>Nòt (opsyonèl)</label>
+        <input class="input" id="ed-note" maxlength="300">
+      </div>
+      <p class="hint" data-i18n>Si lè fen an pi bonè pase lè kòmansman an, orè a fini nan demen.</p>
+      <p class="field-error" id="ed-msg" role="status"></p>
+      <div class="form-actions" style="margin-top: 4px;">
+        <button class="btn btn-primary" type="submit" id="ed-save" data-i18n>Sove</button>
+        <button class="btn btn-danger" type="button" id="ed-delete" data-i18n>Retire orè a</button>
+        <button class="btn btn-ghost" type="button" id="ed-cancel" data-i18n="Anile|aksyon">Anile</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="api.js"></script>
+  <script src="shell.js"></script>
+  <script>
+  (async function () {
+    'use strict';
+    const { api, fmt, h, ApiError, shell, t } = Konbit;
+
+    const identity = await shell.mount('schedule', shell.MANAGERS);
+    if (!identity) return;
+
+    const $ = (id) => document.getElementById(id);
+    const isHr = shell.ADMIN.includes(identity.user.role);
+    const PAGE_SIZE = 25;
+    const CUSTOM = 'custom';
+
+    const state = { monday: null, q: '', page: 1, templates: [], week: null, editing: null };
+
+    // -------------------------------------------------------------------
+    // ZOUTI
+    // -------------------------------------------------------------------
+
+    function errorMessage(err) {
+      let msg = err instanceof ApiError ? err.message : t('Yon bagay pa mache.');
+      if (err && err.fields && err.fields.length) msg += ' ' + err.fields.map((f) => f.message).join(' ');
+      return msg;
+    }
+
+    const hhmm = (value) => (value || '').slice(0, 5);
+    const parseIso = (iso) => { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d); };
+    const toIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const addDays = (iso, n) => { const d = parseIso(iso); d.setDate(d.getDate() + n); return toIso(d); };
+    const mondayOf = (iso) => { const d = parseIso(iso); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return toIso(d); };
+
+    /** "22:00–06:00 (+1)" pou yon orè ki fini nan demen. */
+    function timeRange(s) {
+      return `${hhmm(s.start_time)}–${hhmm(s.end_time)}${s.overnight ? ' (+1)' : ''}`;
+    }
+
+    // -------------------------------------------------------------------
+    // MODÈL ORÈ YO
+    // -------------------------------------------------------------------
+
+    async function loadTemplates() {
+      try {
+        state.templates = await api.get('/api/schedules/templates');
+      } catch {
+        state.templates = [];
+      }
+      renderTemplates();
+    }
+
+    function renderTemplates() {
+      if (!isHr) return;
+      $('templates-panel').hidden = false;
+      $('tpl-list').replaceChildren(...(state.templates.length
+        ? state.templates.map((tpl) => {
+            const off = h('button', { class: 'btn btn-quiet btn-sm', type: 'button' }, t('Retire|aksyon'));
+            off.addEventListener('click', async () => {
+              off.disabled = true;
+              try {
+                await api.patch(`/api/schedules/templates/${tpl.id}`, { is_active: false });
+                await loadTemplates();
+              } catch (err) {
+                $('tpl-msg').textContent = errorMessage(err);
+                off.disabled = false;
+              }
+            });
+            return h('div', { class: 'tpl-item' },
+              h('div', {},
+                h('strong', {}, tpl.name), ' ',
+                h('span', { class: 'sub' }, `${timeRange(tpl)} · ${fmt.duration(tpl.minutes)}`)),
+              off);
+          })
+        : [h('p', { class: 'empty' }, t('Poko gen modèl orè.'))]));
+    }
+
+    $('tpl-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      $('tpl-msg').textContent = '';
+      const name = $('tp-name').value.trim();
+      if (!name) { $('tpl-msg').textContent = t('Bay modèl la yon non.'); return; }
+      try {
+        await api.post('/api/schedules/templates', {
+          name, start_time: $('tp-start').value, end_time: $('tp-end').value,
+          break_minutes: Number($('tp-break').value) || 0,
+        });
+        $('tp-name').value = '';
+        await loadTemplates();
+      } catch (err) {
+        $('tpl-msg').textContent = errorMessage(err);
+      }
+    });
+
+    // -------------------------------------------------------------------
+    // GRID SEMÈN NAN
+    // -------------------------------------------------------------------
+
+    async function loadWeek() {
+      const params = new URLSearchParams({ page: String(state.page), size: String(PAGE_SIZE) });
+      if (state.monday) params.set('start', state.monday);
+      if (state.q) params.set('q', state.q);
+      try {
+        const week = await api.get(`/api/schedules/week?${params}`);
+        state.week = week;
+        state.monday = week.week_start;
+        renderWeek();
+      } catch (err) {
+        $('rows').replaceChildren(h('tr', {}, h('td', { class: 'empty', colspan: '9' }, errorMessage(err))));
+      }
+    }
+
+    function renderWeek() {
+      const week = state.week;
+      const days = Array.from({ length: 7 }, (_, i) => addDays(week.week_start, i));
+      $('week-label').textContent = `${fmt.date(week.week_start)} – ${fmt.date(week.week_end)}`;
+
+      $('head-row').replaceChildren(
+        h('th', { scope: 'col' }, t('Anplwaye')),
+        ...days.map((iso) => h('th', { scope: 'col', class: 'day' },
+          fmt.DAYS[parseIso(iso).getDay()], h('span', { class: 'd' }, fmt.shortDate(iso)))),
+        h('th', { scope: 'col', class: 'num-col' }, t('Total')),
+      );
+
+      $('unpublished-note').replaceChildren(week.unpublished
+        ? h('div', { class: 'notice', style: 'margin-bottom: 12px;' },
+            t('{n} orè poko pibliye: anplwaye yo poko wè yo.', { n: week.unpublished }))
+        : '');
+      $('publish-btn').disabled = !week.unpublished;
+
+      if (!week.rows.length) {
+        $('rows').replaceChildren(h('tr', {}, h('td', { class: 'empty', colspan: '9' },
+          state.q ? t('Pesonn pa koresponn ak rechèch sa a.') : t('Pa gen okenn moun pou planifye.'))));
+      } else {
+        $('rows').replaceChildren(...week.rows.map((row) => {
+          const byDate = Object.fromEntries(row.shifts.map((s) => [s.work_date, s]));
+          return h('tr', {},
+            h('td', {},
+              h('div', { class: 'who' }, row.employee_name),
+              h('div', { class: 'num' }, row.employee_number)),
+            ...days.map((iso) => h('td', { class: 'day' }, cellButton(row, iso, byDate[iso]))),
+            h('td', { class: 'num-col' },
+              row.minutes_total ? fmt.duration(row.minutes_total) : '—',
+              row.over_weekly_limit
+                ? h('div', {}, h('span', { class: 'badge badge-late' }, t('Plis pase 48è')))
+                : null),
+          );
+        }));
+      }
+
+      const pages = Math.max(1, Math.ceil(week.total / PAGE_SIZE));
+      $('pager').hidden = pages <= 1;
+      $('pager-label').textContent = t('Paj {page} sou {pages}', { page: state.page, pages });
+      $('prev').disabled = state.page <= 1;
+      $('next').disabled = state.page >= pages;
+    }
+
+    function cellButton(row, iso, shift) {
+      const label = `${row.employee_name} — ${fmt.date(iso)}`;
+      const btn = shift
+        ? h('button', {
+            class: `shift-cell${shift.is_published ? '' : ' draft'}`, type: 'button',
+            'aria-label': `${label}: ${timeRange(shift)}`,
+            title: shift.note || '',
+          },
+          h('span', {}, timeRange(shift)),
+          shift.template_name ? h('span', { class: 'tpl' }, shift.template_name) : null)
+        : h('button', { class: 'shift-cell empty', type: 'button',
+            'aria-label': t('Ajoute yon orè: {who}', { who: label }) }, '+');
+      btn.addEventListener('click', () => openEditor(row, iso, shift));
+      return btn;
+    }
+
+    // -------------------------------------------------------------------
+    // MODIFYE YON ORÈ
+    // -------------------------------------------------------------------
+
+    function syncCustom() {
+      const custom = $('ed-template').value === CUSTOM;
+      $('ed-custom').hidden = !custom;
+      $('ed-break-field').hidden = !custom;
+    }
+
+    function openEditor(row, iso, shift) {
+      state.editing = { row, iso, shift };
+      $('ed-title').textContent = `${row.employee_name} — ${fmt.longDate(iso)}`;
+      $('ed-msg').textContent = '';
+      $('ed-template').replaceChildren(
+        ...state.templates.map((tpl) => h('option', { value: String(tpl.id) }, `${tpl.name} (${timeRange(tpl)})`)),
+        h('option', { value: CUSTOM }, t('Lè pèsonalize')),
+      );
+      const known = shift && shift.template_id && state.templates.some((x) => x.id === shift.template_id);
+      $('ed-template').value = known ? String(shift.template_id) : (shift || !state.templates.length ? CUSTOM : String(state.templates[0].id));
+      $('ed-start').value = shift ? hhmm(shift.start_time) : '07:00';
+      $('ed-end').value = shift ? hhmm(shift.end_time) : '15:00';
+      $('ed-break').value = shift ? String(shift.break_minutes) : '0';
+      $('ed-note').value = shift && shift.note ? shift.note : '';
+      $('ed-delete').hidden = !shift;
+      syncCustom();
+      $('editor').showModal();
+    }
+
+    $('ed-template').addEventListener('change', syncCustom);
+    $('ed-cancel').addEventListener('click', () => $('editor').close());
+
+    $('ed-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const { row, iso } = state.editing;
+      const custom = $('ed-template').value === CUSTOM;
+      const body = { employee_id: row.employee_id, work_date: iso, note: $('ed-note').value.trim() || null };
+      if (custom) {
+        if (!$('ed-start').value || !$('ed-end').value) { $('ed-msg').textContent = t('Chwazi lè kòmansman ak lè fen.'); return; }
+        Object.assign(body, { start_time: $('ed-start').value, end_time: $('ed-end').value,
+          break_minutes: Number($('ed-break').value) || 0 });
+      } else {
+        body.template_id = Number($('ed-template').value);
+      }
+      $('ed-save').disabled = true;
+      try {
+        await api.put('/api/schedules/shifts', body);
+        $('editor').close();
+        await loadWeek();
+      } catch (err) {
+        $('ed-msg').textContent = errorMessage(err);
+      } finally {
+        $('ed-save').disabled = false;
+      }
+    });
+
+    $('ed-delete').addEventListener('click', async () => {
+      const { shift } = state.editing;
+      $('ed-delete').disabled = true;
+      try {
+        await api.del(`/api/schedules/shifts/${shift.id}`);
+        $('editor').close();
+        await loadWeek();
+      } catch (err) {
+        $('ed-msg').textContent = errorMessage(err);
+      } finally {
+        $('ed-delete').disabled = false;
+      }
+    });
+
+    // -------------------------------------------------------------------
+    // AKSYON SEMÈN NAN
+    // -------------------------------------------------------------------
+
+    $('copy-btn').addEventListener('click', async () => {
+      $('copy-btn').disabled = true;
+      $('action-msg').textContent = '';
+      try {
+        const r = await api.post('/api/schedules/week/copy', { week_start: state.monday });
+        $('action-msg').textContent = t('{created} orè kopye. {skipped} jou te deja gen yon orè.', r);
+        await loadWeek();
+      } catch (err) {
+        $('action-msg').textContent = errorMessage(err);
+      } finally {
+        $('copy-btn').disabled = false;
+      }
+    });
+
+    $('publish-btn').addEventListener('click', async () => {
+      if (!confirm(t('Pibliye orè semèn sa a? Anplwaye yo ap wè yo sou tablo de bò yo.'))) return;
+      $('publish-btn').disabled = true;
+      $('action-msg').textContent = '';
+      try {
+        const r = await api.post('/api/schedules/week/publish', { week_start: state.monday });
+        $('action-msg').textContent = t('{n} orè pibliye.', { n: r.published });
+        await loadWeek();
+      } catch (err) {
+        $('action-msg').textContent = errorMessage(err);
+        $('publish-btn').disabled = false;
+      }
+    });
+
+    function goWeek(delta) {
+      state.monday = delta === 0 ? mondayOf(fmt.todayIso()) : addDays(state.monday, delta * 7);
+      state.page = 1;
+      loadWeek();
+    }
+    $('prev-week').addEventListener('click', () => goWeek(-1));
+    $('next-week').addEventListener('click', () => goWeek(1));
+    $('this-week').addEventListener('click', () => goWeek(0));
+    $('prev').addEventListener('click', () => { state.page -= 1; loadWeek(); });
+    $('next').addEventListener('click', () => { state.page += 1; loadWeek(); });
+
+    let searchTimer;
+    $('search').addEventListener('input', (e) => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => { state.q = e.target.value.trim(); state.page = 1; loadWeek(); }, 300);
+    });
+
+    // -------------------------------------------------------------------
+    // DEMARAJ — semèn pa defo: semèn jodi a (lè lokal)
+    // -------------------------------------------------------------------
+    state.monday = mondayOf(fmt.todayIso());
+    await loadTemplates();
+    await loadWeek();
+  })();
+  </script>
+</body>
+</html>

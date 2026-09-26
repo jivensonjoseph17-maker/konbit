@@ -1,0 +1,81 @@
+# Konbit — Render Blueprint
+# Chemen: render.yaml (rasin repo a)
+#
+# Render li fichye sa a pou kreye 3 bagay yon sèl kou:
+#   1. konmbit-db   — PostgreSQL
+#   2. konmbit-api  — backend FastAPI     → https://api.konmbit.com
+#   3. konmbit-web  — paj yo (frontend)   → https://konmbit.com, https://www.konmbit.com
+#
+# Gade DEPLOY_KONMBIT.md pou etap yo. SECRET_KEY PA nan fichye sa a:
+# Render ap mande w li lè w enpòte Blueprint la (sync: false).
+
+databases:
+  - name: konmbit-db
+    databaseName: konmbit
+    user: konmbit
+    plan: basic-256mb          # plan peye: pa dòmi, gen backup Render
+    postgresMajorVersion: "16"
+
+services:
+  # ------------------------------------------------------------------
+  # BACKEND
+  # ------------------------------------------------------------------
+  - type: web
+    name: konmbit-api
+    runtime: python
+    rootDir: backend
+    plan: starter              # plan gratis la dòmi apre 15 min: pa bon pou yon HRIS
+    buildCommand: pip install -r requirements.txt "psycopg[binary]>=3.2"
+    # Migrasyon yo kouri ANVAN nouvo vèsyon an pran plas ansyen an.
+    # Si yon migrasyon echwe, ansyen vèsyon an rete an liy.
+    preDeployCommand: alembic upgrade head
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"
+    healthCheckPath: /api/health
+    domains:
+      - api.konmbit.com
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.14.4"
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: konmbit-db
+          property: connectionString
+      - key: SECRET_KEY
+        sync: false            # Render mande w li. Jenere l ak python (gade DEPLOY_KONMBIT.md).
+      - key: FRONTEND_URL
+        value: https://konmbit.com
+      - key: ALLOWED_ORIGINS
+        value: '["https://konmbit.com","https://www.konmbit.com"]'
+
+  # ------------------------------------------------------------------
+  # FRONTEND — fichye HTML/JS/CSS yo tèl jan yo ye, pa gen build.
+  # ------------------------------------------------------------------
+  - type: web
+    name: konmbit-web
+    runtime: static
+    buildCommand: ""
+    staticPublishPath: ./frontend
+    domains:
+      - konmbit.com
+      - www.konmbit.com
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Permissions-Policy
+        value: geolocation=(self), camera=(), microphone=()
+      # Tradiksyon yo chanje chak fwa nou ajoute yon fraz: pa kenbe yo nan kach twò lontan.
+      - path: /i18n/*
+        name: Cache-Control
+        value: no-cache

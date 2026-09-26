@@ -23,7 +23,7 @@ from .routers import (
     auth, employees, hierarchy, attendance, leaves,
     payroll, training, feedback,
     jobs, applications, offers, application_questions, timesheets,
-    calculator,
+    calculator, schedules,
 )
 
 # --- Router ki poko pare ---
@@ -186,6 +186,7 @@ app.include_router(jobs.router,         prefix="/api/jobs",         tags=["Òf t
 app.include_router(applications.router, prefix="/api/applications", tags=["Aplikasyon"])
 app.include_router(offers.router,       prefix="/api/offers",       tags=["Pwopozisyon"])
 app.include_router(timesheets.router,   prefix="/api/timesheets",   tags=["Tan travay"])
+app.include_router(schedules.router,    prefix="/api/schedules",    tags=["Orè travay"])
 app.include_router(
     application_questions.router,
     prefix="/api/application-questions",

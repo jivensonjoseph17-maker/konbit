@@ -25,6 +25,7 @@ from sqlalchemy import (
     Numeric,
     String,
     Text,
+    Time,
     UniqueConstraint,
     func,
 )
@@ -197,7 +198,7 @@ class User(Base, TimestampMixin):
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(200), nullable=False)
     role = Column(SQLEnum(UserRole), default=UserRole.EMPLOYEE, nullable=False)
-    preferred_language = Column(String(5), default="ht")   # ht, fr, en, es
+    preferred_language = Column(String(5), default="ht")   # ht, fr, en, es…
     is_active = Column(Boolean, default=True, nullable=False)
     email_verified = Column(Boolean, default=False, nullable=False)
     last_login_at = Column(DateTime(timezone=True))
@@ -754,7 +755,8 @@ class Professional(Base, TimestampMixin):
     order_index = Column(Integer, default=0)
     is_visible = Column(Boolean, default=True, nullable=False)
 
-    # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
 # REKRITMAN — KESYON FÒM APLIKASYON
 #
 # Chak biznis gen pwòp kesyon li. Kesyon "pa defo" yo (system_key pa vid)
@@ -826,7 +828,8 @@ class ApplicationAnswer(Base, TimestampMixin):
 
     value = Column(JSON)                          # tèks, bool, chif, lis...
 
-    # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
 # APWOBASYON TAN TRAVAY
 #
 # Manadjè a apwouve èdtan chak moun nan ekip li pou yon peryòd peyòl.
@@ -858,3 +861,45 @@ class TimesheetApproval(Base, TimestampMixin):
     # Sa manadjè a te wè lè l te apwouve (pou odit)
     worked_minutes = Column(Integer, default=0)
     overtime_minutes = Column(Integer, default=0)
+
+
+# ---------------------------------------------------------------------------
+# ORÈ TRAVAY PA SEMÈN
+#
+# ShiftTemplate: modèl HR kreye yon sèl fwa ("Maten 7è–15è", "Lannwit 23è–7è").
+# Shift: orè yon moun pou YON jou. Lè yo LOKAL biznis la (pa UTC): se lè
+# moun nan ap gade sou revèy li. Si end_time <= start_time, orè a fini
+# nan demen (ekip lannwit).
+# Anplwaye a wè yon orè sèlman lè manadjè a pibliye l (is_published).
+# ---------------------------------------------------------------------------
+
+class ShiftTemplate(Base, TimestampMixin):
+    __tablename__ = "shift_templates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), index=True, nullable=False)
+    name = Column(String(80), nullable=False)
+    start_time = Column(Time, nullable=False)
+    end_time = Column(Time, nullable=False)
+    break_minutes = Column(Integer, default=0, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+
+
+class Shift(Base, TimestampMixin):
+    __tablename__ = "shifts"
+    __table_args__ = (
+        UniqueConstraint("employee_id", "work_date", name="uq_shift_emp_date"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), index=True, nullable=False)
+    employee_id = Column(Integer, ForeignKey("employees.id"), index=True, nullable=False)
+    template_id = Column(Integer, ForeignKey("shift_templates.id"))
+
+    work_date = Column(Date, index=True, nullable=False)
+    start_time = Column(Time, nullable=False)
+    end_time = Column(Time, nullable=False)
+    break_minutes = Column(Integer, default=0, nullable=False)
+    note = Column(String(300))
+    is_published = Column(Boolean, default=False, nullable=False)
+    created_by_id = Column(Integer, ForeignKey("users.id"))

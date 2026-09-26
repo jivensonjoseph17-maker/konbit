@@ -415,6 +415,26 @@ _ROWS: list[tuple[str, str, str]] = [
      "Aucune décision à retirer.",
      "There is no decision to remove."),
 
+    # --- Orè travay (schedules.py) ---
+    ("Ou pa ka planifye orè moun sa a.",
+     "Vous ne pouvez pas planifier l'horaire de cette personne.",
+     "You cannot schedule this person."),
+    ("Modèl orè a pa jwenn.",
+     "Modèle d'horaire introuvable.",
+     "Shift template not found."),
+    ("Orè a pa jwenn.",
+     "Horaire introuvable.",
+     "Shift not found."),
+    ("Yon orè pa ka depase 16 èdtan.",
+     "Un horaire ne peut pas dépasser 16 heures.",
+     "A shift cannot exceed 16 hours."),
+    ("Poz la pa ka pi long pase orè a.",
+     "La pause ne peut pas être plus longue que l'horaire.",
+     "The break cannot be longer than the shift."),
+    ("Chwazi yon modèl oswa bay lè kòmansman ak lè fen.",
+     "Choisissez un modèle ou indiquez l'heure de début et de fin.",
+     "Choose a template or give a start and end time."),
+
     # --- Fidbak ak evalyasyon (feedback.py) ---
     ("Fidbak la pa jwenn.",
      "Commentaire introuvable.",

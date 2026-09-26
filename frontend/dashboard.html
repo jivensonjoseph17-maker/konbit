@@ -194,6 +194,39 @@
     }
 
     // -----------------------------------------------------------------------
+    // ORÈ MWEN SEMÈN SA A — sèlman sa manadjè a pibliye
+    // -----------------------------------------------------------------------
+
+    function scheduleSection() {
+      const { el, body } = panel(t('Orè mwen semèn sa a'));
+
+      api.get('/api/schedules/me').then((week) => {
+        if (!week.shifts.length) {
+          fill(body, h('p', { class: 'empty' }, t('Pa gen orè pibliye pou semèn sa a.')));
+          return;
+        }
+        const hhmm = (v) => (v || '').slice(0, 5);
+        const today = fmt.todayIso();
+        fill(body,
+          h('ul', { class: 'list' }, ...week.shifts.map((s) => h('li', {
+            style: s.work_date === today ? 'font-weight: 700;' : null,
+          },
+            h('div', {},
+              h('div', {}, fmt.longDate(s.work_date)),
+              s.template_name || s.note
+                ? h('div', { class: 'sub' }, [s.template_name, s.note].filter(Boolean).join(' · '))
+                : null),
+            h('span', {}, `${hhmm(s.start_time)}–${hhmm(s.end_time)}${s.overnight ? ' (+1)' : ''}`),
+          ))),
+          h('p', { class: 'sub', style: 'margin-top: 10px;' },
+            t('Total semèn nan: {duration}', { duration: fmt.duration(week.minutes_total) })),
+        );
+      }).catch((err) => fill(body, h('p', { class: 'empty' }, errorText(err))));
+
+      return el;
+    }
+
+    // -----------------------------------------------------------------------
     // FICH PEYE
     // -----------------------------------------------------------------------
 
@@ -549,7 +582,7 @@
       const isAdmin = shell.ADMIN.includes(role);
 
       if (hasEmployee) {
-        colMain.append(clockSection(), payslipSection(), leaveSection());
+        colMain.append(clockSection(), scheduleSection(), payslipSection(), leaveSection());
         colSide.append(chainSection(), trainingSection());
         if (isManager(role)) {
           colSide.prepend(approvalsSection());

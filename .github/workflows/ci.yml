@@ -1,0 +1,76 @@
+# Konbit — Tès otomatik sou chak push
+# Chemen: .github/workflows/ci.yml
+#
+# 1. pytest (SQLite, menm jan ak sou machin ou)
+# 2. Migrasyon Alembic yo sou yon VRÈ PostgreSQL 16 — menm vèsyon ak Render.
+#    Se sa DEPLOYMENT.md (Etap 4) mande anvan pwodiksyon.
+# 3. Tradiksyon yo: pa gen fraz ki manke nan okenn lang.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    env:
+      SECRET_KEY: Qm7vR2xLp9wZ4nH8bK3yT6cF1jD5sG0aEuN
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Enstale depandans yo
+        run: pip install -r backend/requirements.txt "psycopg[binary]>=3.2"
+      - name: pytest
+        run: python -m pytest -q
+      - name: Mesaj backend ki pa tradui
+        working-directory: backend
+        run: python scripts/i18n_missing.py
+      - name: Tradiksyon frontend
+        run: python frontend/i18n/check_i18n.py
+
+  migrations-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: konmbit
+          POSTGRES_PASSWORD: konmbit
+          POSTGRES_DB: konmbit_ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U konmbit"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      SECRET_KEY: Qm7vR2xLp9wZ4nH8bK3yT6cF1jD5sG0aEuN
+      DATABASE_URL: postgresql://konmbit:konmbit@localhost:5432/konmbit_ci
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Enstale depandans yo
+        run: pip install -r requirements.txt "psycopg[binary]>=3.2"
+      - name: alembic upgrade head (PostgreSQL)
+        run: alembic upgrade head
+      - name: Verifye tab yo egziste
+        run: |
+          python - <<'PY'
+          from sqlalchemy import create_engine, inspect
+          from app.config import settings
+          tables = inspect(create_engine(settings.database_url)).get_table_names()
+          print(f"{len(tables)} tab:", ", ".join(sorted(tables)))
+          assert len(tables) >= 15, "twò pe tab: yon migrasyon pa pase nèt"
+          PY
