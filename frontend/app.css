@@ -6,6 +6,9 @@
  * Lò a rezève pou yon sèl bagay: sa ki "aktif kounye a" (w ap travay,
  * yon bagay ki mande atansyon ou). Pa gaye l toupatou.
  *
+ * KAD LA: ba anlè a toujou ble nwit (menm jan ak paj akèy la), meni sou
+ * kote a ble pal nan tèm klè a, e kontni an rete klè ak tèks fonse.
+ *
  * DIREKSYON: paj la ka ekri de dwat a goch (arab). Sèvi ak pwopriyete
  * LOJIK yo — margin-inline-start, border-inline-end, inset-inline-start,
  * text-align: start/end — pa left/right. Navigatè a vire yo pou kont li.
@@ -22,8 +25,8 @@
   --line: #e2e8f0;
   --line-strong: #cbd5e1;
   --text: #0f172a;
-  --muted: #475569;
-  --faint: #64748b;
+  --muted: #334155;
+  --faint: #56647a;
   --blue: #2563eb;
   --blue-hover: #1d4fd8;
   --blue-soft: rgba(37, 99, 235, 0.10);
@@ -41,10 +44,18 @@
   --danger-text: #b91c1c;
 
   --input-bg: #ffffff;
-  --sidebar-bg: #ffffff;
-  --topbar-bg: rgba(255, 255, 255, 0.9);
+  --topbar-bg: rgba(3, 7, 18, 0.97);
   --auth-glow: rgba(37, 99, 235, 0.08);
   --shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
+
+  /* Meni sou kote: ble pal */
+  --sidebar-bg: #eaf1fb;
+  --sidebar-line: #d5e1f3;
+  --nav-label: #475569;
+  --nav-text: #1e293b;
+  --nav-hover: rgba(37, 99, 235, 0.08);
+  --nav-active-bg: #ffffff;
+  --nav-active-text: #1d4ed8;
 
   --radius-lg: 18px;
   --radius: 12px;
@@ -82,10 +93,17 @@
   --danger-text: #f0a4a7;
 
   --input-bg: #070b18;
-  --sidebar-bg: #070b18;
-  --topbar-bg: rgba(7, 11, 24, 0.86);
+  --topbar-bg: rgba(3, 7, 18, 0.95);
   --auth-glow: rgba(37, 99, 235, 0.16);
   --shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+
+  --sidebar-bg: #070b18;
+  --sidebar-line: #1d2842;
+  --nav-label: #5d6a85;
+  --nav-text: #b4c0d6;
+  --nav-hover: #0d1426;
+  --nav-active-bg: #121b31;
+  --nav-active-text: #e8edf7;
 
   color-scheme: dark;
 }
@@ -393,7 +411,20 @@ button { font: inherit; color: inherit; }
    TABLO DE BÒ
    ------------------------------------------------------------------------- */
 
+/* Ba anlè a: toujou ble nwit, nan de tèm yo. Li redefini varyab yo pou
+   tout sa ki anndan l (bouton Meni, avatar, chwa lang, Dekonekte…) —
+   kidonk yo li byen sou fon fonse a san okenn règ apa. */
 .topbar {
+  --surface: #0b0f19;
+  --surface-2: #162036;
+  --line: #1f2937;
+  --line-strong: #374151;
+  --text: #f3f4f6;
+  --muted: #b6c0d2;
+  --faint: #8a96ad;
+  --input-bg: #0b0f19;
+  --info-text: #a9c1f6;
+
   position: sticky;
   top: 0;
   z-index: 10;
@@ -405,6 +436,7 @@ button { font: inherit; color: inherit; }
   background: var(--topbar-bg);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
+  color: var(--text);
 }
 
 .topbar-org {
@@ -745,7 +777,7 @@ button { font: inherit; color: inherit; }
   flex-direction: column;
   gap: 28px;
   padding: 18px 14px;
-  border-inline-end: 1px solid var(--line);
+  border-inline-end: 1px solid var(--sidebar-line);
   background: var(--sidebar-bg);
   overflow-y: auto;
 }
@@ -756,9 +788,11 @@ button { font: inherit; color: inherit; }
 
 .nav-group-label {
   padding: 0 10px 8px;
-  color: var(--faint);
-  font-size: 12.5px;
-  font-weight: 600;
+  color: var(--nav-label);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .nav-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
@@ -770,26 +804,28 @@ button { font: inherit; color: inherit; }
   gap: 8px;
   padding: 9px 10px;
   border-radius: var(--radius-sm);
-  color: var(--muted);
+  color: var(--nav-text);
   font-size: 14px;
   font-weight: 500;
   text-decoration: none;
+  transition: background-color 0.15s, color 0.15s;
 }
 
-a.nav-item:hover { background: var(--surface); color: var(--text); }
+a.nav-item:hover { background: var(--nav-hover); color: var(--nav-active-text); }
 
 .nav-item.is-active {
-  background: var(--surface-2);
-  color: var(--text);
-  box-shadow: inset 2px 0 0 var(--blue);
+  background: var(--nav-active-bg);
+  color: var(--nav-active-text);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--blue), 0 1px 2px rgba(15, 23, 42, 0.06);
 }
 
-[dir="rtl"] .nav-item.is-active { box-shadow: inset -2px 0 0 var(--blue); }
+[dir="rtl"] .nav-item.is-active { box-shadow: inset -3px 0 0 var(--blue), 0 1px 2px rgba(15, 23, 42, 0.06); }
 
 .nav-item.is-soon { color: var(--faint); cursor: default; }
 .nav-item .soon { font-size: 11.5px; color: var(--faint); font-weight: 500; }
 
-.sidebar-foot { margin-top: auto; padding: 12px 10px 0; border-top: 1px solid var(--line); }
+.sidebar-foot { margin-top: auto; padding: 12px 10px 0; border-top: 1px solid var(--sidebar-line); }
 .sidebar-org { color: var(--faint); font-size: 12.5px; }
 
 .app-main { min-width: 0; }
