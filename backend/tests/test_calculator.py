@@ -1,5 +1,5 @@
 """
-Konbit — Tès kalkilatè peyòl piblik la
+Konbit — Tès kalkilatè pewòl piblik la
 Chemen: backend/tests/test_calculator.py
 """
 

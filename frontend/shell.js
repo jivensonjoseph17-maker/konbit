@@ -30,7 +30,7 @@
     ] },
     { group: 'Jesyon', roles: ADMIN, items: [
       { id: 'employees', label: 'Anplwaye|meni', href: 'employees.html' },
-      { id: 'payroll', label: 'Peyòl', href: 'payroll.html' },
+      { id: 'payroll', label: 'Pewòl', href: 'payroll.html' },
       { id: 'leave-admin', label: 'Balans konje', href: 'leave-balances.html' },
       { id: 'hiring', label: 'Rekritman', href: 'jobs.html' },
       { id: 'training', label: 'Fòmasyon', href: 'training.html' },

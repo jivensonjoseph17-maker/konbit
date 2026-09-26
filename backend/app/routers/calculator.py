@@ -1,12 +1,12 @@
 """
-Konbit — Kalkilatè peyòl piblik
+Konbit — Kalkilatè pewòl piblik
 Chemen: backend/app/routers/calculator.py
 
 Endpoint:
     POST /api/calculator     Kalkile retni yo pou yon salè (SAN KONEKSYON)
 
 Paj piblik frontend/calculator.html sèvi avè l. Li itilize EGZAKTEMAN menm
-fonksyon ak peyòl la (payroll.compute_deductions): yon chif sou kalkilatè a
+fonksyon ak pewòl la (payroll.compute_deductions): yon chif sou kalkilatè a
 toujou menm jan ak sa fich peye a ta montre pou menm salè a.
 
 Pa gen done ki sere: nou kalkile epi nou retounen rezilta a, se tout.

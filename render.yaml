@@ -8,11 +8,18 @@
 #
 # Gade DEPLOY_KONMBIT.md pou etap yo. SECRET_KEY PA nan fichye sa a:
 # Render ap mande w li lè w enpòte Blueprint la (sync: false).
+#
+# REJYON: virginia (US East). Se sant done Render ki pi pre Ayiti, kidonk
+# paj yo reponn pi vit. Baz done a ak backend la DWE nan menm rejyon an.
+# San liy `region`, Render mete yo Oregon (kòt lwès) pa defo.
+# ATANSYON: yon rejyon pa ka chanje apre sèvis la kreye.
+# Paj yo (konmbit-web) pase nan CDN Render, ki pa gen rejyon.
 
 databases:
   - name: konmbit-db
     databaseName: konmbit
     user: konmbit
+    region: virginia
     plan: basic-256mb          # plan peye: pa dòmi, gen backup Render
     postgresMajorVersion: "16"
 
@@ -23,6 +30,7 @@ services:
   - type: web
     name: konmbit-api
     runtime: python
+    region: virginia
     rootDir: backend
     plan: starter              # plan gratis la dòmi apre 15 min: pa bon pou yon HRIS
     buildCommand: pip install -r requirements.txt "psycopg[binary]>=3.2"
@@ -45,7 +53,7 @@ services:
           name: konmbit-db
           property: connectionString
       - key: SECRET_KEY
-        sync: false            # Render mande w li. Jenere l ak python (gade DEPLOY_KONMBIT.md).
+        sync: false            # Render mande w li. Jenere l ak: python -c "import secrets; print(secrets.token_hex(48))"
       - key: FRONTEND_URL
         value: https://konmbit.com
       - key: ALLOWED_ORIGINS

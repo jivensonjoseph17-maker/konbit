@@ -17,7 +17,7 @@ HERE = Path(__file__).resolve().parent
 
 K_BTN = "Chanje dat la"
 K_DONE = "Dat peman an chanje."
-K_REOPEN = "Dat peman an chanje. {count} fich rekalkile: verifye yo epi apwouve peyòl la ankò."
+K_REOPEN = "Dat peman an chanje. {count} fich rekalkile: verifye yo epi apwouve pewòl la ankò."
 
 NEW = {
     "ht": {K_BTN: K_BTN, K_DONE: K_DONE, K_REOPEN: K_REOPEN},

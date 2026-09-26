@@ -13,7 +13,7 @@ RÈG YO (manadjè a prepare, HR/admin peye):
   - PÈSONN pa apwouve pwòp èdtan pa l.
   - Nou apwouve sèlman yon peryòd ki FINI, e san pwentaj ki toujou louvri.
   - Yon apwobasyon BLOKE pwentaj yo: HR dwe retire l anvan li korije yon lè.
-  - Peyòl la peye èdtan siplemantè SÈLMAN pou moun ki gen èdtan apwouve.
+  - Pewòl la peye èdtan siplemantè SÈLMAN pou moun ki gen èdtan apwouve.
 """
 
 import logging
@@ -177,7 +177,7 @@ def _ensure_period_editable(db: Session, org_id: int, period: PayPeriod) -> None
     if period.status != PayrollStatus.DRAFT:
         raise HTTPException(
             status_code=400,
-            detail="Peyòl peryòd sa a deja apwouve oswa peye. Èdtan yo pa ka chanje ankò.",
+            detail="Pewòl peryòd sa a deja apwouve oswa peye. Èdtan yo pa ka chanje ankò.",
         )
 
 

@@ -21,7 +21,7 @@
         <div class="page-head-row">
           <div class="page-head">
             <h1 data-i18n>Tan travay</h1>
-            <p data-i18n>Verifye epi apwouve èdtan ekip ou pou chak peryòd peyòl.</p>
+            <p data-i18n>Verifye epi apwouve èdtan ekip ou pou chak peryòd pewòl.</p>
           </div>
           <div class="field" style="min-width: 240px;">
             <label for="period" data-i18n>Peryòd</label>
@@ -245,7 +245,7 @@
         }
         if (data.payroll_locked) {
           notices.push(h('div', { class: 'notice' },
-            t('Peyòl peryòd sa a deja apwouve oswa peye. Èdtan yo pa ka chanje ankò.')));
+            t('Pewòl peryòd sa a deja apwouve oswa peye. Èdtan yo pa ka chanje ankò.')));
         }
 
         content.replaceChildren(
@@ -265,7 +265,7 @@
                 ? t('Pa gen anplwaye nan peryòd sa a.')
                 : t('Pa gen okenn moun ki rapòte ba ou dirèkteman.')),
           h('p', { class: 'hint', style: 'display: block; margin-top: 16px;' },
-            t('Èdtan ki pa apwouve yo: peyòl la peye salè de baz la, men PA èdtan siplemantè yo.')),
+            t('Èdtan ki pa apwouve yo: pewòl la peye salè de baz la, men PA èdtan siplemantè yo.')),
         );
       } catch (err) {
         content.replaceChildren(h('div', { class: 'alert alert-error' }, errorMessage(err)));
@@ -280,8 +280,8 @@
       const { items } = await api.get('/api/timesheets/periods');
       if (!items.length) {
         content.replaceChildren(h('p', { class: 'empty' },
-          isHr ? t('Poko gen peryòd peyòl. Kreye youn nan paj Peyòl la.')
-               : t('Poko gen peryòd peyòl. HR dwe kreye youn anvan.')));
+          isHr ? t('Poko gen peryòd pewòl. Kreye youn nan paj Pewòl la.')
+               : t('Poko gen peryòd pewòl. HR dwe kreye youn anvan.')));
         periodSelect.disabled = true;
         return;
       }

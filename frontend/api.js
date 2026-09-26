@@ -61,7 +61,7 @@
   // =========================================================================
 
   // `locale`: pou dat ak chif (Intl). `-u-nu-latn` = chif 0-9 nòmal, menm an
-  // arab oswa bengali — sa enpòtan pou montan peyòl yo.
+  // arab oswa bengali — sa enpòtan pou montan pewòl yo.
   const LANGS = [
     { code: 'ht', label: 'Kreyòl ayisyen', locale: 'fr-FR' },
     { code: 'fr', label: 'Français', locale: 'fr-FR' },

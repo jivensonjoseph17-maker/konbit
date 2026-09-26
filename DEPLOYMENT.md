@@ -182,7 +182,7 @@ nan `localStorage` pito, pa gen chanjman pou fè.
 ## Etap 8 — Backup (anplis de sa sèvis la bay)
 
 Pa depann sèlman sou backup otomatik founisè Postgres la bay pou yon done
-tankou peyòl ak dosye anplwaye. Mete yon `pg_dump` regilye (chak jou,
+tankou pewòl ak dosye anplwaye. Mete yon `pg_dump` regilye (chak jou,
 egzanp via yon cron oswa yon GitHub Action) ki sove yon kopi apa, menm si
 plan gratis la gen "backup" enkli.
 

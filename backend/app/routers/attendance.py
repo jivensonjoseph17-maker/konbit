@@ -15,7 +15,7 @@ Endpoint yo:
     POST   /api/attendance/close-open-entries  Fèmen jounen moun ki bliye (HR)
 
 DESIZYON: nou pa efase yon antre ki gen erè. HR korije l epi antre a pran
-estati ADJUSTED, ak rezon an ekri. Se konsa yon kontab ka verifye peyòl la.
+estati ADJUSTED, ak rezon an ekri. Se konsa yon kontab ka verifye pewòl la.
 
 BLOKAJ: lè yon manadjè apwouve èdtan yon moun pou yon peryòd (gade
 timesheets.py), pwentaj peryòd sa a BLOKE. HR dwe retire apwobasyon an
@@ -190,7 +190,7 @@ def clock_in(
     """
     Kòmanse jounen travay la.
     Nou anpeche yon dezyèm clock in si gen youn ki louvri — sinon
-    ou t ap gen de jounen an menm tan epi peyòl la ap konte de fwa.
+    ou t ap gen de jounen an menm tan epi pewòl la ap konte de fwa.
     """
     if emp.status != EmploymentStatus.ACTIVE:
         raise HTTPException(
@@ -612,6 +612,6 @@ def close_open_entries(
         entry_ids=ids,
         note=(
             "Antre sa yo make MISSING_OUT ak 0 minit. HR dwe korije chak youn "
-            "ak vrè lè a anvan peyòl la kalkile."
+            "ak vrè lè a anvan pewòl la kalkile."
         ),
     )

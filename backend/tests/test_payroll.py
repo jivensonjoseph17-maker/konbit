@@ -1,5 +1,5 @@
 """
-Konbit — Tès kalkil peyòl
+Konbit — Tès kalkil pewòl
 Chemen: backend/tests/test_payroll.py
 
 Tès sa yo verifye ke kòd la aplike règ ki ekri nan payroll.py yo.

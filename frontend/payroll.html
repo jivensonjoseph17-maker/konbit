@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title data-i18n>Peyòl — KONMBIT</title>
+  <title data-i18n>Pewòl — KONMBIT</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -20,7 +20,7 @@
       <main class="page">
         <div class="page-head-row">
           <div class="page-head">
-            <h1 data-i18n>Peyòl</h1>
+            <h1 data-i18n>Pewòl</h1>
             <p data-i18n>Kreye yon peryòd, kalkile fich peye yo, verifye yo, apwouve, epi make yo peye.</p>
           </div>
           <button class="btn btn-primary" type="button" id="new-btn" data-i18n>Nouvo peryòd</button>
@@ -132,7 +132,7 @@
     /**
      * Chanje dat peman an. Retni sou bonis la depann de dat sa a (10% → 15%
      * nan dat 1ye okt 2026). Backend la rekalkile tout fich yo; si yon chif
-     * chanje nan yon peyòl apwouve, li retounen an bouyon pou HR apwouve l ankò.
+     * chanje nan yon pewòl apwouve, li retounen an bouyon pou HR apwouve l ankò.
      */
     function payDateControl(period, msg) {
       const input = h('input', { class: 'input', id: 'pay-date', type: 'date',
@@ -152,7 +152,7 @@
           const res = await api.post(`/api/payroll/periods/${period.id}/pay-date`,
             { pay_date: input.value });
           lastWarnings = [res.reopened
-            ? t('Dat peman an chanje. {count} fich rekalkile: verifye yo epi apwouve peyòl la ankò.',
+            ? t('Dat peman an chanje. {count} fich rekalkile: verifye yo epi apwouve pewòl la ankò.',
                 { count: res.changed_slips })
             : t('Dat peman an chanje.')];
           await refresh();
@@ -309,7 +309,7 @@
     function renderPeriods() {
       if (!periods.length) {
         $('periods').replaceChildren(h('p', { class: 'empty' },
-          t('Ou poko gen okenn peryòd. Klike "Nouvo peryòd" pou kòmanse premye peyòl ou.')));
+          t('Ou poko gen okenn peryòd. Klike "Nouvo peryòd" pou kòmanse premye pewòl ou.')));
         return;
       }
       $('periods').replaceChildren(h('div', { class: 'table-wrap flush' },
@@ -364,7 +364,7 @@
     function stepper(status) {
       const steps = [['draft', t('Kalkile ak verifye')], ['approved', t('Apwouve')], ['paid', t('Peye|estati')]];
       const reached = { draft: 0, approved: 1, paid: 2 }[status] ?? 0;
-      return h('ol', { class: 'stepper', 'aria-label': t('Etap peyòl la') },
+      return h('ol', { class: 'stepper', 'aria-label': t('Etap pewòl la') },
         ...steps.map(([key, label], i) => h('li', {
           class: i < reached ? 'done' : i === reached ? 'current' : null,
           'aria-current': i === reached ? 'step' : null,
@@ -469,7 +469,7 @@
 
         if (slips.length) {
           actions.append(confirmButton(
-            t('Apwouve peyòl la'),
+            t('Apwouve pewòl la'),
             t('Apre apwobasyon, ou p ap ka chanje {count} fich yo ankò, epi anplwaye yo ap ka wè yo. Total net: {net}.',
               { count: slips.length, net: fmt.money(totals.net) }),
             'btn btn-ghost',

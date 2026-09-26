@@ -90,4 +90,4 @@ janm retabli se yon backup ou pa sèten li mache.
 - [ ] /api/health reponn `ok`
 - [ ] Premye biznis enskri
 - [ ] Sekrè backup yo mete, premye backup fèt, retablisman teste
-- [ ] **Peyòl la verifye pa yon kontab anvan premye vrè peyòl**
+- [ ] **Pewòl la verifye pa yon kontab anvan premye vrè pewòl**

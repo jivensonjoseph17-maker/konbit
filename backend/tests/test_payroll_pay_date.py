@@ -4,7 +4,7 @@ Chemen: backend/tests/test_payroll_pay_date.py
 
 Retni sou bonis la depann de DAT PEMAN an (10% → 15% nan dat 1ye okt 2026).
 Fich yo kalkile ak dat PREVWA a; tès sa yo verifye ke nou pa ka make yon
-peyòl peye nan yon dat ki gen yon lòt to san nou pa rekalkile l.
+pewòl peye nan yon dat ki gen yon lòt to san nou pa rekalkile l.
 """
 
 SEPT = {
@@ -102,7 +102,7 @@ def test_changing_pay_date_recomputes_and_reopens(client, org_admin, make_employ
 
 
 def test_same_rate_change_keeps_approval(client, org_admin, make_employee):
-    """San bonis, chanje dat la pa chanje okenn chif: peyòl la rete apwouve."""
+    """San bonis, chanje dat la pa chanje okenn chif: pewòl la rete apwouve."""
     h = org_admin["headers"]
     pid = _approved_period(client, h, make_employee, bonus=0)
 

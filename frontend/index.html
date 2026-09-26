@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#030712">
-  <meta name="description" data-i18n-attr="content" content="KONMBIT — platfòm jesyon anplwaye, prezans, konje, peyòl ak fòmasyon pou antrepriz ayisyen, an kreyòl ak plizyè lòt lang.">
-  <title data-i18n>KONMBIT — Peyòl ak resous imèn pou biznis ayisyen</title>
+  <meta name="description" data-i18n-attr="content" content="KONMBIT — platfòm jesyon anplwaye, prezans, konje, pewòl ak fòmasyon pou antrepriz ayisyen, an kreyòl ak plizyè lòt lang.">
+  <title data-i18n>KONMBIT — Pewòl ak resous imèn pou biznis ayisyen</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -362,8 +362,10 @@
        se li ki atire je a. */
 
     .preview {
+      --bg-inset: rgba(255, 255, 255, 0.05);
+      --border-color: rgba(255, 255, 255, 0.10);
       position: relative;
-      background: var(--bg-card);
+      background: linear-gradient(160deg, #10285a 0%, #0b1733 55%, #070e22 100%);
       border: 1px solid var(--border-color);
       border-radius: 18px;
       padding: 22px;
@@ -778,7 +780,7 @@
           <button class="mega-item" type="button" data-preview="hr"><span data-i18n>Dosye anplwaye ak òganigram</span> <i class="fas fa-chevron-right" aria-hidden="true"></i></button>
           <button class="mega-item" type="button" data-preview="time"><span data-i18n>Prezans ak tan travay</span> <i class="fas fa-chevron-right" aria-hidden="true"></i></button>
           <button class="mega-item" type="button" data-preview="leave"><span data-i18n>Konje ak apwobasyon</span> <i class="fas fa-chevron-right" aria-hidden="true"></i></button>
-          <button class="mega-item" type="button" data-preview="payroll"><span data-i18n>Peyòl ak fich peye</span> <i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+          <button class="mega-item" type="button" data-preview="payroll"><span data-i18n>Pewòl ak fich peye</span> <i class="fas fa-chevron-right" aria-hidden="true"></i></button>
           <button class="mega-item" type="button" data-preview="hiring"><span data-i18n>Rekritman ak paj karyè</span> <i class="fas fa-chevron-right" aria-hidden="true"></i></button>
           <button class="mega-item" type="button" data-preview="training"><span data-i18n>Fòmasyon pa videyo</span> <i class="fas fa-play-circle" aria-hidden="true"></i></button>
           <button class="mega-item" type="button" data-preview="reviews"><span data-i18n>Evalyasyon ak fidbak</span> <i class="fas fa-chevron-right" aria-hidden="true"></i></button>
@@ -803,7 +805,7 @@
         <div class="mega-menu">
           <a class="mega-item" href="#kijan"><span data-i18n>Kijan li mache</span> <i class="fas fa-chevron-right" aria-hidden="true"></i></a>
           <a class="mega-item" href="#faq"><span data-i18n>Kesyon moun poze</span> <i class="fas fa-chevron-right" aria-hidden="true"></i></a>
-          <a class="mega-item" href="calculator.html"><span data-i18n>Kalkilatè peyòl</span> <i class="fas fa-calculator" aria-hidden="true"></i></a>
+          <a class="mega-item" href="calculator.html"><span data-i18n>Kalkilatè pewòl</span> <i class="fas fa-calculator" aria-hidden="true"></i></a>
           <span class="mega-item is-soon" aria-disabled="true"><span data-i18n>Gid lwa travay an Ayiti</span> <span class="soon" data-i18n>byento</span></span>
         </div>
       </div>
@@ -812,7 +814,7 @@
         <button class="nav-link" type="button" aria-expanded="false"><span data-i18n>Konpayi</span> <i class="fas fa-chevron-down" aria-hidden="true"></i></button>
         <div class="mega-menu">
           <a class="mega-item" href="about.html"><span data-i18n>Kiyès nou ye</span> <i class="fas fa-chevron-right" aria-hidden="true"></i></a>
-          <button class="mega-item" type="button" data-preview="security"><span data-i18n>Sekirite done yo</span> <i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+          <a class="mega-item" href="securite.html"><span data-i18n>Sekirite done yo</span> <i class="fas fa-chevron-right" aria-hidden="true"></i></a>
         </div>
       </div>
     </div>
@@ -841,7 +843,7 @@
   <main class="main-container">
     <section class="hero-section">
       <div>
-        <h1 class="hero-title" data-i18n>Peyòl, konje ak prezans pou biznis ayisyen</h1>
+        <h1 class="hero-title" data-i18n>Pewòl, konje ak prezans pou biznis ayisyen</h1>
         <p class="hero-desc" data-i18n>IRI, ONA, OFATMA, CFGDCT ak CAS kalkile pou ou. Anplwaye yo antre ak soti sou telefòn yo, mande konje, epi wè si y ap resevwa chèk, depo, MonCash oswa NatCash.</p>
         <div class="hero-actions">
           <a href="login.html#enskri" class="btn-sales" data-i18n>Enskri biznis ou</a>
@@ -893,11 +895,11 @@
         <button class="feature-card" type="button" data-preview="time">
           <i class="fas fa-clock" aria-hidden="true"></i>
           <h3 data-i18n>Prezans ak tan travay</h3>
-          <p data-i18n>Anplwaye yo antre ak soti sou telefòn yo. Manadjè a apwouve èdtan yo anvan peyòl.</p>
+          <p data-i18n>Anplwaye yo antre ak soti sou telefòn yo. Manadjè a apwouve èdtan yo anvan pewòl.</p>
         </button>
         <button class="feature-card" type="button" data-preview="payroll">
           <i class="fas fa-file-invoice-dollar" aria-hidden="true"></i>
-          <h3 data-i18n>Peyòl ak fich peye</h3>
+          <h3 data-i18n>Pewòl ak fich peye</h3>
           <p data-i18n>Retni ayisyen yo kalkile pou ou. Chak moun wè si l ap resevwa chèk, depo, MonCash oswa NatCash.</p>
         </button>
         <button class="feature-card" type="button" data-preview="leave">
@@ -926,7 +928,7 @@
     <section class="section local" aria-labelledby="local-title">
       <div>
         <h2 class="section-title" id="local-title" data-i18n>Fèt pou jan biznis ayisyen travay</h2>
-        <p class="section-sub" data-i18n>Pa yon lojisyèl etranje yo tradui: règ peyòl yo, fason moun peye yo ak lang yo se pa Ayiti depi nan kòmansman.</p>
+        <p class="section-sub" data-i18n>Pa yon lojisyèl etranje yo tradui: règ pewòl yo, fason moun peye yo ak lang yo se pa Ayiti depi nan kòmansman.</p>
         <div class="tags" aria-hidden="true">
           <span class="tag">IRI</span>
           <span class="tag">ONA 6%</span>
@@ -983,7 +985,7 @@
         </li>
         <li>
           <h3 data-i18n>Ekip la konekte</h3>
-          <p data-i18n>Chak anplwaye antre ak soti sou telefòn li, mande konje, epi wè fich peye l. Ou prepare peyòl la ak kèk klik.</p>
+          <p data-i18n>Chak anplwaye antre ak soti sou telefòn li, mande konje, epi wè fich peye l. Ou prepare pewòl la ak kèk klik.</p>
         </li>
       </ol>
     </section>
@@ -998,12 +1000,12 @@
           <p data-i18n>Non. KONMBIT louvri nan navigatè telefòn nan oswa òdinatè a. Anplwaye a konekte ak imel li ak modpas HR ba li a.</p>
         </details>
         <details>
-          <summary data-i18n>Ki retni KONMBIT kalkile sou peyòl la?</summary>
-          <p data-i18n>IRI, ONA, OFATMA, CFGDCT ak FDU/CAS, ansanm ak retni sou bonis. Fè kontab ou verifye premye peyòl ou, epi chak fwa lwa a chanje.</p>
+          <summary data-i18n>Ki retni KONMBIT kalkile sou pewòl la?</summary>
+          <p data-i18n>IRI, ONA, OFATMA, CFGDCT ak FDU/CAS, ansanm ak retni sou bonis. Fè kontab ou verifye premye pewòl ou, epi chak fwa lwa a chanje.</p>
         </details>
         <details>
           <summary data-i18n>Èske KONMBIT voye lajan an bay anplwaye yo?</summary>
-          <p data-i18n>Non. KONMBIT prepare peyòl la ak fich peye yo. Ou peye jan ou toujou fè — chèk, depo, MonCash, NatCash oswa kach — epi chak anplwaye wè sou fich li kijan l ap resevwa lajan l.</p>
+          <p data-i18n>Non. KONMBIT prepare pewòl la ak fich peye yo. Ou peye jan ou toujou fè — chèk, depo, MonCash, NatCash oswa kach — epi chak anplwaye wè sou fich li kijan l ap resevwa lajan l.</p>
         </details>
         <details>
           <summary data-i18n>Èske m ka peye an dola?</summary>
@@ -1011,7 +1013,7 @@
         </details>
         <details>
           <summary data-i18n>Kiyès ki apwouve konje ak èdtan travay?</summary>
-          <p data-i18n>Manadjè a apwouve konje ak èdtan ekip li. HR oswa administratè a apwouve peyòl la. Pèsonn pa ka apwouve pwòp konje oswa pwòp èdtan li.</p>
+          <p data-i18n>Manadjè a apwouve konje ak èdtan ekip li. HR oswa administratè a apwouve pewòl la. Pèsonn pa ka apwouve pwòp konje oswa pwòp èdtan li.</p>
         </details>
         <details>
           <summary data-i18n>Èske lòt biznis ka wè done mwen?</summary>
@@ -1050,8 +1052,9 @@
     <nav class="footer-links" data-i18n-attr="aria-label" aria-label="Lyen pye paj">
       <a href="#kijan" data-i18n>Kijan li mache</a>
       <a href="#faq" data-i18n>Kesyon moun poze</a>
-      <a href="calculator.html" data-i18n>Kalkilatè peyòl</a>
+      <a href="calculator.html" data-i18n>Kalkilatè pewòl</a>
       <a href="about.html" data-i18n>Kiyès nou ye</a>
+      <a href="securite.html" data-i18n>Sekirite done yo</a>
       <a href="login.html" data-i18n>Konekte</a>
     </nav>
   </footer>
@@ -1192,17 +1195,17 @@
     // -------------------------------------------------------------------
     // FENÈT DETAY YO
     // [ikòn, tit (kle), tèks (kle)]
-    // "Kiyès nou ye" se yon vrè paj kounye a (about.html).
+    // "Kiyès nou ye" ak "Sekirite done yo" se vrè paj kounye a (about.html, securite.html).
     // -------------------------------------------------------------------
 
     const previews = {
       hr: ['fas fa-sitemap', 'Dosye anplwaye ak òganigram',
         'Chak anplwaye gen yon dosye konplè: kontak, pozisyon, salè, manadjè. Òganigram lan montre chak moun ki sou tèt li, jouk anwo nèt.'],
       time: ['fas fa-clock', 'Prezans ak tan travay',
-        'Anplwaye a peze yon bouton sou telefòn li lè l rive ak lè l ale. Manadjè a verifye èdtan ekip li pou chak peryòd peyòl epi li apwouve yo anvan HR peye.'],
+        'Anplwaye a peze yon bouton sou telefòn li lè l rive ak lè l ale. Manadjè a verifye èdtan ekip li pou chak peryòd pewòl epi li apwouve yo anvan HR peye.'],
       leave: ['fas fa-umbrella-beach', 'Konje ak apwobasyon',
         'Anplwaye a chwazi dat yo, manadjè li resevwa demann lan, epi balans lan ajiste otomatikman lè l apwouve. Wikenn pa konte.'],
-      payroll: ['fas fa-file-invoice-dollar', 'Peyòl ak fich peye',
+      payroll: ['fas fa-file-invoice-dollar', 'Pewòl ak fich peye',
         'IRI, ONA, OFATMA, CFGDCT ak FDU/CAS kalkile pou chak moun. Anplwaye a wè fich li ak kijan l ap resevwa lajan an: chèk, depo dirèk, MonCash oswa NatCash.'],
       training: ['fas fa-play-circle', 'Fòmasyon pa videyo',
         'Mete videyo fòmasyon, asiyen yo bay anplwaye ak yon delè. Chak moun ka kanpe epi kontinye kote l te ye a. HR wè kiyès ki fini.'],
@@ -1213,19 +1216,17 @@
       reviews: ['fas fa-star-half-stroke', 'Evalyasyon ak fidbak',
         'Manadjè a evalye travay chak moun nan ekip li ak yon nòt sou 5 ak kòmantè. Anplwaye a wè evalyasyon an lè l finalize.'],
       retail: ['fas fa-store', 'Komès ak boutik',
-        'Kesye ak vandè yo antre ak soti sou telefòn yo lè yo rive nan boutik la. Ou wè kiyès ki la, epi peyòl la konte èdtan yo travay. Peye yo pa MonCash, NatCash oswa chèk.'],
+        'Kesye ak vandè yo antre ak soti sou telefòn yo lè yo rive nan boutik la. Ou wè kiyès ki la, epi pewòl la konte èdtan yo travay. Peye yo pa MonCash, NatCash oswa chèk.'],
       food: ['fas fa-utensils', 'Restoran ak otèl',
-        'Ekip ki travay lajounen ak lannwit: manadjè a planifye orè chak moun pa semèn, chak moun antre ak soti sou telefòn li, èdtan siplemantè kalkile, epi manadjè a apwouve èdtan yo anvan peyòl.'],
+        'Ekip ki travay lajounen ak lannwit: manadjè a planifye orè chak moun pa semèn, chak moun antre ak soti sou telefòn li, èdtan siplemantè kalkile, epi manadjè a apwouve èdtan yo anvan pewòl.'],
       education: ['fas fa-graduation-cap', 'Lekòl ak inivèsite',
-        'Pwofesè ak pèsonèl administratif nan yon sèl kote: konje, peyòl chak mwa, ak fòmasyon pedagojik pa videyo ou ka asiyen bay chak pwofesè.'],
+        'Pwofesè ak pèsonèl administratif nan yon sèl kote: konje, pewòl chak mwa, ak fòmasyon pedagojik pa videyo ou ka asiyen bay chak pwofesè.'],
       health: ['fas fa-heart-pulse', 'Klinik ak lopital',
         'Swiv prezans ekip lajounen ak lannwit, epi asiyen fòmasyon obligatwa — ijyèn, sekirite — ak yon delè. HR wè kiyès ki fini.'],
       ngo: ['fas fa-hands-holding-circle', 'ONG ak pwojè',
-        'Peyòl an goud oswa an dola, yon dosye konplè pou chak anplwaye, epi chak fwa yon moun gade done sansib, sa ekri nan yon jounal.'],
+        'Pewòl an goud oswa an dola, yon dosye konplè pou chak anplwaye, epi chak fwa yon moun gade done sansib, sa ekri nan yon jounal.'],
       industry: ['fas fa-helmet-safety', 'Faktori ak konstriksyon',
         'Anpil travayè, anpil èdtan: prezans sou telefòn, èdtan siplemantè kalkile, epi manadjè a apwouve èdtan chak moun anvan HR peye.'],
-      security: ['fas fa-shield-halved', 'Sekirite done yo',
-        'Chak biznis separe nèt de lòt yo. Enfòmasyon sansib tankou nimewo idantite ak nimewo kont labank pa parèt nan lis yo, epi chak fwa yon moun gade yo, sa ekri nan yon jounal.'],
     };
 
     const modal = document.getElementById('modal');

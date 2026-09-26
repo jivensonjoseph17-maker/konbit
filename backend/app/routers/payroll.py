@@ -1,5 +1,5 @@
 """
-Konbit — Router Peyòl
+Konbit — Router Pewòl
 Chemen: backend/app/routers/payroll.py
 
 Endpoint yo:
@@ -7,7 +7,7 @@ Endpoint yo:
     GET    /api/payroll/periods              Lis peryòd yo
     GET    /api/payroll/periods/{id}         Detay yon peryòd
     POST   /api/payroll/periods/{id}/run     Jenere fich peye yo
-    POST   /api/payroll/periods/{id}/approve Apwouve peyòl la
+    POST   /api/payroll/periods/{id}/approve Apwouve pewòl la
     POST   /api/payroll/periods/{id}/pay     Make l peye
     POST   /api/payroll/periods/{id}/pay-date  Chanje dat peman an (rekalkile retni yo)
     GET    /api/payroll/periods/{id}/payslips  Tout fich peye yon peryòd
@@ -35,10 +35,10 @@ DAT PEMAN AN (retni sou bonis 10% → 15% nan dat 1ye okt 2026):
     pa menm jan ak to dat prevwa a, e gen fich ki gen bonis oswa èdtan
     siplemantè, li refize (409).
   - /pay-date chanje dat prevwa a epi rekalkile tout fich yo. Si yon chif
-    chanje nan yon peyòl ki te apwouve, li retounen an bouyon.
+    chanje nan yon pewòl ki te apwouve, li retounen an bouyon.
 
 ATANSYON: to sa yo se yon pwen depa. Yon kontab ayisyen dwe verifye yo
-anvan ou sèvi ak sistèm lan pou vrè peyòl.
+anvan ou sèvi ak sistèm lan pou vrè pewòl.
 """
 
 import logging
@@ -573,14 +573,14 @@ def run_payroll(
     """
     Jenere fich peye pou tout anplwaye aktif (oswa yon lis presi).
     Ou ka rele sa a plizyè fwa: anplwaye ki gen yon fich deja ap sote.
-    Peyòl ki deja PAID pa ka rejenere.
+    Pewòl ki deja PAID pa ka rejenere.
     """
     period = _get_period_or_404(db, org_id, period_id)
 
     if period.status == PayrollStatus.PAID:
         raise HTTPException(
             status_code=400,
-            detail="Peyòl sa a deja peye. Ou pa ka rejenere l.",
+            detail="Pewòl sa a deja peye. Ou pa ka rejenere l.",
         )
 
     # Moun aktif yo, PLIS moun ki ale PANDAN peryòd la — yo dwe resevwa
@@ -743,7 +743,7 @@ def approve_payroll(
     request: Request,
     db: DbSession,
 ):
-    """Apwouve peyòl la. Apre sa, fich yo pa ka ajiste ankò."""
+    """Apwouve pewòl la. Apre sa, fich yo pa ka ajiste ankò."""
     period = _get_period_or_404(db, org_id, period_id)
 
     if period.status != PayrollStatus.DRAFT:
@@ -804,7 +804,7 @@ def mark_paid(
     db: DbSession,
 ):
     """
-    Make peyòl la peye epi avèti chak anplwaye.
+    Make pewòl la peye epi avèti chak anplwaye.
     Si ou bay `check_start_number`, nou asiyen nimewo chèk yo otomatikman.
 
     GAD TO BONIS LA: retni sou bonis/èdtan siplemantè a depann de dat
@@ -818,7 +818,7 @@ def mark_paid(
     if period.status != PayrollStatus.APPROVED:
         raise HTTPException(
             status_code=400,
-            detail="Ou dwe apwouve peyòl la anvan ou make l peye.",
+            detail="Ou dwe apwouve pewòl la anvan ou make l peye.",
         )
 
     slips = db.query(Payslip).filter(Payslip.pay_period_id == period.id).all()
@@ -844,7 +844,7 @@ def mark_paid(
                     f"{paid_on:%d/%m/%Y} (retni {actual_rate:.0%}). "
                     f"{len(affected)} fich gen bonis oswa èdtan siplemantè. "
                     f"Chanje dat peman an pou {paid_on:%d/%m/%Y}, verifye fich yo, "
-                    "apwouve peyòl la ankò, epi make l peye."
+                    "apwouve pewòl la ankò, epi make l peye."
                 ),
             )
 
@@ -913,7 +913,7 @@ class PayDateChange(BaseModel):
 class PayDateChangeResult(BaseModel):
     period: PayPeriodOut
     changed_slips: int      # fich ki gen omwen yon chif ki chanje
-    reopened: bool          # peyòl apwouve a retounen an bouyon
+    reopened: bool          # pewòl apwouve a retounen an bouyon
 
 
 @router.post(
@@ -932,7 +932,7 @@ def change_pay_date(
     """
     Chanje dat peman yon peryòd epi rekalkile retni tout fich yo.
 
-    Si peyòl la te APWOUVE e yon chif chanje, li retounen an BOUYON:
+    Si pewòl la te APWOUVE e yon chif chanje, li retounen an BOUYON:
     moun ki apwouve a pa t wè nouvo chif yo, kidonk li dwe apwouve ankò.
     """
     period = _get_period_or_404(db, org_id, period_id)
@@ -1191,7 +1191,7 @@ class TaxRatesInfo(BaseModel):
 @router.get("/tax-rates", response_model=TaxRatesInfo, dependencies=[Depends(require_hr)])
 def tax_rates(org_id: TenantId, db: DbSession):
     """
-    To yo sistèm lan sèvi pou kalkile peyòl la.
+    To yo sistèm lan sèvi pou kalkile pewòl la.
     Frontend lan ka montre sa nan yon paj 'Kijan nou kalkile fich peye w'.
 
     "Jodi a" se jodi a nan lè biznis la, pa lè sèvè a: 30 septanm a 9è diswa

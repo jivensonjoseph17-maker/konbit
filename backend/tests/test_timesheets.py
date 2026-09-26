@@ -2,7 +2,7 @@
 Konbit — Tès apwobasyon tan travay
 Chemen: backend/tests/test_timesheets.py
 
-Règ: manadjè a prepare (apwouve èdtan), HR peye. Opsyon B: peyòl la
+Règ: manadjè a prepare (apwouve èdtan), HR peye. Opsyon B: pewòl la
 mande konfimasyon pou moun ki poko apwouve, epi li pa peye èdtan
 siplemantè yo.
 """
@@ -174,7 +174,7 @@ def test_approval_locks_hr_corrections_until_reset(client, org_admin, make_emplo
 
 
 # ---------------------------------------------------------------------------
-# PEYÒL — OPSYON B
+# PEWÒL — OPSYON B
 # ---------------------------------------------------------------------------
 
 def test_payroll_asks_confirmation_and_skips_unapproved_overtime(
@@ -219,7 +219,7 @@ def test_payroll_asks_confirmation_and_skips_unapproved_overtime(
 
 
 def test_payroll_without_time_entries_needs_no_confirmation(client, org_admin, make_employee):
-    """Yon salarye ki pa janm pwente pa gen anyen pou apwouve: peyòl la pa bloke."""
+    """Yon salarye ki pa janm pwente pa gen anyen pou apwouve: pewòl la pa bloke."""
     h = org_admin["headers"]
     make_employee(h, base_salary=3_000_000)
     period = _make_period(client, h)

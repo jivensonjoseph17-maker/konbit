@@ -485,7 +485,7 @@ class LeaveRequest(Base, TimestampMixin):
 
 
 # ---------------------------------------------------------------------------
-# 5. PEYÒL
+# 5. PEWÒL
 # ---------------------------------------------------------------------------
 
 class PayPeriod(Base, TimestampMixin):
@@ -832,8 +832,8 @@ class ApplicationAnswer(Base, TimestampMixin):
 # ---------------------------------------------------------------------------
 # APWOBASYON TAN TRAVAY
 #
-# Manadjè a apwouve èdtan chak moun nan ekip li pou yon peryòd peyòl.
-# San apwobasyon: peyòl la peye salè de baz la, men PA èdtan siplemantè.
+# Manadjè a apwouve èdtan chak moun nan ekip li pou yon peryòd pewòl.
+# San apwobasyon: pewòl la peye salè de baz la, men PA èdtan siplemantè.
 # Yon apwobasyon BLOKE pwentaj peryòd la: HR dwe retire l anvan li korije.
 # ---------------------------------------------------------------------------
 

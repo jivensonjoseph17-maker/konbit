@@ -8,7 +8,7 @@ KONMBIT pèmèt yon biznis jere:
 - **Anplwaye** — dosye, wòl, chèn manadjè
 - **Prezans** — pwentaj antre/soti, ak fizo orè biznis la (America/Port-au-Prince)
 - **Konje** — demann, apwobasyon, balans pa kalite konje
-- **Peyòl** — kalkil an santim (IRI, ONA, OFATMA, CFGDCT, FDU/CAS)
+- **Pewòl** — kalkil an santim (IRI, ONA, OFATMA, CFGDCT, FDU/CAS)
 - **Rekritman** — òf travay, pipeline kandida
 - **Fòmasyon** — kou ak leson videyo, swiv pwogrè
 
@@ -77,7 +77,7 @@ Yon fwa sèvè a ap mache:
 | `GET /POST /api/employees` | Jesyon anplwaye |
 | `GET /POST /api/attendance` | Pwentaj (klòk antre/soti) |
 | `GET /POST /api/leaves` | Demann konje ak balans |
-| `GET /POST /api/payroll` | Peryòd peyòl |
+| `GET /POST /api/payroll` | Peryòd pewòl |
 | `GET /POST /api/jobs` | Òf travay (Rekritman) |
 | `GET /POST /api/applications` | Pipeline kandida |
 | `GET /POST /api/training` | Kou ak fòmasyon |

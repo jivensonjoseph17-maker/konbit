@@ -179,7 +179,7 @@ app.include_router(employees.router, prefix="/api/employees", tags=["Anplwaye"])
 app.include_router(hierarchy.router, prefix="/api/hierarchy", tags=["Òganigram"])
 app.include_router(attendance.router, prefix="/api/attendance", tags=["Prezans"])
 app.include_router(leaves.router,     prefix="/api/leaves",     tags=["Konje"])
-app.include_router(payroll.router,    prefix="/api/payroll",    tags=["Peyòl"])
+app.include_router(payroll.router,    prefix="/api/payroll",    tags=["Pewòl"])
 app.include_router(training.router,   prefix="/api/training",   tags=["Fòmasyon"])
 app.include_router(feedback.router,   prefix="/api/feedback",   tags=["Fidbak"])
 app.include_router(jobs.router,         prefix="/api/jobs",         tags=["Òf travay"])
@@ -193,7 +193,7 @@ app.include_router(
     tags=["Kesyon aplikasyon"],
 )
 # Piblik (san koneksyon): paj frontend/calculator.html
-app.include_router(calculator.router, prefix="/api/calculator", tags=["Kalkilatè peyòl"])
+app.include_router(calculator.router, prefix="/api/calculator", tags=["Kalkilatè pewòl"])
 
 # --- Poko pare ---
 # app.include_router(companies.router,    prefix="/api/companies",    tags=["Biznis"])

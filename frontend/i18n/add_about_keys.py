@@ -17,12 +17,12 @@ HERE = Path(__file__).resolve().parent
 
 KEYS = [
     "Kiyès nou ye — KONMBIT",
-    "Kiyès ki dèyè KONMBIT: yon ekip devlopè ayisyen k ap konstwi yon platfòm peyòl ak resous imèn pou biznis ayisyen.",
+    "Kiyès ki dèyè KONMBIT: yon ekip devlopè ayisyen k ap konstwi yon platfòm pewòl ak resous imèn pou biznis ayisyen.",
     "Ansanm, n ap mete men.",
-    "KONMBIT se yon platfòm resous imèn ak peyòl ki fèt pou biznis ayisyen, soti nan ti boutik rive nan gwo konpayi.",
+    "KONMBIT se yon platfòm resous imèn ak pewòl ki fèt pou biznis ayisyen, soti nan ti boutik rive nan gwo konpayi.",
     "Poukisa non KONMBIT",
     "Nan Nòdwès peyi a, lè yon plantè gen yon gwo travay pou l fè, vwazen yo vin ede l. Nan Sen Lwi di Nò yo rele sa kare, men tout moun konnen l sou non konbit. Chak moun pote fòs pa l, yon moun kowòdone, epi travay ki t ap pran yon semèn fini nan yon jou.",
-    "Se konsa mwen te grandi, ap gade papa m plante e ap fè konbit. Se lide sa a nou mete nan yon lojisyèl: tout travay ki gen pou fè pou jere yon ekip nan yon sèl kote, byen kowòdone. Sa gen ladan l prezans, konje, peyòl, fòmasyon ak rekritman. Konsa chak moun konnen wòl li, e pèsonn pa pèdi tan ap refè sa yon lòt deja fè.",
+    "Se konsa mwen te grandi, ap gade papa m plante e ap fè konbit. Se lide sa a nou mete nan yon lojisyèl: tout travay ki gen pou fè pou jere yon ekip nan yon sèl kote, byen kowòdone. Sa gen ladan l prezans, konje, pewòl, fòmasyon ak rekritman. Konsa chak moun konnen wòl li, e pèsonn pa pèdi tan ap refè sa yon lòt deja fè.",
     "Mo fondatè a",
     "Mwen rele Jivenson Joseph. Mwen fèt e mwen grandi Balatye, nan Sen Lwi di Nò. Mwen fè lekòl primè m nan Lekòl Nasyonal Rivyè dè Ba (Zabriko), epi mwen fini klasik mwen nan Lise Jean-Marie de Lamennais nan Sen Lwi di Nò.",
     "Mwen etidye enfòmatik biwotik nan Alyans, epi syans enfòmatik nan Inivèsite Episkopal Ayiti (UNEPH), Pòtoprens. Mwen se devlopè lojisyèl, e mwen travay ak baz done MySQL, Oracle ak Access. Mwen travay tou nan klimatizasyon (HVAC) Ozetazini, kote m te wè ki jan yon ekip sou teren òganize travay li.",

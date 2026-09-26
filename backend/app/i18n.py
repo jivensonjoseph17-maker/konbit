@@ -375,20 +375,20 @@ _ROWS: list[tuple[str, str, str]] = [
      "Vous n'avez pas le droit de statuer sur cette demande.",
      "You are not allowed to decide on this request."),
 
-    # --- Peyòl (payroll.py) ---
+    # --- Pewòl (payroll.py) ---
     ("Peryòd la pa jwenn.",
      "Période introuvable.",
      "Period not found."),
     ("Fich peye a pa jwenn.",
      "Fiche de paie introuvable.",
      "Payslip not found."),
-    ("Peyòl sa a deja peye. Ou pa ka rejenere l.",
+    ("Pewòl sa a deja peye. Ou pa ka rejenere l.",
      "Cette paie est déjà payée. Vous ne pouvez pas la régénérer.",
      "This payroll is already paid. You cannot regenerate it."),
     ("Pa gen fich peye. Rele /run anvan.",
      "Aucune fiche de paie. Lancez /run d'abord.",
      "There are no payslips. Call /run first."),
-    ("Ou dwe apwouve peyòl la anvan ou make l peye.",
+    ("Ou dwe apwouve pewòl la anvan ou make l peye.",
      "Vous devez approuver la paie avant de la marquer comme payée.",
      "You must approve the payroll before marking it as paid."),
     ("Fich peye sa a poko apwouve.",
@@ -399,7 +399,7 @@ _ROWS: list[tuple[str, str, str]] = [
      "The employee has no bank account number for direct deposit."),
 
     # --- Tan travay (timesheets.py) ---
-    ("Peyòl peryòd sa a deja apwouve oswa peye. Èdtan yo pa ka chanje ankò.",
+    ("Pewòl peryòd sa a deja apwouve oswa peye. Èdtan yo pa ka chanje ankò.",
      "La paie de cette période est déjà approuvée ou payée. Les heures ne peuvent plus changer.",
      "Payroll for this period is already approved or paid. Hours can no longer change."),
     ("Ou pa gen dwa pou paj sa a.",
@@ -625,7 +625,7 @@ PATTERNS: list[tuple[re.Pattern[str], dict[str, str]]] = [
        "Vous demandez {total} jour(s) mais il ne vous en reste que {left}.",
        "You requested {total} day(s) but only have {left} left."),
 
-    # --- Peyòl ---
+    # --- Pewòl ---
     _p(r"^Peryòd la kouvri menm dat ak '(?P<name>.+)'\.$",
        "La période chevauche les dates de '{name}'.",
        "The period overlaps with the dates of '{name}'."),
@@ -643,7 +643,7 @@ PATTERNS: list[tuple[re.Pattern[str], dict[str, str]]] = [
        "The period is in status '{s}'."),
     _p(r"^Fich yo te kalkile pou yon peman (?P<planned>\S+) \(retni sou bonis (?P<prate>\S+)\), "
        r"men peman an fèt (?P<paid>\S+) \(retni (?P<arate>\S+)\)\. (?P<n>\d+) fich gen bonis oswa "
-       r"èdtan siplemantè\. Chanje dat peman an pou (?P<paid2>\S+), verifye fich yo, apwouve peyòl "
+       r"èdtan siplemantè\. Chanje dat peman an pou (?P<paid2>\S+), verifye fich yo, apwouve pewòl "
        r"la ankò, epi make l peye\.$",
        "Les fiches ont été calculées pour un paiement le {planned} (retenue sur les primes {prate}), "
        "mais le paiement a lieu le {paid} (retenue {arate}). {n} fiche(s) comportent des primes ou "

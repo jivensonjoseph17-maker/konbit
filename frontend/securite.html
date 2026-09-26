@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#030712">
-  <meta name="description" data-i18n-attr="content" content="Kiyès ki dèyè KONMBIT: yon ekip devlopè ayisyen k ap konstwi yon platfòm pewòl ak resous imèn pou biznis ayisyen.">
-  <title data-i18n>Kiyès nou ye — KONMBIT</title>
+  <meta name="description" data-i18n-attr="content" content="Kijan KONMBIT pwoteje salè, fich peye ak kont labank biznis ou yo.">
+  <title data-i18n>Sekirite done yo — KONMBIT</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -454,6 +454,55 @@
     .cta-section .btn-outline { color: #f3f4f6; border-color: #334155; }
     .cta-section .btn-outline:hover { background: rgba(255, 255, 255, 0.06); }
 
+
+    /* --- Paj sekirite --- */
+    .sec-grid {
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+    .sec-grid li {
+      display: grid;
+      grid-template-columns: 44px 1fr;
+      gap: 16px;
+      padding: 24px;
+      border-radius: 14px;
+      border: 1px solid var(--border-color);
+      background: var(--bg);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+    .sec-grid .ic {
+      width: 44px; height: 44px; border-radius: 12px;
+      display: grid; place-items: center;
+      background: rgba(37, 99, 235, 0.1); color: var(--primary); font-size: 1.05rem;
+    }
+    .sec-grid strong { display: block; color: var(--text-strong); margin-bottom: 6px; font-size: 1.02rem; }
+    .sec-grid p { color: var(--text-secondary); font-size: 0.94rem; line-height: 1.6; }
+
+    .roadmap {
+      padding: 28px;
+      border-radius: 16px;
+      border: 1px dashed var(--border-strong);
+      background: var(--bg-card);
+    }
+    .roadmap .section-title { margin-bottom: 8px; }
+    .roadmap p { color: var(--text-secondary); line-height: 1.6; max-width: 70ch; }
+
+    .report {
+      display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center;
+      padding: 24px 28px; border-radius: 16px;
+      border-inline-start: 4px solid var(--accent-gold);
+      background: var(--bg-card); border-top: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color); border-inline-end: 1px solid var(--border-color);
+    }
+    .report strong { color: var(--text-strong); font-size: 1.05rem; }
+    .report p { color: var(--text-secondary); }
+    .report a { font-weight: 700; color: var(--primary); text-decoration: none; }
+    .report a:hover { text-decoration: underline; }
+
+    @media (max-width: 900px) { .sec-grid { grid-template-columns: 1fr; } }
+
     /* ---------------- PYE PAJ ---------------- */
 
     .site-footer {
@@ -514,8 +563,8 @@
       <a href="index.html" data-i18n>Akèy</a>
       <a href="index.html#kijan" data-i18n>Kijan li mache</a>
       <a href="calculator.html" data-i18n>Kalkilatè pewòl</a>
-      <a href="about.html" aria-current="page" data-i18n>Kiyès nou ye</a>
-      <a href="securite.html" data-i18n>Sekirite done yo</a>
+      <a href="about.html" data-i18n>Kiyès nou ye</a>
+      <a href="securite.html" aria-current="page" data-i18n>Sekirite done yo</a>
     </div>
 
     <div class="nav-actions">
@@ -538,93 +587,71 @@
 
   <main class="main-container">
 
-    <!-- ---------------- ANLÈ ---------------- -->
     <header>
-      <span class="eyebrow" data-i18n>Kiyès nou ye</span>
-      <h1 class="hero-title" data-i18n>Ansanm, n ap mete men.</h1>
-      <p class="hero-desc" data-i18n>KONMBIT se yon platfòm resous imèn ak pewòl ki fèt pou biznis ayisyen, soti nan ti boutik rive nan gwo konpayi.</p>
+      <span class="eyebrow" data-i18n>Sekirite done yo</span>
+      <h1 class="hero-title" data-i18n>Done ou yo an sekirite</h1>
+      <p class="hero-desc" data-i18n>Salè, fich peye ak kont labank se enfòmasyon ki pi sansib nan yon biznis. Men egzakteman kijan KONMBIT pwoteje yo.</p>
     </header>
 
-    <!-- ---------------- NON AN ---------------- -->
-    <section class="section story" aria-labelledby="story-title">
-      <div>
-        <h2 class="section-title" id="story-title" data-i18n>Poukisa non KONMBIT</h2>
-        <p class="word" aria-hidden="true">Konbit<small>Kare · Sen Lwi di Nò</small></p>
-      </div>
-      <div class="prose">
-        <p data-i18n>Nan Nòdwès peyi a, lè yon plantè gen yon gwo travay pou l fè, vwazen yo vin ede l. Nan Sen Lwi di Nò yo rele sa kare, men tout moun konnen l sou non konbit. Chak moun pote fòs pa l, yon moun kowòdone, epi travay ki t ap pran yon semèn fini nan yon jou.</p>
-        <p data-i18n>Se konsa mwen te grandi, ap gade papa m plante e ap fè konbit. Se lide sa a nou mete nan yon lojisyèl: tout travay ki gen pou fè pou jere yon ekip nan yon sèl kote, byen kowòdone. Sa gen ladan l prezans, konje, pewòl, fòmasyon ak rekritman. Konsa chak moun konnen wòl li, e pèsonn pa pèdi tan ap refè sa yon lòt deja fè.</p>
-      </div>
-    </section>
-
-    <!-- ---------------- FONDATÈ A ---------------- -->
-    <section class="section" aria-labelledby="founder-title">
-      <h2 class="section-title" id="founder-title" data-i18n>Mo fondatè a</h2>
-      <div class="founder">
-        <!-- Lè w gen yon foto: ranplase div sa a pa
-             <img class="avatar lg" src="img/jivenson.jpg" alt="Jivenson Joseph"> -->
-        <div class="avatar lg" aria-hidden="true">JJ</div>
-        <div class="prose">
-          <p data-i18n>Mwen rele Jivenson Joseph. Mwen fèt e mwen grandi Balatye, nan Sen Lwi di Nò. Mwen fè lekòl primè m nan Lekòl Nasyonal Rivyè dè Ba (Zabriko), epi mwen fini klasik mwen nan Lise Jean-Marie de Lamennais nan Sen Lwi di Nò.</p>
-          <p data-i18n>Mwen etidye enfòmatik biwotik nan Alyans, epi syans enfòmatik nan Inivèsite Episkopal Ayiti (UNEPH), Pòtoprens. Mwen se devlopè lojisyèl, e mwen travay ak baz done MySQL, Oracle ak Access. Mwen travay tou nan klimatizasyon (HVAC) Ozetazini, kote m te wè ki jan yon ekip sou teren òganize travay li.</p>
-          <p data-i18n>Moun ki konnen m konnen mwen renmen aprann, e mwen renmen pataje sa m konnen. Mwen bay fòmasyon enfòmatik gratis nan Legliz Mamre, Pòtoprens. KONMBIT se menm lide a: pran konesans ak zouti ki egziste lòt kote, epi mete yo nan men biznis ayisyen, nan lang yo, pou reyalite yo.</p>
-          <p class="signature">Jivenson Joseph<span data-i18n>Fondatè · Administratè baz done</span></p>
-        </div>
-      </div>
-    </section>
-
-    <!-- ---------------- EKIP LA ---------------- -->
-    <section class="section" aria-labelledby="team-title">
-      <h2 class="section-title" id="team-title" data-i18n>Ekip la</h2>
-      <p class="section-sub" data-i18n>Nou twa se ansyen etidyan UNEPH, e nou soti nan diferan kwen peyi a.</p>
-
-      <div class="team">
-        <article class="member">
-          <div class="avatar" aria-hidden="true">JJ</div>
-          <h3>Jivenson Joseph</h3>
-          <div class="role" data-i18n>Fondatè · Administratè baz done</div>
-          <div class="from"><i class="fas fa-location-dot" aria-hidden="true"></i><span data-i18n>Balatye, Sen Lwi di Nò (Nòdwès)</span></div>
-          <p data-i18n>Li jere baz done yo, sipò kliyan ak IT.</p>
-        </article>
-
-        <article class="member">
-          <div class="avatar" aria-hidden="true">JY</div>
-          <h3>Jeffrey H. Youthe</h3>
-          <div class="role" data-i18n>Kofondatè · Devlopè frontend</div>
-          <div class="from"><i class="fas fa-location-dot" aria-hidden="true"></i><span data-i18n>Basen Ble (Nòdwès)</span></div>
-          <p data-i18n>Li konstwi paj ak ekran moun itilize yo, e li fè IT tou.</p>
-        </article>
-
-        <article class="member">
-          <div class="avatar" aria-hidden="true">JO</div>
-          <h3>Jean Blaisile Oulbadam</h3>
-          <div class="role" data-i18n>Kofondatè · Devlopè backend</div>
-          <div class="from"><i class="fas fa-location-dot" aria-hidden="true"></i><span data-i18n>Pòtoprens (Lwès)</span></div>
-          <p data-i18n>Li konstwi sèvè a ak kalkil yo, e li jere rezo a.</p>
-        </article>
-      </div>
-    </section>
-
-    <!-- ---------------- ANGAJMAN ---------------- -->
-    <section class="section" aria-labelledby="promise-title">
-      <h2 class="section-title" id="promise-title" data-i18n>Angajman nou</h2>
-
-      <ul class="commitments">
+    <section class="section" aria-label="Sekirite done yo" data-i18n-attr="aria-label">
+      <ul class="sec-grid">
         <li>
           <span class="ic" aria-hidden="true"><i class="fas fa-building-lock"></i></span>
           <div>
-            <strong data-i18n>Done biznis ou se pou ou.</strong>
-            <p data-i18n>Chak biznis separe nèt de lòt yo, e pèsonn deyò biznis ou pa ka wè done li.</p>
+            <strong data-i18n>Chak biznis separe nèt.</strong>
+            <p data-i18n>Chak fwa yon moun mande yon enfòmasyon, sistèm lan verifye ki biznis li ye. Yon biznis pa ka janm wè done yon lòt biznis.</p>
           </div>
         </li>
         <li>
-          <span class="ic" aria-hidden="true"><i class="fas fa-user-shield"></i></span>
+          <span class="ic" aria-hidden="true"><i class="fas fa-key"></i></span>
           <div>
-            <strong data-i18n>Enfòmasyon sansib yo pwoteje.</strong>
-            <p data-i18n>Nimewo idantite ak kont labank pa parèt nan lis yo, e chak fwa yon moun gade yo, sa ekri nan yon jounal.</p>
+            <strong data-i18n>Nou pa konnen modpas ou.</strong>
+            <p data-i18n>Modpas yo pa janm sere jan ou tape yo. Nou sere sèlman yon anprent (bcrypt) ki pa ka tounen vin modpas la. Chak modpas dwe gen omwen 10 karaktè, ak lèt ak chif.</p>
           </div>
         </li>
-        <!-- Pou mete apre deplwaman an, lè backup chak jou a mache vre:
+        <li>
+          <span class="ic" aria-hidden="true"><i class="fas fa-user-lock"></i></span>
+          <div>
+            <strong data-i18n>Pwoteksyon kont moun k ap devine.</strong>
+            <p data-i18n>Apre 5 move esè, kont lan bloke. Mesaj erè a toujou menm jan an, kidonk yon moun deyò pa ka konnen si yon imel gen yon kont.</p>
+          </div>
+        </li>
+        <li>
+          <span class="ic" aria-hidden="true"><i class="fas fa-users-gear"></i></span>
+          <div>
+            <strong data-i18n>Chak moun wè sa l dwe wè sèlman.</strong>
+            <p data-i18n>Yon anplwaye wè pwòp fich li. Yon manadjè wè ekip li. HR ak administratè yo jere biznis la. Pèsonn pa ka apwouve pwòp konje oswa pwòp èdtan li.</p>
+          </div>
+        </li>
+        <li>
+          <span class="ic" aria-hidden="true"><i class="fas fa-list-check"></i></span>
+          <div>
+            <strong data-i18n>Aksyon enpòtan yo ekri nan yon jounal.</strong>
+            <p data-i18n>Koneksyon, chanjman modpas, apwobasyon ak peman pewòl, ajisteman fich peye: sistèm lan ekri kiyès, kilè, ak ki aparèy.</p>
+          </div>
+        </li>
+        <li>
+          <span class="ic" aria-hidden="true"><i class="fas fa-eye-slash"></i></span>
+          <div>
+            <strong data-i18n>Nimewo sansib yo kache.</strong>
+            <p data-i18n>Nimewo idantite ak kont labank pa parèt nan lis yo. Sou fich peye a, se sèlman 4 dènye chif kont lan ki parèt.</p>
+          </div>
+        </li>
+        <li>
+          <span class="ic" aria-hidden="true"><i class="fas fa-clock-rotate-left"></i></span>
+          <div>
+            <strong data-i18n>Koneksyon ki fini pou kont li.</strong>
+            <p data-i18n>Apre 7 jou, ou dwe konekte ankò, menm sou pwòp telefòn ou.</p>
+          </div>
+        </li>
+        <!-- Pou mete apre deplwaman an, lè yo vre (tradiksyon yo deja la):
+        <li>
+          <span class="ic" aria-hidden="true"><i class="fas fa-lock"></i></span>
+          <div>
+            <strong data-i18n>Koneksyon chifre.</strong>
+            <p data-i18n>Tout sa ki pase ant telefòn oswa òdinatè ou ak sèvè a chifre (HTTPS).</p>
+          </div>
+        </li>
         <li>
           <span class="ic" aria-hidden="true"><i class="fas fa-database"></i></span>
           <div>
@@ -632,34 +659,30 @@
             <p data-i18n>Baz done a kopye chak jou, e kopi yo chifre.</p>
           </div>
         </li>
+        <li>
+          <span class="ic" aria-hidden="true"><i class="fas fa-location-dot"></i></span>
+          <div>
+            <strong data-i18n>Kote done yo ye.</strong>
+            <p data-i18n>Sèvè a ak baz done a nan yon sant done Render nan Virginia, Etazini.</p>
+          </div>
+        </li>
         -->
-        <li>
-          <span class="ic" aria-hidden="true"><i class="fas fa-language"></i></span>
-          <div>
-            <strong data-i18n>Kreyòl dabò.</strong>
-            <p data-i18n>Sistèm lan pale kreyòl, franse, angle ak lòt lang. Anplwaye a li fich li nan lang pa l.</p>
-          </div>
-        </li>
-        <li>
-          <span class="ic" aria-hidden="true"><i class="fas fa-scale-balanced"></i></span>
-          <div>
-            <strong data-i18n>Règ ayisyen yo.</strong>
-            <p data-i18n>IRI, ONA, OFATMA, CFGDCT ak FDU/CAS kalkile dapre lwa ayisyen, e yo mete ajou lè lwa a chanje.</p>
-          </div>
-        </li>
       </ul>
     </section>
 
-    <!-- ---------------- KONTAK ---------------- -->
-    <section class="section" aria-labelledby="contact-title">
-      <h2 class="section-title" id="contact-title" data-i18n>Kontak</h2>
-      <div class="contact">
-        <a href="mailto:kontak@konmbit.com"><i class="fas fa-envelope" aria-hidden="true"></i>kontak@konmbit.com</a>
-        <span class="item"><i class="fas fa-location-dot" aria-hidden="true"></i><span data-i18n>Pòtoprens, Ayiti</span></span>
-      </div>
+    <section class="section roadmap" aria-labelledby="road-title">
+      <h2 class="section-title" id="road-title" data-i18n>Sa n ap travay sou li</h2>
+      <p data-i18n>Verifikasyon an 2 etap pou administratè yo, ekspòtasyon tout done biznis ou, ak yon politik konfidansyalite konplè.</p>
     </section>
 
-    <!-- ---------------- CTA ---------------- -->
+    <section class="section report" aria-labelledby="report-title">
+      <div>
+        <strong id="report-title" data-i18n>Ou jwenn yon pwoblèm sekirite?</strong>
+        <p data-i18n>Ekri nou, n ap reponn ou vit.</p>
+      </div>
+      <a href="mailto:kontak@konmbit.com">kontak@konmbit.com</a>
+    </section>
+
     <section class="cta-section" aria-labelledby="cta-title">
       <div>
         <h2 id="cta-title" data-i18n>Mete ekip ou sou KONMBIT jodi a</h2>
