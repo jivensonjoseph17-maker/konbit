@@ -14,6 +14,7 @@ Endpoint yo:
     GET    /api/payroll/payslips/{id}        Yon fich peye
     PATCH  /api/payroll/payslips/{id}        Ajiste (bonis, dediksyon, chèk/depo)
     GET    /api/payroll/employee/{id}/payslips
+    GET    /api/payroll/tax-rates            To sistèm lan itilize yo
 
 TOUT MONTAN SE AN SANTIM. 150050 = 1 500,50 HTG.
 
@@ -73,6 +74,7 @@ from ..schemas import (
     PayslipAdjust,
     PayslipOut,
 )
+from ..timezone_utils import get_local_today
 from .timesheets import approved_employee_ids, has_time_entries
 
 logger = logging.getLogger("konbit")
@@ -119,6 +121,17 @@ TAX_BRACKETS = [
 SUPPLEMENTAL_TAX_RATE_OLD = 0.10
 SUPPLEMENTAL_TAX_RATE_NEW = 0.15
 SUPPLEMENTAL_TAX_CHANGE_DATE = date(2026, 10, 1)
+
+# Tout chan dediksyon compute_deductions() retounen. Yon sèl lis pou total
+# yo toujou konte TOUT retni yo (anvan, /run te bliye 3 ladan yo).
+DEDUCTION_FIELDS = (
+    "tax_amount",
+    "supplemental_tax_amount",
+    "ona_amount",
+    "ofatma_amount",
+    "cfgdct_amount",
+    "fdu_cas_amount",
+)
 
 
 def supplemental_tax_rate(pay_date: date) -> float:
@@ -515,7 +528,7 @@ class PayrollRunResult(BaseModel):
     skipped: int
     total_gross: int
     total_net: int
-    total_deductions: int
+    total_deductions: int           # TOUT retni yo (gade DEDUCTION_FIELDS)
     warnings: list[str] = []
     unapproved: list[str] = []      # moun ki touche san èdtan siplemantè
 
@@ -675,9 +688,7 @@ def run_payroll(
         created += 1
         total_gross += data["gross_amount"]
         total_net += data["net_amount"]
-        total_deductions += (
-            data["tax_amount"] + data["ona_amount"] + data["ofatma_amount"]
-        )
+        total_deductions += sum(data[field] for field in DEDUCTION_FIELDS)
 
     db.commit()
     _audit(db, request, user, "run_payroll", "pay_period", period.id,
@@ -1041,11 +1052,16 @@ class TaxRatesInfo(BaseModel):
 
 
 @router.get("/tax-rates", response_model=TaxRatesInfo, dependencies=[Depends(require_hr)])
-def tax_rates():
+def tax_rates(org_id: TenantId, db: DbSession):
     """
     To yo sistèm lan sèvi pou kalkile peyòl la.
     Frontend lan ka montre sa nan yon paj 'Kijan nou kalkile fich peye w'.
+
+    "Jodi a" se jodi a nan lè biznis la, pa lè sèvè a: 30 septanm a 9è diswa
+    an Ayiti, sèvè a (UTC) deja nan 1ye oktòb, e li ta montre to bonis 15%
+    la yon jou twò bonè.
     """
+    today = get_local_today(db, org_id)
     return TaxRatesInfo(
         ona_rate=ONA_RATE,
         ofatma_rate=OFATMA_RATE,
@@ -1053,7 +1069,7 @@ def tax_rates():
         cfgdct_monthly_floor=CFGDCT_MONTHLY_FLOOR,
         fdu_cas_rate=FDU_CAS_RATE,
         salary_abatement=SALARY_ABATEMENT,
-        supplemental_tax_rate_today=supplemental_tax_rate(date.today()),
+        supplemental_tax_rate_today=supplemental_tax_rate(today),
         supplemental_tax_change_date=SUPPLEMENTAL_TAX_CHANGE_DATE,
         tax_brackets=[
             {"up_to": upper, "rate": rate} for upper, rate in TAX_BRACKETS
