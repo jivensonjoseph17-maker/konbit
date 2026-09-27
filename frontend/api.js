@@ -870,6 +870,24 @@
   // DOM — kreye eleman san innerHTML
   // -------------------------------------------------------------------------
 
+  // Filè sekirite: navigatè a ekri mo "null" oswa "undefined" sou paj la si
+  // yon kòd bay replaceChildren(..., null, ...). h() deja inyore valè vid yo;
+  // isit nou fè menm bagay la pou append/prepend/replaceChildren/before/after
+  // sou TOUT paj yo, pou yon kondisyon "? ... : null" pa janm parèt ankò.
+  (function ignoreEmptyNodes() {
+    const keep = (n) => n !== null && n !== undefined && n !== false;
+    const targets = [Element.prototype, Document.prototype, DocumentFragment.prototype];
+    for (const proto of targets) {
+      for (const name of ['append', 'prepend', 'replaceChildren', 'before', 'after']) {
+        const original = proto[name];
+        if (typeof original !== 'function' || original.konbitSafe) continue;
+        const safe = function (...nodes) { return original.apply(this, nodes.filter(keep)); };
+        safe.konbitSafe = true;
+        proto[name] = safe;
+      }
+    }
+  })();
+
   /**
    * h('div', {class: 'card'}, 'tèks', h('span', {}, 'lòt'))
    * Tèks yo toujou antre kòm textContent — pa gen risk XSS.
