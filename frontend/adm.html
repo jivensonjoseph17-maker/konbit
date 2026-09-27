@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="logo.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n>Tablo jesyon — KONMBIT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="app.css">
+  <style>
+    /* --- Kòmanse ak KONMBIT --- */
+    .onb { border: 1px solid var(--line); border-radius: 18px; padding: 20px 22px; margin-bottom: 18px;
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.07), rgba(217, 154, 30, 0.07)), var(--surface); }
+    .onb-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+    .onb-head h2 { margin: 0; font-size: 19px; }
+    .onb-count { color: var(--muted); font-weight: 600; font-size: 14px; }
+    .progress { height: 8px; border-radius: 999px; background: var(--surface-2, rgba(148, 163, 184, 0.2));
+      overflow: hidden; margin: 12px 0 16px; }
+    .progress > span { display: block; height: 100%; border-radius: inherit;
+      background: linear-gradient(90deg, #2563eb, #16a34a); transition: width .4s; }
+    .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+    .step { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); }
+    .step .mark { width: 26px; height: 26px; border-radius: 50%; flex: none; display: grid; place-items: center;
+      border: 2px solid var(--line-strong, #cbd5e1); font-size: 14px; font-weight: 800; color: #fff; }
+    .step.done .mark { background: #16a34a; border-color: #16a34a; }
+    .step .txt { flex: 1; min-width: 0; }
+    .step.done .txt .t { color: var(--muted); text-decoration: line-through; }
+    .step .t { font-weight: 600; }
+    .step .s { font-size: 13px; color: var(--muted); }
+
+    /* --- Chif yo --- */
+    .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
+    .kpi { display: block; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px;
+      color: inherit; text-decoration: none; transition: border-color .15s; min-width: 0; }
+    a.kpi:hover { border-color: var(--accent, #2563eb); }
+    .kpi .k-label { font-size: 13px; font-weight: 600; color: var(--muted); }
+    .kpi .k-value { font-size: 28px; font-weight: 800; margin-top: 6px; font-variant-numeric: tabular-nums;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .kpi .k-sub { font-size: 12.5px; color: var(--muted); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .kpi.alert .k-value { color: #dc2626; }
+    @media (max-width: 1000px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+    .admin-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+    @media (max-width: 1000px) { .admin-grid { grid-template-columns: minmax(0, 1fr); } }
+
+    /* --- Deklarasyon yo --- */
+    .decl { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line); }
+    .decl:first-child { border-top: 0; }
+    .decl .code { width: 64px; flex: none; font-weight: 800; }
+    .decl .info { flex: 1; min-width: 0; }
+    .decl .when { font-size: 13px; color: var(--muted); }
+    .decl .amt { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .days { font-size: 12.5px; font-weight: 700; padding: 3px 8px; border-radius: 999px; white-space: nowrap;
+      background: var(--surface-2, rgba(148, 163, 184, 0.15)); color: var(--muted); }
+    .days.soon { background: rgba(245, 158, 11, 0.15); color: #b45309; }
+    .days.urgent { background: rgba(220, 38, 38, 0.12); color: #dc2626; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside id="sidebar"></aside>
+
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+
+      <main class="page">
+        <div class="page-head">
+          <h1 data-i18n>Tablo jesyon</h1>
+          <p id="today-label"></p>
+        </div>
+
+        <div id="content"><p class="loading" data-i18n>Ap chaje…</p></div>
+      </main>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script src="shell.js"></script>
+  <script>
+  (async function () {
+    'use strict';
+    const { api, fmt, h, ApiError, shell, t } = Konbit;
+
+    const identity = await shell.mount('admin', shell.ADMIN);
+    if (!identity) return;
+
+    const content = document.getElementById('content');
+    document.getElementById('today-label').textContent = fmt.longDate(new Date());
+
+    function errorMessage(err) {
+      return err instanceof ApiError ? err.message : t('Yon bagay pa mache.');
+    }
+
+    function panel(title, action, ...children) {
+      return h('section', { class: 'panel' },
+        h('div', { class: 'panel-head' }, h('h2', {}, title), action || null),
+        ...children);
+    }
+
+    // Tèks yo dirèkteman anndan t(): konsa check_i18n.py jwenn kle yo.
+    const STEP_TEXT = {
+      employees: () => [t('Ajoute anplwaye yo'), t('Chak moun ki travay nan biznis la, ak salè yo.')],
+      positions: () => [t('Bay chak moun yon pozisyon'), t('Pozisyon yo parèt nan òganigram lan ak sou fich peye yo.')],
+      leave_balances: () => [t('Mete balans konje yo'), t('Kòd Travay la bay 15 jou konje pa ane apre yon ane sèvis.')],
+      clock_mode: () => [t('Chwazi kijan anplwaye yo pwente'), t('Sou telefòn yo, sou yon tablèt biznis la, oswa toulède.')],
+      pay_period: () => [t('Kreye premye peryòd pewòl la'), t('Pa egzanp: Oktòb 2026, peye 31 oktòb.')],
+    };
+
+    const PERIOD_STATUS = {
+      draft: () => [t('Bouyon'), 'badge-pending'],
+      approved: () => [t('Apwouve'), 'badge-approved'],
+      paid: () => [t('Peye|estati'), 'badge-approved'],
+    };
+
+    // Non ofisyèl yo pa tradui; se sèlman deskripsyon an.
+    const DECL_TEXT = {
+      DGI: () => t('Enpo sou salè (IRI) ak retni sou bonis'),
+      ONA: () => t('Retrèt — pati anplwaye a (6%)'),
+      OFATMA: () => t('Sante ak aksidan travay (3%)'),
+    };
+
+    // -------------------------------------------------------------------
+    // KÒMANSE AK KONMBIT
+    // -------------------------------------------------------------------
+
+    function onboardingCard(o) {
+      if (o.complete) return null;
+      const bar = h('span', {});
+      bar.style.width = `${Math.round((o.done_count / o.total) * 100)}%`;
+
+      return h('section', { class: 'onb', 'aria-labelledby': 'onb-title' },
+        h('div', { class: 'onb-head' },
+          h('h2', { id: 'onb-title' }, t('Kòmanse ak KONMBIT')),
+          h('span', { class: 'onb-count' }, t('{done} sou {total} fini', { done: o.done_count, total: o.total })),
+        ),
+        h('div', { class: 'progress', role: 'progressbar', 'aria-valuemin': '0',
+          'aria-valuemax': String(o.total), 'aria-valuenow': String(o.done_count) }, bar),
+        h('ol', { class: 'steps' }, ...o.steps.map((s) => {
+          const [title, hint] = STEP_TEXT[s.key] ? STEP_TEXT[s.key]() : [s.key, ''];
+          const counter = s.total != null && !s.done && s.total > 0
+            ? ` · ${t('{n} sou {total}', { n: s.progress, total: s.total })}` : '';
+          return h('li', { class: s.done ? 'step done' : 'step' },
+            h('span', { class: 'mark', 'aria-hidden': 'true' }, s.done ? '✓' : ''),
+            h('div', { class: 'txt' },
+              h('div', { class: 't' }, title),
+              h('div', { class: 's' }, hint + counter)),
+            s.done ? h('span', { class: 'visually-hidden' }, t('Fini'))
+                   : h('a', { class: 'btn btn-primary btn-sm', href: s.link }, t('Fè l')),
+          );
+        })),
+      );
+    }
+
+    // -------------------------------------------------------------------
+    // CHIF YO
+    // -------------------------------------------------------------------
+
+    function kpi(label, value, sub, href, cls) {
+      return h(href ? 'a' : 'div', { class: `kpi ${cls || ''}`, href: href || null },
+        h('div', { class: 'k-label' }, label),
+        h('div', { class: 'k-value' }, value),
+        h('div', { class: 'k-sub' }, sub || ''));
+    }
+
+    function kpis(d) {
+      const n = d.next_payroll;
+      return h('div', { class: 'kpis' },
+        kpi(t('Anplwaye aktif'), String(d.headcount.active),
+          t('{n} sou pewòl', { n: d.headcount.on_payroll }), 'employees.html'),
+        kpi(t('Prezan jodi a'), String(d.headcount.present_today),
+          t('{n} nan travay kounye a', { n: d.headcount.still_working }), 'team.html'),
+        kpi(t('Ap tann apwobasyon'), String(d.pending.total),
+          t('{leaves} konje · {hours} èdtan', { leaves: d.pending.leaves, hours: d.pending.timesheets }),
+          'team.html#pou-apwouve', d.pending.total ? 'alert' : ''),
+        kpi(t('Pwochen pewòl'), n ? fmt.shortDate(n.pay_date) : '—',
+          n ? (n.days_until_pay >= 0 ? t('nan {n} jou', { n: n.days_until_pay }) : t('Dat la pase'))
+            : t('Poko gen peryòd'), 'payroll.html'),
+      );
+    }
+
+    // -------------------------------------------------------------------
+    // PWOCHEN PEWÒL LA
+    // -------------------------------------------------------------------
+
+    function payrollPanel(n) {
+      const go = h('a', { class: 'btn btn-ghost btn-sm', href: 'payroll.html' }, t('Ale nan Pewòl'));
+      if (!n) {
+        return panel(t('Pwochen pewòl'), go,
+          h('p', { class: 'empty' }, t('Poko gen peryòd pewòl. Kreye premye a nan paj Pewòl la.')));
+      }
+      const [label, cls] = PERIOD_STATUS[n.status] ? PERIOD_STATUS[n.status]() : [n.status, ''];
+      const money = (v) => fmt.money(v);
+      const row = (k, v, strong) => h('div', { class: strong ? 'row total' : 'row' },
+        h('span', { class: strong ? '' : 'k' }, k), h('span', {}, v));
+
+      return panel(t('Pwochen pewòl'), go,
+        h('div', { style: 'display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center;' },
+          h('strong', {}, n.name),
+          h('span', { class: `badge ${cls}` }, label)),
+        h('p', { class: 'sub', style: 'margin: 6px 0 12px;' },
+          `${fmt.shortDate(n.start_date)} → ${fmt.shortDate(n.end_date)} · `
+          + t('peman {date}', { date: fmt.date(n.pay_date) })),
+        n.estimated
+          ? h('div', {},
+              h('p', { class: 'clock-label' }, t('Estimasyon (salè brit)')),
+              h('p', { class: 'pay-net' }, money(n.total_gross)),
+              h('p', { class: 'hint', style: 'display: block;' },
+                t('Fich yo poko kalkile. Chif la baze sou salè fiks moun ki sou pewòl yo, san èdtan siplemantè.')))
+          : h('div', { class: 'rows' },
+              row(t('Brit'), money(n.total_gross)),
+              row(t('Retni yo'), `−${money(n.total_deductions)}`),
+              row(t('Net pou peye'), money(n.total_net), true),
+              h('p', { class: 'sub', style: 'margin-top: 8px;' }, t('{n} fich peye', { n: n.payslip_count }))),
+      );
+    }
+
+    // -------------------------------------------------------------------
+    // DEKLARASYON YO
+    // -------------------------------------------------------------------
+
+    function declarationsPanel(list) {
+      return panel(t('Dat limit deklarasyon'), null,
+        h('div', {}, ...list.map((d) => {
+          const [y, m] = d.for_month.split('-').map(Number);
+          const monthName = `${fmt.MONTHS[m - 1]} ${y}`;
+          const cls = d.days_left <= 3 ? 'days urgent' : d.days_left <= 10 ? 'days soon' : 'days';
+          return h('div', { class: 'decl' },
+            h('span', { class: 'code' }, d.code),
+            h('div', { class: 'info' },
+              h('div', {}, DECL_TEXT[d.code] ? DECL_TEXT[d.code]() : d.code),
+              h('div', { class: 'when' }, t('Salè {month} · avan {date}', { month: monthName, date: fmt.date(d.due_date) }))),
+            h('div', { style: 'text-align: end;' },
+              h('div', { class: 'amt' }, fmt.money(d.amount)),
+              h('span', { class: cls }, d.days_left === 0 ? t('Jodi a') : t('{n} jou', { n: d.days_left }))),
+          );
+        })),
+        h('p', { class: 'hint', style: 'display: block; margin-top: 12px;' },
+          t('Dat pou verifye ak kontab ou. Montan yo se sa ki retni sou fich ki peye nan mwa a.')),
+      );
+    }
+
+    // -------------------------------------------------------------------
+    // DEMARAJ
+    // -------------------------------------------------------------------
+
+    try {
+      const d = await api.get('/api/admin/overview');
+      content.replaceChildren(
+        onboardingCard(d.onboarding),
+        kpis(d),
+        h('div', { class: 'admin-grid' },
+          payrollPanel(d.next_payroll),
+          declarationsPanel(d.declarations)),
+      );
+    } catch (err) {
+      content.replaceChildren(h('div', { class: 'alert alert-error' }, errorMessage(err)));
+    }
+  })();
+  </script>
+</body>
+</html>

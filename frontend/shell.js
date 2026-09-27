@@ -32,6 +32,7 @@
       { id: 'organigram', label: 'Òganigram', href: 'organigram.html' },
     ] },
     { group: 'Jesyon', roles: ADMIN, items: [
+      { id: 'admin', label: 'Tablo jesyon', href: 'admin.html' },
       { id: 'employees', label: 'Anplwaye|meni', href: 'employees.html' },
       { id: 'positions', label: 'Pozisyon', href: 'positions.html' },
       { id: 'payroll', label: 'Pewòl', href: 'payroll.html' },
