@@ -1141,5 +1141,10 @@
  "Pwentaj": "Clock-in",
  "Jere tablèt yo": "Manage tablets",
  "Bay biznis la yon non.": "Give the business a name.",
- "Lyen logo a dwe kòmanse ak https://": "The logo link must start with https://"
+ "Lyen logo a dwe kòmanse ak https://": "The logo link must start with https://",
+ "Rapò": "Reports",
+ "Rapò ak fichye": "Reports and files",
+ "Fichye bank / MonCash": "Bank / MonCash file",
+ "DGI (IRI ak retni)": "DGI (IRI and withholdings)",
+ "Fichye CSV pou Excel. Fichye bank lan gen nimewo kont konplè yo: chak telechajman ekri nan jounal odit la. Yon kontab dwe verifye rapò yo anvan ou soumèt yo.": "CSV files for Excel. The bank file contains full account numbers: every download is recorded in the audit log. An accountant should check the reports before you submit them."
 }

@@ -1141,5 +1141,10 @@
  "Pwentaj": "打卡",
  "Jere tablèt yo": "管理平板",
  "Bay biznis la yon non.": "请为企业命名。",
- "Lyen logo a dwe kòmanse ak https://": "标志链接必须以 https:// 开头"
+ "Lyen logo a dwe kòmanse ak https://": "标志链接必须以 https:// 开头",
+ "Rapò": "报表",
+ "Rapò ak fichye": "报表与文件",
+ "Fichye bank / MonCash": "银行 / MonCash 文件",
+ "DGI (IRI ak retni)": "DGI（IRI 与扣缴）",
+ "Fichye CSV pou Excel. Fichye bank lan gen nimewo kont konplè yo: chak telechajman ekri nan jounal odit la. Yon kontab dwe verifye rapò yo anvan ou soumèt yo.": "适用于 Excel 的 CSV 文件。银行文件包含完整账号：每次下载都会记录在审计日志中。提交前请由会计核对报表。"
 }

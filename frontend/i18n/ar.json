@@ -1141,5 +1141,10 @@
  "Pwentaj": "تسجيل الحضور",
  "Jere tablèt yo": "إدارة الأجهزة اللوحية",
  "Bay biznis la yon non.": "أعطِ الشركة اسمًا.",
- "Lyen logo a dwe kòmanse ak https://": "يجب أن يبدأ رابط الشعار بـ https://"
+ "Lyen logo a dwe kòmanse ak https://": "يجب أن يبدأ رابط الشعار بـ https://",
+ "Rapò": "التقارير",
+ "Rapò ak fichye": "التقارير والملفات",
+ "Fichye bank / MonCash": "ملف البنك / MonCash",
+ "DGI (IRI ak retni)": "DGI (IRI والاقتطاعات)",
+ "Fichye CSV pou Excel. Fichye bank lan gen nimewo kont konplè yo: chak telechajman ekri nan jounal odit la. Yon kontab dwe verifye rapò yo anvan ou soumèt yo.": "ملفات CSV لبرنامج Excel. يحتوي ملف البنك على أرقام الحسابات كاملة: يُسجَّل كل تنزيل في سجل التدقيق. يجب أن يراجع محاسب التقارير قبل تقديمها."
 }

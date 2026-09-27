@@ -1141,5 +1141,10 @@
  "Pwentaj": "Ponto",
  "Jere tablèt yo": "Gerenciar tablets",
  "Bay biznis la yon non.": "Dê um nome à empresa.",
- "Lyen logo a dwe kòmanse ak https://": "O link do logo deve começar com https://"
+ "Lyen logo a dwe kòmanse ak https://": "O link do logo deve começar com https://",
+ "Rapò": "Relatórios",
+ "Rapò ak fichye": "Relatórios e arquivos",
+ "Fichye bank / MonCash": "Arquivo banco / MonCash",
+ "DGI (IRI ak retni)": "DGI (IRI e retenções)",
+ "Fichye CSV pou Excel. Fichye bank lan gen nimewo kont konplè yo: chak telechajman ekri nan jounal odit la. Yon kontab dwe verifye rapò yo anvan ou soumèt yo.": "Arquivos CSV para Excel. O arquivo bancário contém os números de conta completos: cada download fica registrado no log de auditoria. Um contador deve verificar os relatórios antes de enviá-los."
 }

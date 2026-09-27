@@ -87,6 +87,9 @@
     let periods = [];
     let selectedId = Number(new URLSearchParams(location.search).get('id')) || null;
     let lastWarnings = [];
+    // Frekans pewòl biznis la (Paramèt biznis): nouvo peryòd yo swiv li.
+    let payFrequency = 'monthly';
+    api.get('/api/organization').then((o) => { payFrequency = o.pay_frequency || 'monthly'; }).catch(() => {});
 
     // ---------------------------------------------------------------------
     // ZOUTI
@@ -231,22 +234,50 @@
     // ---------------------------------------------------------------------
 
     function prefillNewPeriod() {
-      // Pwopoze pwochen mwa ki poko gen peryòd, oswa mwa sa a.
+      // Pwopoze pwochen peryòd la dapre frekans pewòl biznis la.
       const today = new Date();
-      let y = today.getFullYear();
-      let m = today.getMonth();
-      const taken = new Set(periods.map((p) => p.start_date.slice(0, 7)));
-      for (let i = 0; i < 12; i++) {
-        const key = `${y}-${String(m + 1).padStart(2, '0')}`;
-        if (!taken.has(key)) break;
-        m += 1; if (m > 11) { m = 0; y += 1; }
+      const lastEnd = periods.length ? periods.map((p) => p.end_date).sort().pop() : null;
+      const dayAfter = (value) => { const d = fmt.parseDate(value); d.setDate(d.getDate() + 1); return d; };
+      const cap = (s) => `${s.charAt(0).toLocaleUpperCase()}${s.slice(1)}`;
+      let start;
+      let end;
+      let pay;
+      let name;
+
+      if (payFrequency === 'weekly' || payFrequency === 'biweekly') {
+        const days = payFrequency === 'weekly' ? 7 : 14;
+        start = lastEnd ? dayAfter(lastEnd)
+          : new Date(today.getFullYear(), today.getMonth(), today.getDate() - ((today.getDay() + 6) % 7));
+        end = new Date(start);
+        end.setDate(start.getDate() + days - 1);
+        pay = new Date(end);
+        name = `${fmt.shortDate(start)} – ${fmt.shortDate(end)} ${end.getFullYear()}`;
+      } else if (payFrequency === 'semimonthly') {
+        start = lastEnd ? dayAfter(lastEnd)
+          : new Date(today.getFullYear(), today.getMonth(), today.getDate() <= 15 ? 1 : 16);
+        const firstHalf = start.getDate() <= 15;
+        end = firstHalf ? new Date(start.getFullYear(), start.getMonth(), 15)
+                        : new Date(start.getFullYear(), start.getMonth() + 1, 0);
+        pay = new Date(end);
+        name = `${cap(fmt.MONTHS[start.getMonth()])} ${start.getFullYear()} · ${start.getDate()}–${end.getDate()}`;
+      } else {
+        // Chak mwa: pwochen mwa ki poko gen peryòd, oswa mwa sa a.
+        let y = today.getFullYear();
+        let m = today.getMonth();
+        const taken = new Set(periods.map((p) => p.start_date.slice(0, 7)));
+        for (let i = 0; i < 12; i++) {
+          const key = `${y}-${String(m + 1).padStart(2, '0')}`;
+          if (!taken.has(key)) break;
+          m += 1; if (m > 11) { m = 0; y += 1; }
+        }
+        start = new Date(y, m, 1);
+        end = new Date(y, m + 1, 0);
+        pay = new Date(y, m + 1, 5);
+        name = `${cap(fmt.MONTHS[m])} ${y}`;
       }
-      const start = new Date(y, m, 1);
-      const end = new Date(y, m + 1, 0);
-      const pay = new Date(y, m + 1, 5);
-      // Non an nan lang moun nan ("Oktòb 2026", "October 2026"). Li sere jan l ekri a.
-      const month = fmt.MONTHS[m];
-      $('p-name').value = `${month.charAt(0).toLocaleUpperCase()}${month.slice(1)} ${y}`;
+
+      // Non an nan lang moun nan. Li sere jan l ekri a.
+      $('p-name').value = name;
       $('p-start').value = iso(start);
       $('p-end').value = iso(end);
       $('p-pay').value = iso(pay);
@@ -383,8 +414,10 @@
     }
 
     function stepper(status) {
-      const steps = [['draft', t('Kalkile ak verifye')], ['approved', t('Apwouve')], ['paid', t('Peye|estati')]];
-      const reached = { draft: 0, approved: 1, paid: 2 }[status] ?? 0;
+      const steps = [['draft', t('Kalkile ak verifye')], ['approved', t('Apwouve')], ['paid', t('Peye|estati')],
+        ['reports', t('Rapò')]];
+      // Apre peman: etap "Rapò" a se etap kounye a (telechaje ONA / OFATMA / DGI / bank).
+      const reached = { draft: 0, approved: 1, paid: 3 }[status] ?? 0;
       return h('ol', { class: 'stepper', 'aria-label': t('Etap pewòl la') },
         ...steps.map(([key, label], i) => h('li', {
           class: i < reached ? 'done' : i === reached ? 'current' : null,
@@ -448,6 +481,45 @@
         h('div', { class: 'form-actions', style: 'margin-top: 12px;' }, go, review, cancel),
       );
       return box;
+    }
+
+    /**
+     * Rapò CSV yo (Excel): fichye bank / MonCash, ONA, OFATMA, DGI.
+     * Disponib depi pewòl la APWOUVE. Chak telechajman ekri nan jounal odit la.
+     */
+    function reportsBox(period) {
+      const msg = h('p', { class: 'field-error', role: 'status' });
+      const kinds = [
+        ['bank', t('Fichye bank / MonCash')],
+        ['ona', 'ONA'],
+        ['ofatma', 'OFATMA'],
+        ['dgi', t('DGI (IRI ak retni)')],
+      ];
+      const buttons = kinds.map(([kind, label]) => {
+        const btn = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, label);
+        btn.addEventListener('click', async () => {
+          msg.textContent = '';
+          btn.disabled = true;
+          try {
+            await api.download(`/api/payroll/periods/${period.id}/export/${kind}`,
+              `${kind}-${period.start_date}.csv`);
+          } catch (err) {
+            msg.textContent = errorMessage(err);
+          } finally {
+            btn.disabled = false;
+          }
+        });
+        return btn;
+      });
+      return h('div', {
+        style: 'margin-top: 16px; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-sm, 10px);',
+      },
+        h('strong', {}, t('Rapò ak fichye')),
+        h('p', { class: 'hint', style: 'display: block; margin: 4px 0 10px;' },
+          t('Fichye CSV pou Excel. Fichye bank lan gen nimewo kont konplè yo: chak telechajman ekri nan jounal odit la. Yon kontab dwe verifye rapò yo anvan ou soumèt yo.')),
+        h('div', { style: 'display: flex; gap: 8px; flex-wrap: wrap;' }, ...buttons),
+        msg,
+      );
     }
 
     function renderDetail(period, rows) {
@@ -587,6 +659,7 @@
 
         actions,
         msg,
+        period.status === 'approved' || period.status === 'paid' ? reportsBox(period) : null,
 
         slips.length ? payslipTable(rows, period) : null,
       ));

@@ -606,6 +606,11 @@ _ROWS: list[tuple[str, str, str]] = [
     ("Fizo orè sa a pa valab.",
      "Ce fuseau horaire n'est pas valide.",
      "This time zone is not valid."),
+
+    # --- Rapò pewòl (payroll_exports.py) ---
+    ("Apwouve pewòl la anvan ou telechaje rapò yo.",
+     "Approuvez la paie avant de télécharger les rapports.",
+     "Approve the payroll before downloading the reports."),
 ]
 
 MESSAGES: dict[str, dict[str, str]] = {ht: {"fr": fr, "en": en} for ht, fr, en in _ROWS}
