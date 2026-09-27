@@ -178,6 +178,9 @@ class Organization(Base, TimestampMixin):
     logo_url = Column(String(500))
     default_currency = Column(SQLEnum(Currency), default=Currency.HTG, nullable=False)
     timezone = Column(String(50), default="America/Port-au-Prince")
+    # Kijan anplwaye yo pwente: "phone" (telefòn yo), "kiosk" (tablèt biznis la
+    # sèlman) oswa "both". Gade app/clock_mode.py.
+    clock_mode = Column(String(10), default="phone", nullable=False, server_default="phone")
     is_active = Column(Boolean, default=True, nullable=False)
 
     users = relationship("User", back_populates="organization")
@@ -307,6 +310,13 @@ class Employee(Base, TimestampMixin):
     # (pwopriyetè, fondatè ki pa touche salè oswa ki touche dividann).
     on_payroll = Column(Boolean, default=True, nullable=False, server_default=true())
 
+    # Kòd pèsonèl pou pwente sou tablèt biznis la. Ache (PBKDF2), jamè an klè.
+    # Gade routers/kiosk.py: 5 move kòd → bloke 15 minit.
+    kiosk_pin_hash = Column(String(255))
+    kiosk_pin_set_at = Column(DateTime(timezone=True))
+    kiosk_failed_count = Column(Integer, default=0, nullable=False, server_default="0")
+    kiosk_locked_until = Column(DateTime(timezone=True))
+
     is_active = Column(Boolean, default=True, nullable=False)
 
     organization = relationship("Organization", back_populates="employees")
@@ -321,6 +331,11 @@ class Employee(Base, TimestampMixin):
     def has_bank_account(self) -> bool:
         """Pou frontend lan: gen yon nimewo kont — san nou pa janm voye nimewo a."""
         return bool((self.bank_account_number or "").strip())
+
+    @property
+    def has_kiosk_pin(self) -> bool:
+        """Pou frontend lan: gen yon kòd kiyòsk — san nou pa janm voye l."""
+        return bool(self.kiosk_pin_hash)
 
     @property
     def login_role(self):
@@ -458,7 +473,7 @@ class TimeEntry(Base, TimestampMixin):
     clock_out_lat = Column(Numeric(10, 7))
     clock_out_lng = Column(Numeric(10, 7))
     clock_in_ip = Column(String(45))
-    device_info = Column(String(255))
+    device_info = Column(String(255))           # "kiosk:<id> <non>" si se tablèt la
 
     # Koreksyon HR
     adjusted_by_id = Column(Integer, ForeignKey("users.id"))
@@ -925,3 +940,29 @@ class Shift(Base, TimestampMixin):
     note = Column(String(300))
     is_published = Column(Boolean, default=False, nullable=False)
     created_by_id = Column(Integer, ForeignKey("users.id"))
+
+
+# ---------------------------------------------------------------------------
+# KIYÒSK — TABLÈT BIZNIS LA
+#
+# Admin aktive yon tablèt yon sèl fwa. Tablèt la resevwa yon token ki pa
+# ka fè anyen lòt pase pwentaj (routers/kiosk.py). Nou estoke sha256 token
+# an sèlman: si baz done a koule, token yo pa ka itilize.
+# ---------------------------------------------------------------------------
+
+class KioskDevice(Base, TimestampMixin):
+    __tablename__ = "kiosk_devices"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), index=True, nullable=False)
+    name = Column(String(100), nullable=False)             # "Tablèt kès la"
+    token_hash = Column(String(64), unique=True, index=True, nullable=False)
+    created_by_id = Column(Integer, ForeignKey("users.id"))
+    last_seen_at = Column(DateTime(timezone=True))
+
+    # Pwoteksyon kont moun k ap devine kòd
+    failed_count = Column(Integer, default=0, nullable=False, server_default="0")
+    locked_until = Column(DateTime(timezone=True))
+
+    is_active = Column(Boolean, default=True, nullable=False, server_default=true())
+    revoked_at = Column(DateTime(timezone=True))

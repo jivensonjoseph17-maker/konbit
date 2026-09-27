@@ -61,6 +61,8 @@ from .timesheets import timesheet_locked
 
 logger = logging.getLogger("konbit")
 
+from ..clock_mode import ensure_phone_clock_allowed
+
 router = APIRouter()
 
 STANDARD_WORKDAY_MINUTES = 8 * 60      # 8 èdtan — apre sa se èdtan siplemantè
@@ -198,6 +200,8 @@ def clock_in(
             detail="Ou pa ka klòk in: estati w se pa aktif.",
         )
 
+    ensure_phone_clock_allowed(db, org_id)
+
     existing = _open_entry_for(db, org_id, emp.id)
     if existing is not None:
         elapsed = int((_now() - _as_aware(existing.clock_in_at)).total_seconds() // 60)
@@ -239,6 +243,8 @@ def clock_out(
     org_id: TenantId,
     db: DbSession,
 ):
+    ensure_phone_clock_allowed(db, org_id)
+
     entry = _open_entry_for(db, org_id, emp.id)
     if entry is None:
         raise HTTPException(

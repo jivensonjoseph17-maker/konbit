@@ -23,7 +23,7 @@ from .routers import (
     auth, employees, hierarchy, attendance, leaves,
     payroll, training, feedback,
     jobs, applications, offers, application_questions, timesheets,
-    calculator, schedules, positions,
+    calculator, schedules, positions, portal, kiosk,
 )
 
 # --- Router ki poko pare ---
@@ -74,7 +74,8 @@ app.add_middleware(
     allow_origins=origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "Accept-Language"],
+    # X-Kiosk-Token: tablèt pwentaj la (routers/kiosk.py), pa yon kont itilizatè.
+    allow_headers=["Authorization", "Content-Type", "Accept-Language", "X-Kiosk-Token"],
     # Kite frontend lan li non fichye PDF yo (fich-peye-KB-0007-2026-09.pdf).
     expose_headers=["Content-Disposition"],
 )
@@ -190,6 +191,10 @@ app.include_router(offers.router,       prefix="/api/offers",       tags=["Pwopo
 app.include_router(timesheets.router,   prefix="/api/timesheets",   tags=["Tan travay"])
 app.include_router(schedules.router,    prefix="/api/schedules",    tags=["Orè travay"])
 app.include_router(positions.router,    prefix="/api/positions",    tags=["Pozisyon"])
+# Pòtay anplwaye: pwòp èdtan mwen, total ane a (sèlman done moun ki konekte a)
+app.include_router(portal.router,       prefix="/api/portal",       tags=["Pòtay anplwaye"])
+# Kiyòsk: tablèt biznis la + kòd pèsonèl (header X-Kiosk-Token)
+app.include_router(kiosk.router,        prefix="/api/kiosk",        tags=["Kiyòsk"])
 app.include_router(
     application_questions.router,
     prefix="/api/application-questions",
