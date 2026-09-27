@@ -4,6 +4,21 @@ Chemen: backend/tests/test_kiosk.py
 """
 
 import re
+from datetime import datetime, timedelta, timezone
+
+import pytest
+
+from app.database import SessionLocal
+from app.models import KioskPairing
+from app.routers import kiosk as kiosk_router
+
+
+@pytest.fixture(autouse=True)
+def _reset_pair_limiter():
+    """Limit move esè kòd kout la an memwa: chak tès kòmanse pwòp."""
+    kiosk_router._PAIR_FAILURES.clear()
+    yield
+    kiosk_router._PAIR_FAILURES.clear()
 
 
 # ---------------------------------------------------------------------------
@@ -175,3 +190,61 @@ def test_who_can_issue_pins_and_manage_devices(client, org_admin, make_employee,
     listing = client.get("/api/kiosk/devices", headers=h)
     assert listing.status_code == 200
     assert "token" not in listing.text
+
+
+# ---------------------------------------------------------------------------
+# KÒD KOUT AKTIVASYON (6 karaktè, 10 minit, yon sèl fwa)
+# ---------------------------------------------------------------------------
+
+def _pairing(client, h, name="Tablèt pòt la"):
+    resp = client.post("/api/kiosk/pairings", json={"name": name}, headers=h)
+    assert resp.status_code == 201, resp.text
+    code = resp.json()["code"]
+    assert re.fullmatch(r"[A-Z2-9]{3}-[A-Z2-9]{3}", code)
+    return code
+
+
+def test_short_code_activates_tablet_once(client, org_admin, make_employee):
+    h = org_admin["headers"]
+    _set_mode(client, h, "kiosk")
+    code = _pairing(client, h)
+
+    # Miniskil, san tirè: sa mache kanmenm. Pa gen koneksyon itilizatè.
+    resp = client.post("/api/kiosk/pair", json={"code": code.replace("-", "").lower()})
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["token"].startswith("kk_") and body["device_name"] == "Tablèt pòt la"
+
+    kh = {"X-Kiosk-Token": body["token"]}
+    assert client.get("/api/kiosk/device", headers=kh).json()["device_name"] == "Tablèt pòt la"
+    emp = make_employee(h)["employee"]
+    assert _punch(client, kh, emp["employee_number"], _pin(client, h, emp["id"])).status_code == 200
+
+    # Yon sèl fwa
+    assert client.post("/api/kiosk/pair", json={"code": code}).status_code == 400
+    names = [d["name"] for d in client.get("/api/kiosk/devices", headers=h).json()["items"]]
+    assert names == ["Tablèt pòt la"]
+
+
+def test_expired_short_code_is_refused(client, org_admin):
+    code = _pairing(client, org_admin["headers"])
+    with SessionLocal() as db:
+        row = db.query(KioskPairing).order_by(KioskPairing.id.desc()).first()
+        row.expires_at = datetime.now(timezone.utc) - timedelta(minutes=1)
+        db.commit()
+    assert client.post("/api/kiosk/pair", json={"code": code}).status_code == 400
+
+
+def test_guessing_short_codes_is_blocked(client, org_admin):
+    code = _pairing(client, org_admin["headers"])
+    for _ in range(10):
+        assert client.post("/api/kiosk/pair", json={"code": "ZZZ-ZZZ"}).status_code == 400
+    # Menm bon kòd la bloke pou adrès sa a pandan 10 minit.
+    assert client.post("/api/kiosk/pair", json={"code": code}).status_code == 429
+
+
+def test_only_admin_creates_short_codes(client, org_admin, make_employee_login):
+    manager = make_employee_login(org_admin["headers"], login_role="manager")
+    resp = client.post("/api/kiosk/pairings", json={"name": "Tablèt"}, headers=manager["headers"])
+    assert resp.status_code == 403
+    assert client.post("/api/kiosk/pairings", json={"name": "Tablèt"}).status_code == 401

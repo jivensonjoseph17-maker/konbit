@@ -558,33 +558,41 @@ _ROWS: list[tuple[str, str, str]] = [
      "This file format is not supported. Use PNG, JPG or WEBP."),
 
     # --- Kiyòsk (app/clock_mode.py, app/routers/kiosk.py) ---
-    ('Biznis ou a mande pou w pwente sou tablèt biznis la.',
+    ("Biznis ou a mande pou w pwente sou tablèt biznis la.",
      "Votre entreprise exige le pointage sur la tablette de l'entreprise.",
      "Your business requires clocking in on the business tablet."),
-    ('Tablèt sa a pa aktive.',
+    ("Tablèt sa a pa aktive.",
      "Cette tablette n'est pas activée.",
      "This tablet is not activated."),
-    ('Tablèt la pa jwenn.',
+    ("Tablèt la pa jwenn.",
      "Tablette introuvable.",
      "Tablet not found."),
-    ('Biznis la pa sèvi ak tablèt pou pwentaj.',
+    ("Biznis la pa sèvi ak tablèt pou pwentaj.",
      "L'entreprise n'utilise pas de tablette pour le pointage.",
      "This business does not use a tablet for clocking in."),
-    ('Nimewo oswa kòd la pa bon.',
+    ("Nimewo oswa kòd la pa bon.",
      "Numéro ou code incorrect.",
      "Incorrect number or code."),
-    ('Twòp move esè sou tablèt sa a. Tann kèk minit.',
+    ("Twòp move esè sou tablèt sa a. Tann kèk minit.",
      "Trop de tentatives échouées sur cette tablette. Attendez quelques minutes.",
      "Too many failed attempts on this tablet. Wait a few minutes."),
-    ('Twòp move kòd. Tann kèk minit, oswa mande manadjè w yon nouvo kòd.',
+    ("Twòp move kòd. Tann kèk minit, oswa mande manadjè w yon nouvo kòd.",
      "Trop de codes erronés. Attendez quelques minutes ou demandez un nouveau code à votre responsable.",
      "Too many wrong codes. Wait a few minutes, or ask your manager for a new code."),
-    ('Ou deja antre. Fè sòti anvan.',
+    ("Ou deja antre. Fè sòti anvan.",
      "Vous avez déjà pointé votre arrivée. Pointez d'abord votre sortie.",
      "You are already clocked in. Clock out first."),
-    ('Ou pa antre. Fè antre anvan.',
+    ("Ou pa antre. Fè antre anvan.",
      "Vous n'avez pas pointé votre arrivée. Pointez d'abord votre arrivée.",
      "You have not clocked in. Clock in first."),
+
+    # --- Kiyòsk: kòd kout aktivasyon (6 karaktè, 10 minit) ---
+    ("Kòd la pa bon oswa li ekspire.",
+     "Code incorrect ou expiré.",
+     "The code is incorrect or has expired."),
+    ("Twòp esè. Tann kèk minit.",
+     "Trop de tentatives. Attendez quelques minutes.",
+     "Too many attempts. Wait a few minutes."),
 ]
 
 MESSAGES: dict[str, dict[str, str]] = {ht: {"fr": fr, "en": en} for ht, fr, en in _ROWS}
@@ -595,6 +603,9 @@ MESSAGES: dict[str, dict[str, str]] = {ht: {"fr": fr, "en": en} for ht, fr, en i
 #
 # Chak gwoup (?P<non>...) pase nan tradiksyon an jan li ye. Sèl eksepsyon:
 # mo nan _VALUE_WORDS (egz: "okenn") tradui tou.
+#
+# ATANSYON: sèlman liy _p(...) isit la. Yon mesaj FIKS (san valè) ale nan
+# _ROWS anlè a — yon (kreyòl, franse, angle) isit la kase translate().
 # ---------------------------------------------------------------------------
 
 def _p(regex: str, fr: str, en: str) -> tuple[re.Pattern[str], dict[str, str]]:

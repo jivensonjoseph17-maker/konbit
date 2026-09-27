@@ -26,10 +26,10 @@
           <button class="btn btn-primary" type="button" id="add-btn" data-i18n>Ajoute yon anplwaye</button>
         </div>
 
-        <!-- Modpas tanporè: parèt yon sèl fwa -->
+        <!-- Modpas tanporè oswa kòd pwentaj: parèt yon sèl fwa -->
         <section class="secret" id="secret" hidden aria-live="polite">
           <h2 id="secret-title"></h2>
-          <p data-i18n>Modpas sa a parèt yon sèl fwa. Voye l bay moun nan kounye a epi mande l chanje l lè l konekte.</p>
+          <p id="secret-note"></p>
           <div class="secret-row">
             <code id="secret-password"></code>
             <button class="btn btn-ghost btn-sm" type="button" id="secret-copy" data-i18n>Kopye</button>
@@ -224,17 +224,24 @@
     }).catch(() => {});
 
     // ---------------------------------------------------------------------
-    // MODPAS TANPORÈ
+    // SEKRÈ KI PARÈT YON SÈL FWA (modpas tanporè, kòd pwentaj)
     // ---------------------------------------------------------------------
 
-    function showSecret(title, password, email) {
+          // Tèks la ekri dirèkteman anndan t(): konsa check_i18n.py jwenn kle yo.
+    const passwordNote = () => t('Modpas sa a parèt yon sèl fwa. Voye l bay moun nan kounye a epi mande l chanje l lè l konekte.');
+    const pinNote = () => t('Kòd sa a parèt yon sèl fwa. Bay moun nan li an prive: se ak li l ap pwente sou tablèt biznis la.');
+
+    function showSecret(title, secret, sub, note) {
       $('secret-title').textContent = title;
-      $('secret-password').textContent = password;
-      $('secret-email').textContent = email ? t('Imel koneksyon: {email}', { email }) : '';
+      $('secret-password').textContent = secret;
+      $('secret-email').textContent = sub || '';
+      $('secret-note').textContent = note;
       $('secret').hidden = false;
       $('secret-copy').textContent = t('Kopye');
       $('secret').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+
+    const loginLine = (email) => (email ? t('Imel koneksyon: {email}', { email }) : '');
 
     $('secret-copy').addEventListener('click', async () => {
       const text = $('secret-password').textContent;
@@ -299,19 +306,38 @@
     function row(e) {
       const name = `${e.first_name} ${e.last_name}`;
       const resetBtn = h('button', { class: 'btn btn-quiet btn-sm', type: 'button' }, t('Nouvo modpas'));
+      const pinBtn = h('button', { class: 'btn btn-quiet btn-sm', type: 'button' }, t('Kòd pwentaj'));
 
       resetBtn.addEventListener('click', async () => {
         if (!confirm(t('Jenere yon nouvo modpas pou {name}? Ansyen an p ap mache ankò.', { name }))) return;
         resetBtn.disabled = true;
         try {
           const r = await api.post(`/api/employees/${e.id}/reset-password`);
-          showSecret(t('Nouvo modpas pou {name}', { name }), r.temporary_password, r.login_email);
+          showSecret(t('Nouvo modpas pou {name}', { name }), r.temporary_password,
+            loginLine(r.login_email), passwordNote());
         } catch (err) {
           alert(err.message);
         } finally {
           resetBtn.disabled = false;
         }
       });
+
+      // Kòd pou tablèt biznis la. Yon nouvo kòd ranplase ansyen an epi debloke l.
+      pinBtn.addEventListener('click', async () => {
+        if (!confirm(t('Jenere yon nouvo kòd pwentaj pou {name}? Ansyen an p ap mache ankò.', { name }))) return;
+        pinBtn.disabled = true;
+        try {
+          const r = await api.post(`/api/kiosk/employees/${e.id}/pin`);
+          showSecret(t('Kòd pwentaj pou {name}', { name }), r.pin,
+            t('Nimewo anplwaye: {number}', { number: r.employee_number }), pinNote());
+        } catch (err) {
+          alert(err.message);
+        } finally {
+          pinBtn.disabled = false;
+        }
+      });
+
+      const active = e.status !== 'terminated';
 
       return h('tr', {},
         h('td', {},
@@ -325,7 +351,7 @@
         ),
         h('td', {}, h('span', { class: `badge badge-${e.status}` }, fmt.employmentStatus(e.status))),
         h('td', { class: 'cell-muted hide-sm' }, (e.manager_id && shell.cachedName(e.manager_id)) || '—'),
-        h('td', { class: 'actions' }, resetBtn),
+        h('td', { class: 'actions' }, resetBtn, active ? pinBtn : null),
       );
     }
 
@@ -464,7 +490,8 @@
               number: r.employee.employee_number,
             }),
             r.temporary_password,
-            r.login_email,
+            loginLine(r.login_email),
+            passwordNote(),
           );
         }
         await loadList();

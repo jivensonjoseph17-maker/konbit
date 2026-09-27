@@ -6,9 +6,13 @@ Administrasyon (kont konekte):
     GET    /api/kiosk/settings                 Mòd pwentaj biznis la (tout anplwaye)
     PUT    /api/kiosk/settings                 Chanje mòd la (admin)
     GET    /api/kiosk/devices                  Tablèt yo (admin)
-    POST   /api/kiosk/devices                  Aktive yon tablèt → token (yon sèl fwa)
+    POST   /api/kiosk/devices                  Aktive yon tablèt → token long (yon sèl fwa)
+    POST   /api/kiosk/pairings                 Kòd kout 6 karaktè pou aktive yon tablèt (admin)
     DELETE /api/kiosk/devices/{id}             Dezaktive yon tablèt (admin)
     POST   /api/kiosk/employees/{id}/pin       Bay / rejenere kòd yon anplwaye
+
+Tablèt la, san koneksyon:
+    POST   /api/kiosk/pair                     Kòd kout la → token tablèt la
 
 Tablèt la (header X-Kiosk-Token, PA token itilizatè):
     GET    /api/kiosk/device                   Non tablèt la ak biznis la
@@ -21,6 +25,8 @@ SEKIRITE:
   - 5 move kòd pou yon anplwaye → kòd li bloke 15 minit.
     20 move esè sou yon tablèt → tablèt la bloke 10 minit.
   - Menm mesaj erè pou "nimewo sa a pa egziste" ak "move kòd".
+  - Kòd kout aktivasyon: 6 karaktè, 10 minit, yon sèl fwa. 10 move esè
+    pou yon adrès IP → bloke 10 minit.
   - Kòd, tablèt, mòd, blokaj: tout ale nan jounal odit la.
 """
 
@@ -50,6 +56,7 @@ from ..models import (
     Employee,
     EmploymentStatus,
     KioskDevice,
+    KioskPairing,
     Organization,
     TimeEntry,
     UserRole,
@@ -78,7 +85,18 @@ _WEAK_PINS = {d * PIN_LENGTH for d in "0123456789"} | {
     "123456", "654321", "012345", "123123", "121212", "112233",
 }
 
+# Kòd kout aktivasyon: san O/0, I/1/L pou pèsonn pa konfonn yo.
+PAIR_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
+PAIR_LENGTH = 6
+PAIR_TTL = timedelta(minutes=10)
+MAX_PAIR_FAILURES = 10
+PAIR_WINDOW = timedelta(minutes=10)
+# Move esè pa adrès IP. An memwa: chak pwosesis uvicorn gen pa l (ase pou
+# 10 minit ak yon kòd ki mache yon sèl fwa). Tès yo vide l.
+_PAIR_FAILURES: dict[str, list[datetime]] = {}
+
 NOT_ACTIVATED = "Tablèt sa a pa aktive."
+BAD_PAIR_CODE = "Kòd la pa bon oswa li ekspire."
 BAD_CREDENTIALS = "Nimewo oswa kòd la pa bon."
 
 
@@ -288,6 +306,138 @@ def revoke_device(device_id: int, user: CurrentUser, org_id: TenantId,
                f"Tablèt: {device.name}")
     db.refresh(device)
     return DeviceOut.model_validate(device)
+
+
+# ---------------------------------------------------------------------------
+# KÒD KOUT AKTIVASYON (6 karaktè, 10 minit, yon sèl fwa)
+# ---------------------------------------------------------------------------
+
+def _normalize_code(code: str) -> str:
+    """'k7p-4qx' → 'K7P4QX'."""
+    return re.sub(r"[^A-Z0-9]", "", (code or "").upper())
+
+
+def _new_pair_code() -> str:
+    return "".join(secrets.choice(PAIR_ALPHABET) for _ in range(PAIR_LENGTH))
+
+
+def _format_code(code: str) -> str:
+    return f"{code[:3]}-{code[3:]}"
+
+
+def _pair_blocked(ip: str, now: datetime) -> bool:
+    recent = [t for t in _PAIR_FAILURES.get(ip, []) if now - t < PAIR_WINDOW]
+    _PAIR_FAILURES[ip] = recent
+    return len(recent) >= MAX_PAIR_FAILURES
+
+
+class PairingCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=100)
+
+
+class PairingIssued(BaseModel):
+    code: str                       # "K7P-4QX" — parèt YON SÈL FWA
+    name: str
+    expires_at: datetime
+
+
+@router.post(
+    "/pairings",
+    response_model=PairingIssued,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_admin)],
+)
+def create_pairing(payload: PairingCreate, user: CurrentUser, org_id: TenantId,
+                   request: Request, response: Response, db: DbSession):
+    now = _now()
+    expires_at = now + PAIR_TTL
+    # Evite de kòd aktif idantik (chans lan piti anpil, men nou verifye).
+    for _ in range(5):
+        code = _new_pair_code()
+        code_hash = _token_hash(code)
+        clash = db.query(KioskPairing).filter(
+            KioskPairing.code_hash == code_hash,
+            KioskPairing.used_at.is_(None),
+        ).all()
+        if not any(_as_aware(p.expires_at) > now for p in clash):
+            break
+
+    pairing = KioskPairing(
+        organization_id=org_id,
+        name=payload.name.strip(),
+        code_hash=code_hash,
+        created_by_id=user.id,
+        expires_at=expires_at,
+    )
+    db.add(pairing)
+    db.commit()
+    db.refresh(pairing)
+    _audit(db, request, org_id, user.id, "pairing_create", "kiosk_pairing", pairing.id,
+           f"Tablèt: {pairing.name} (kòd la pa ekri isit)")
+    response.headers["Cache-Control"] = "no-store"
+    return PairingIssued(code=_format_code(code), name=pairing.name, expires_at=expires_at)
+
+
+class PairRequest(BaseModel):
+    code: str = Field(min_length=4, max_length=20)
+
+
+class PairResult(BaseModel):
+    token: str
+    device_name: str
+    organization_name: str
+
+
+@router.post("/pair", response_model=PairResult)
+def pair_device(payload: PairRequest, request: Request, response: Response, db: DbSession):
+    """Tablèt la voye kòd kout la; li resevwa pwòp token pa l. Pa bezwen koneksyon."""
+    now = _now()
+    ip = request.client.host if request.client else "?"
+    if _pair_blocked(ip, now):
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                            detail="Twòp esè. Tann kèk minit.")
+
+    code = _normalize_code(payload.code)
+    pairing = None
+    if len(code) == PAIR_LENGTH:
+        pairing = db.query(KioskPairing).filter(
+            KioskPairing.code_hash == _token_hash(code),
+            KioskPairing.used_at.is_(None),
+        ).first()
+
+    org = db.get(Organization, pairing.organization_id) if pairing is not None else None
+    if (pairing is None or _as_aware(pairing.expires_at) <= now
+            or org is None or not org.is_active):
+        _PAIR_FAILURES.setdefault(ip, []).append(now)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=BAD_PAIR_CODE)
+
+    # Yon sèl fwa, menm si de tablèt voye menm kòd la an menm tan.
+    claimed = db.query(KioskPairing).filter(
+        KioskPairing.id == pairing.id,
+        KioskPairing.used_at.is_(None),
+    ).update({KioskPairing.used_at: now}, synchronize_session=False)
+    if claimed != 1:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=BAD_PAIR_CODE)
+
+    token = "kk_" + secrets.token_urlsafe(32)
+    device = KioskDevice(
+        organization_id=pairing.organization_id,
+        name=pairing.name,
+        token_hash=_token_hash(token),
+        created_by_id=pairing.created_by_id,
+        last_seen_at=now,
+    )
+    db.add(device)
+    db.flush()
+    pairing.device_id = device.id
+    db.commit()
+    db.refresh(device)
+
+    _audit(db, request, org.id, pairing.created_by_id, "activate", "kiosk_device", device.id,
+           f"Tablèt: {device.name} (kòd kout #{pairing.id})")
+    response.headers["Cache-Control"] = "no-store"
+    return PairResult(token=token, device_name=device.name, organization_name=org.name)
 
 
 # ---------------------------------------------------------------------------

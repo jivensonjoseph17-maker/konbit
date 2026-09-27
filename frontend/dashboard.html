@@ -163,6 +163,9 @@
       const time = h('p', { class: 'clock-time', 'aria-live': 'off' }, '00:00:00');
       const since = h('p', { class: 'clock-since' });
       const message = h('p', { class: 'field-error', role: 'status' });
+      // Mòd "kiosk": pwentaj la fèt sou tablèt biznis la, pa sou telefòn nan.
+      const kioskNote = h('p', { class: 'clock-since', hidden: true },
+        t('Biznis ou a sèvi ak tablèt la pou pwentaj. Pwente sou tablèt la lè w rive ak lè w ale.'));
       const breakSelect = h('select', { class: 'select', 'aria-label': t('Tan repo'), hidden: true },
         h('option', { value: '0' }, t('Pa gen repo')),
         h('option', { value: '30' }, t('30 min repo')),
@@ -173,7 +176,7 @@
 
       const el = h('section', { class: 'clock', 'aria-label': t('Prezans') },
         h('div', { class: 'clock-ring', 'aria-hidden': 'true' }, h('span', { class: 'clock-dot' })),
-        h('div', {}, label, time, since, message),
+        h('div', {}, label, time, since, kioskNote, message),
         h('div', {}, breakSelect, button),
       );
 
@@ -210,7 +213,15 @@
 
       async function load() {
         try {
-          render(await api.get('/api/attendance/status'));
+          const [status, settings] = await Promise.all([
+            api.get('/api/attendance/status'),
+            api.get('/api/kiosk/settings').catch(() => ({ clock_mode: 'phone' })),
+          ]);
+          render(status);
+          const kioskOnly = settings.clock_mode === 'kiosk';
+          kioskNote.hidden = !kioskOnly;
+          button.hidden = kioskOnly;
+          if (kioskOnly) breakSelect.hidden = true;
         } catch (err) {
           label.textContent = t('Prezans');
           message.textContent = errorText(err);

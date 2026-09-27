@@ -966,3 +966,22 @@ class KioskDevice(Base, TimestampMixin):
 
     is_active = Column(Boolean, default=True, nullable=False, server_default=true())
     revoked_at = Column(DateTime(timezone=True))
+
+    
+
+class KioskPairing(Base, TimestampMixin):
+    """
+    Kòd kout pou aktive yon tablèt: 6 karaktè ("K7P-4QX"), 10 minit, yon sèl fwa.
+    Admin lan jenere l, li tape l sou tablèt la, tablèt la resevwa pwòp token pa l
+    (routers/kiosk.py: /pairings ak /pair). Nou estoke sha256 kòd la sèlman.
+    """
+    __tablename__ = "kiosk_pairings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), index=True, nullable=False)
+    name = Column(String(100), nullable=False)              # non tablèt la ap genyen
+    code_hash = Column(String(64), index=True, nullable=False)
+    created_by_id = Column(Integer, ForeignKey("users.id"))
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    used_at = Column(DateTime(timezone=True))
+    device_id = Column(Integer, ForeignKey("kiosk_devices.id"))
