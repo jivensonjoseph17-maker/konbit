@@ -14,8 +14,10 @@
     /* Paj tablèt la: gwo bouton, pa gen meni. Koulè yo soti nan app.css. */
     body.kiosk { min-height: 100vh; margin: 0; display: flex; flex-direction: column;
       background: var(--bg); color: var(--text); }
+    /* Ba anlè: menm ble nwit ak rès aplikasyon an (.topbar nan app.css). */
     .k-top { display: flex; justify-content: space-between; align-items: center; gap: 12px;
-      padding: 14px 22px; border-bottom: 1px solid var(--line); }
+      padding: 12px 22px; background: #0b1224; color: #f3f4f6; border-bottom: 0; }
+    .k-top .k-org { color: #fff; }
     .k-brand { display: flex; align-items: center; gap: 10px; }
     .k-org { font-weight: 800; font-size: 18px; }
     .k-main { flex: 1; display: grid; place-items: center; padding: 22px; }
@@ -41,10 +43,37 @@
     [data-theme="dark"] .k-result.ok { color: #4ade80; }
     [data-theme="dark"] .k-result.err { color: #f87171; }
     .k-right { display: flex; align-items: center; gap: 12px; }
-    .k-who { text-align: end; line-height: 1.25; }
-    .k-who .d { font-weight: 700; font-size: 14px; }
-    .k-who .a { color: var(--muted); font-size: 12.5px; }
-    @media (max-width: 640px) { .k-who { display: none; } }
+    .k-menu { position: relative; }
+    .k-menu-btn {
+      display: flex; align-items: center; gap: 10px; padding: 6px 12px 6px 6px; border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.18); background: transparent; color: #f3f4f6;
+      font: inherit; cursor: pointer; text-align: start;
+    }
+    .k-menu-btn:hover, .k-menu-btn[aria-expanded="true"] { background: rgba(255, 255, 255, 0.08); }
+    .k-menu-btn .av {
+      width: 34px; height: 34px; border-radius: 50%; flex: none; display: grid; place-items: center;
+      background: #1d4ed8; color: #fff; font-size: 13px; font-weight: 800;
+    }
+    .k-menu-btn .d { font-weight: 700; font-size: 14px; line-height: 1.2; }
+    .k-menu-btn .a { color: #9ca3af; font-size: 12.5px; line-height: 1.2; }
+    .k-menu-btn .chev { width: 16px; height: 16px; flex: none; opacity: 0.8; }
+    .k-menu-list {
+      position: absolute; inset-inline-end: 0; top: calc(100% + 8px); min-width: 250px; z-index: 50;
+      padding: 6px; display: grid; gap: 2px; border-radius: 12px;
+      background: var(--surface, #fff); color: var(--text, #111827);
+      border: 1px solid var(--line-strong, #d1d5db); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+    }
+    .k-menu-list[hidden] { display: none; }
+    .k-menu-item {
+      display: block; width: 100%; padding: 10px 12px; border: 0; border-radius: 8px; background: none;
+      color: inherit; font: inherit; font-size: 14.5px; text-align: start; text-decoration: none; cursor: pointer;
+    }
+    .k-menu-item:hover, .k-menu-item:focus-visible { background: var(--surface-2, rgba(148, 163, 184, 0.14)); }
+    .k-menu-item.danger { color: #dc2626; }
+    .k-menu-sep { height: 1px; background: var(--line); margin: 4px 6px; }
+    @media (max-width: 640px) { .k-menu-btn .txt { display: none; } .k-menu-btn { padding: 4px; } }
+    /* Bouton lang lan sou fon ble nwit la */
+    .k-top .lang-picker-btn { color: #f3f4f6; border-color: rgba(255, 255, 255, 0.18); }
     .k-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px;
       padding: 10px 22px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); }
     .k-foot button { font-size: 13px; }
@@ -54,11 +83,23 @@
   <header class="k-top">
     <span class="k-brand"><span class="brand-mark" aria-hidden="true">K</span><span class="k-org" id="org-name">KONMBIT</span></span>
     <div class="k-right">
-      <div class="k-who" id="who" hidden>
-        <div class="d" id="device-name"></div>
-        <div class="a" id="activated-by"></div>
+      <div class="k-menu" id="who" hidden>
+        <button class="k-menu-btn" type="button" id="menu-btn" aria-haspopup="true" aria-expanded="false"
+                aria-controls="menu-list" data-i18n-attr="aria-label" aria-label="Meni tablèt la">
+          <span class="av" id="menu-initials" aria-hidden="true">K</span>
+          <span class="txt">
+            <span class="d" id="device-name" style="display: block;"></span>
+            <span class="a" id="activated-by" style="display: block;"></span>
+          </span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="k-menu-list" id="menu-list" role="menu" hidden>
+          <a class="k-menu-item" role="menuitem" href="login.html?next=kiosk-settings.html" data-i18n>Konekte kòm administratè</a>
+          <div class="k-menu-sep" role="separator"></div>
+          <button class="k-menu-item danger" type="button" role="menuitem" id="deactivate" data-i18n>Dekonekte tablèt la</button>
+        </div>
       </div>
-      <button class="btn btn-ghost btn-sm" type="button" id="deactivate" hidden data-i18n>Dekonekte tablèt la</button>
       <span id="lang-slot"></span>
     </div>
   </header>
@@ -180,7 +221,7 @@
     function showActivate(message) {
       $('punch').hidden = true;
       $('who').hidden = true;
-      $('deactivate').hidden = true;
+      closeMenu();
       $('activate').hidden = false;
       $('org-name').textContent = 'KONMBIT';
       $('a-error').textContent = message || '';
@@ -193,11 +234,11 @@
         $('org-name').textContent = d.organization_name;
         $('device-name').textContent = d.device_name;
         $('activated-by').textContent = d.activated_by ? t('Aktive pa {name}', { name: d.activated_by }) : '';
+        $('menu-initials').textContent = initialsOf(d.activated_by || d.device_name);
         $('mode-note').hidden = d.clock_mode !== 'phone';
         $('activate').hidden = true;
         $('punch').hidden = false;
         $('who').hidden = false;
-        $('deactivate').hidden = false;
         return true;
       } catch (err) {
         if (err.status === 401) {
@@ -242,8 +283,37 @@
     $('a-submit').addEventListener('click', activate);
     $('a-token').addEventListener('keydown', (e) => { if (e.key === 'Enter') activate(); });
 
+    // -----------------------------------------------------------------
+    // MENI ANLÈ ADWAT: konekte kòm administratè, dekonekte tablèt la
+    // -----------------------------------------------------------------
+
+    function initialsOf(name) {
+      return (name || 'K').split(/\s+/).filter(Boolean).slice(0, 2)
+        .map((p) => p[0].toUpperCase()).join('');
+    }
+
+    function closeMenu() {
+      $('menu-list').hidden = true;
+      $('menu-btn').setAttribute('aria-expanded', 'false');
+    }
+
+    $('menu-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const open = $('menu-list').hidden;
+      $('menu-list').hidden = !open;
+      $('menu-btn').setAttribute('aria-expanded', String(open));
+      if (open) $('menu-list').querySelector('.k-menu-item').focus();
+    });
+    document.addEventListener('click', (e) => {
+      if (!$('who').contains(e.target)) closeMenu();
+    });
+    $('who').addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { closeMenu(); $('menu-btn').focus(); }
+    });
+
     // Dekonekte: tablèt la dezaktive sou sèvè a tou — token an pa mache ankò.
     $('deactivate').addEventListener('click', async () => {
+      closeMenu();
       if (!confirm(t('Dekonekte tablèt sa a? W ap bezwen yon nouvo kòd aktivasyon pou itilize l ankò.'))) return;
       $('deactivate').disabled = true;
       try {

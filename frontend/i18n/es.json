@@ -1146,5 +1146,7 @@
  "Rapò ak fichye": "Informes y archivos",
  "Fichye bank / MonCash": "Archivo banco / MonCash",
  "DGI (IRI ak retni)": "DGI (IRI y retenciones)",
- "Fichye CSV pou Excel. Fichye bank lan gen nimewo kont konplè yo: chak telechajman ekri nan jounal odit la. Yon kontab dwe verifye rapò yo anvan ou soumèt yo.": "Archivos CSV para Excel. El archivo bancario contiene los números de cuenta completos: cada descarga queda registrada en el registro de auditoría. Un contador debe verificar los informes antes de presentarlos."
+ "Fichye CSV pou Excel. Fichye bank lan gen nimewo kont konplè yo: chak telechajman ekri nan jounal odit la. Yon kontab dwe verifye rapò yo anvan ou soumèt yo.": "Archivos CSV para Excel. El archivo bancario contiene los números de cuenta completos: cada descarga queda registrada en el registro de auditoría. Un contador debe verificar los informes antes de presentarlos.",
+ "Konekte kòm administratè": "Iniciar sesión como administrador",
+ "Meni tablèt la": "Menú de la tableta"
 }

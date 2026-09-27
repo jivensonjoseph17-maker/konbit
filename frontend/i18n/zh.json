@@ -1146,5 +1146,7 @@
  "Rapò ak fichye": "报表与文件",
  "Fichye bank / MonCash": "银行 / MonCash 文件",
  "DGI (IRI ak retni)": "DGI（IRI 与扣缴）",
- "Fichye CSV pou Excel. Fichye bank lan gen nimewo kont konplè yo: chak telechajman ekri nan jounal odit la. Yon kontab dwe verifye rapò yo anvan ou soumèt yo.": "适用于 Excel 的 CSV 文件。银行文件包含完整账号：每次下载都会记录在审计日志中。提交前请由会计核对报表。"
+ "Fichye CSV pou Excel. Fichye bank lan gen nimewo kont konplè yo: chak telechajman ekri nan jounal odit la. Yon kontab dwe verifye rapò yo anvan ou soumèt yo.": "适用于 Excel 的 CSV 文件。银行文件包含完整账号：每次下载都会记录在审计日志中。提交前请由会计核对报表。",
+ "Konekte kòm administratè": "以管理员身份登录",
+ "Meni tablèt la": "平板菜单"
 }
