@@ -1053,5 +1053,13 @@
  "Kache fòm lan": "Hide the form",
  "{type}: HR poko mete balans lan": "{type}: HR has not set the balance yet",
  "Se ou ki administratè a? Konekte pou aktive tablèt sa a.": "Are you the administrator? Sign in to activate this tablet.",
- "Kòd aktivasyon an gen 6 karaktè, egz: K7P-4QX. Administratè a jwenn li nan «Pwentaj ak tablèt».": "The activation code has 6 characters, e.g. K7P-4QX. The administrator finds it under “Clock-in and tablet”."
+ "Kòd aktivasyon an gen 6 karaktè, egz: K7P-4QX. Administratè a jwenn li nan «Pwentaj ak tablèt».": "The activation code has 6 characters, e.g. K7P-4QX. The administrator finds it under “Clock-in and tablet”.",
+ "Seksyon yo": "Sections",
+ "Pwentaj peryòd la": "Time entries this period",
+ "Travay|kolòn": "Worked",
+ "Ap travay|estati": "In progress",
+ "Konplè|pwentaj": "Complete",
+ "San klòk out": "No clock-out",
+ "Wè pòs la": "View job",
+ "1 pòs louvri": "1 open position"
 }

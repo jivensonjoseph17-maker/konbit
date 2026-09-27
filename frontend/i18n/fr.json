@@ -1053,5 +1053,13 @@
  "Kache fòm lan": "Masquer le formulaire",
  "{type}: HR poko mete balans lan": "{type} : solde pas encore défini par les RH",
  "Se ou ki administratè a? Konekte pou aktive tablèt sa a.": "Vous êtes l'administrateur ? Connectez-vous pour activer cette tablette.",
- "Kòd aktivasyon an gen 6 karaktè, egz: K7P-4QX. Administratè a jwenn li nan «Pwentaj ak tablèt».": "Le code d'activation comporte 6 caractères, ex. : K7P-4QX. L'administrateur le trouve dans « Pointage et tablette »."
+ "Kòd aktivasyon an gen 6 karaktè, egz: K7P-4QX. Administratè a jwenn li nan «Pwentaj ak tablèt».": "Le code d'activation comporte 6 caractères, ex. : K7P-4QX. L'administrateur le trouve dans « Pointage et tablette ».",
+ "Seksyon yo": "Sections",
+ "Pwentaj peryòd la": "Pointages de la période",
+ "Travay|kolòn": "Travaillé",
+ "Ap travay|estati": "En cours",
+ "Konplè|pwentaj": "Complet",
+ "San klòk out": "Sans pointage de sortie",
+ "Wè pòs la": "Voir le poste",
+ "1 pòs louvri": "1 poste ouvert"
 }

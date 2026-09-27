@@ -1053,5 +1053,13 @@
  "Kache fòm lan": "隐藏表单",
  "{type}: HR poko mete balans lan": "{type}：人事部尚未设置余额",
  "Se ou ki administratè a? Konekte pou aktive tablèt sa a.": "您是管理员吗？登录以激活此平板。",
- "Kòd aktivasyon an gen 6 karaktè, egz: K7P-4QX. Administratè a jwenn li nan «Pwentaj ak tablèt».": "激活码为 6 个字符，例如：K7P-4QX。管理员可在“打卡与平板”中找到。"
+ "Kòd aktivasyon an gen 6 karaktè, egz: K7P-4QX. Administratè a jwenn li nan «Pwentaj ak tablèt».": "激活码为 6 个字符，例如：K7P-4QX。管理员可在“打卡与平板”中找到。",
+ "Seksyon yo": "栏目",
+ "Pwentaj peryòd la": "本期打卡记录",
+ "Travay|kolòn": "工时",
+ "Ap travay|estati": "进行中",
+ "Konplè|pwentaj": "完成",
+ "San klòk out": "未打下班卡",
+ "Wè pòs la": "查看职位",
+ "1 pòs louvri": "1 个职位空缺"
 }

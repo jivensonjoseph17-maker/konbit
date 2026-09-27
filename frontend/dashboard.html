@@ -50,6 +50,36 @@
     }
 
     .panel-head .btn { margin-inline-start: auto; }
+
+    /* --- Layout: seksyon yo agoch, ekip / fòmasyon adwat --- */
+    .dash-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
+    .dash-side { display: grid; gap: 18px; }
+    @media (max-width: 1100px) { .dash-grid { grid-template-columns: minmax(0, 1fr); } }
+
+    /* --- Ba bouton seksyon yo --- */
+    .dash-tabs {
+      display: flex; gap: 6px; padding: 6px; margin-bottom: 18px; overflow-x: auto;
+      background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+      scrollbar-width: none;
+    }
+    .dash-tabs::-webkit-scrollbar { display: none; }
+    .dash-tab {
+      display: inline-flex; align-items: center; gap: 8px; flex: none;
+      padding: 10px 16px; border: 0; border-radius: 10px; cursor: pointer;
+      background: transparent; color: var(--muted); font: inherit; font-size: 14.5px; font-weight: 600;
+      white-space: nowrap; transition: background .15s, color .15s;
+    }
+    .dash-tab svg { width: 18px; height: 18px; flex: none; }
+    .dash-tab:hover { color: var(--text); background: var(--surface-2, rgba(148, 163, 184, 0.12)); }
+    .dash-tab[aria-selected="true"] { background: var(--accent, #2563eb); color: #fff; }
+    .dash-tab:focus-visible { outline: 2px solid var(--accent, #2563eb); outline-offset: 2px; }
+    .tab-panel { display: grid; gap: 18px; }
+    #col-main { display: grid; gap: 18px; align-content: start; }
+
+    /* --- Tablo pwentaj yo --- */
+    .entries td, .entries th { white-space: nowrap; }
+    .entries .num { font-variant-numeric: tabular-nums; }
+    .period-line { color: var(--muted); font-size: 14px; margin: 0 0 12px; }
   </style>
 </head>
 <body>
@@ -67,9 +97,9 @@
 
         <div id="top"></div>
 
-        <div class="grid">
-          <div class="col" id="col-main"></div>
-          <div class="col" id="col-side"></div>
+        <div class="dash-grid">
+          <div id="col-main"></div>
+          <div class="dash-side" id="col-side"></div>
         </div>
       </main>
     </div>
@@ -805,6 +835,152 @@
     }
 
     // -----------------------------------------------------------------------
+    // TAN TRAVAY — pwentaj peryòd pewòl la (+ klòk in si biznis la pèmèt telefòn)
+    // -----------------------------------------------------------------------
+
+    // Tèks yo ekri dirèkteman anndan t(): konsa check_i18n.py jwenn kle yo.
+    const ENTRY_STATUS = {
+      open: () => [t('Ap travay|estati'), 'badge-pending'],
+      closed: () => [t('Konplè|pwentaj'), 'badge-approved'],
+      missing_out: () => [t('San klòk out'), 'badge-late'],
+      adjusted: () => [t('Korije pa HR'), 'badge-approved'],
+    };
+
+    function timeSection(kioskOnly, onHoursChange) {
+      const wrap = h('div', { class: 'tab-panel' });
+      const { el, body } = panel(t('Pwentaj peryòd la'));
+
+      async function loadEntries() {
+        try {
+          const hours = await api.get('/api/portal/hours');
+          const p = hours.period;
+          const params = new URLSearchParams({ start_date: p.start_date, end_date: p.end_date, limit: '200' });
+          const data = await api.get(`/api/attendance/me?${params}`);
+
+          const line = h('p', { class: 'period-line' },
+            `${hours.period_info.name ? `${hours.period_info.name} · ` : ''}`
+            + `${fmt.shortDate(p.start_date)} → ${fmt.shortDate(p.end_date)} · `
+            + `${t('{n} jou travay', { n: p.days_worked })} · ${fmt.duration(p.worked_minutes)}`
+            + (p.overtime_minutes ? ` · ${t('Siplemantè')}: ${fmt.duration(p.overtime_minutes)}` : ''));
+
+          if (!data.items.length) {
+            fill(body, line, h('p', { class: 'empty' }, t('Pa gen pwentaj nan peryòd sa a.')));
+            return;
+          }
+
+          const rows = data.items.map((e) => {
+            const [label, badge] = ENTRY_STATUS[e.status] ? ENTRY_STATUS[e.status]() : [e.status, ''];
+            return h('tr', {},
+              h('td', {}, fmt.shortDate(e.work_date)),
+              h('td', { class: 'num' }, fmt.time(e.clock_in_at)),
+              h('td', { class: 'num' }, e.clock_out_at ? fmt.time(e.clock_out_at) : '—'),
+              h('td', { class: 'num hide-sm' }, e.break_minutes ? fmt.duration(e.break_minutes) : '—'),
+              h('td', { class: 'num' }, e.worked_minutes != null ? fmt.duration(e.worked_minutes) : '—'),
+              h('td', {}, h('span', { class: `badge ${badge}` }, label)),
+            );
+          });
+
+          fill(body, line, h('div', { class: 'table-wrap' },
+            h('table', { class: 'table entries' },
+              h('thead', {}, h('tr', {},
+                h('th', { scope: 'col' }, t('Dat')),
+                h('th', { scope: 'col' }, t('Antre|pwentaj')),
+                h('th', { scope: 'col' }, t('Sòti|pwentaj')),
+                h('th', { scope: 'col', class: 'hide-sm' }, t('Tan repo')),
+                h('th', { scope: 'col' }, t('Travay|kolòn')),
+                h('th', { scope: 'col' }, t('Estati')),
+              )),
+              h('tbody', {}, ...rows),
+            )));
+        } catch (err) {
+          fill(body, h('p', { class: 'empty' }, errorText(err)));
+        }
+      }
+
+      if (kioskOnly) {
+        wrap.append(h('p', { class: 'dash-note', style: 'margin: 0;' },
+          t('Biznis ou a sèvi ak tablèt la pou pwentaj. Pwente sou tablèt la lè w rive ak lè w ale.')));
+      } else {
+        wrap.append(clockSection(() => { onHoursChange(); loadEntries(); }));
+      }
+      wrap.append(el);
+      loadEntries();
+      return wrap;
+    }
+
+    // -----------------------------------------------------------------------
+    // BA BOUTON YO — yon seksyon alafwa; chwa a rete nan #hash la
+    // -----------------------------------------------------------------------
+
+    const ICONS = {
+      calendar: ['M4 6h16v14H4z', 'M4 10h16', 'M8 3v4', 'M16 3v4'],
+      receipt: ['M6 3h12v18l-3-2-3 2-3-2-3 2z', 'M9 8h6', 'M9 12h6'],
+      clock: ['M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z', 'M12 7v5l3 2'],
+      sun: ['M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z', 'M12 2v2', 'M12 20v2', 'M4.9 4.9l1.4 1.4',
+        'M17.7 17.7l1.4 1.4', 'M2 12h2', 'M20 12h2', 'M4.9 19.1l1.4-1.4', 'M17.7 6.3l1.4-1.4'],
+      chart: ['M4 20V10', 'M10 20V4', 'M16 20v-7', 'M22 20H2'],
+    };
+
+    function icon(name) {
+      const NS = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(NS, 'svg');
+      for (const [k, v] of Object.entries({
+        viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.8',
+        'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true',
+      })) svg.setAttribute(k, v);
+      for (const d of ICONS[name]) {
+        const path = document.createElementNS(NS, 'path');
+        path.setAttribute('d', d);
+        svg.append(path);
+      }
+      return svg;
+    }
+
+    function tabsSection(tabs) {
+      const panelBox = h('div', { class: 'tab-panel', role: 'tabpanel', id: 'dash-panel' });
+      const rendered = new Map();          // chak seksyon chaje yon sèl fwa
+      const buttons = tabs.map((tab) => {
+        const btn = h('button', {
+          class: 'dash-tab', type: 'button', role: 'tab', id: `tab-${tab.id}`,
+          'aria-controls': 'dash-panel', 'aria-selected': 'false', tabindex: '-1',
+        }, icon(tab.icon), h('span', {}, tab.label));
+        btn.addEventListener('click', () => select(tab.id, true));
+        return btn;
+      });
+
+      function select(id, fromClick) {
+        const index = Math.max(0, tabs.findIndex((tb) => tb.id === id));
+        const tab = tabs[index];
+        buttons.forEach((b, i) => {
+          b.setAttribute('aria-selected', String(i === index));
+          b.tabIndex = i === index ? 0 : -1;
+        });
+        panelBox.setAttribute('aria-labelledby', `tab-${tab.id}`);
+        if (!rendered.has(tab.id)) rendered.set(tab.id, tab.render());
+        panelBox.replaceChildren(rendered.get(tab.id));
+        if (fromClick) {
+          history.replaceState(null, '', `#${tab.id}`);
+          buttons[index].scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        }
+      }
+
+      const bar = h('div', { class: 'dash-tabs', role: 'tablist', 'aria-label': t('Seksyon yo') }, ...buttons);
+      bar.addEventListener('keydown', (e) => {
+        if (!['ArrowRight', 'ArrowLeft'].includes(e.key)) return;
+        const current = buttons.findIndex((b) => b.getAttribute('aria-selected') === 'true');
+        const rtl = document.documentElement.dir === 'rtl';
+        const step = (e.key === 'ArrowRight') !== rtl ? 1 : -1;
+        const next = (current + step + buttons.length) % buttons.length;
+        select(tabs[next].id, true);
+        buttons[next].focus();
+      });
+      window.addEventListener('hashchange', () => select(location.hash.slice(1), false));
+
+      select(location.hash.slice(1), false);
+      return h('div', {}, bar, panelBox);
+    }
+
+    // -----------------------------------------------------------------------
     // DEMARAJ
     // -----------------------------------------------------------------------
 
@@ -824,21 +1000,18 @@
 
         const kpis = kpiSection();
         top.append(kpis.el);
-        if (kioskOnly) {
-          top.append(h('p', { class: 'dash-note' },
-            t('Biznis ou a sèvi ak tablèt la pou pwentaj. Pwente sou tablèt la lè w rive ak lè w ale.')));
-        }
 
-        colMain.append(
-          kioskOnly ? null : clockSection(kpis.refreshHours),
-          scheduleSection(),
-          payslipSection(),
-        );
-        colSide.append(leaveSection(kpis.refreshLeave), ytdSection(), chainSection(), trainingSection());
-        if (isManager(role)) {
-          colSide.prepend(approvalsSection());
-          colMain.append(todaySection());
-        }
+        colMain.append(tabsSection([
+          { id: 'ore', label: t('Orè'), icon: 'calendar', render: scheduleSection },
+          { id: 'fich-peye', label: t('Fich peye'), icon: 'receipt', render: payslipSection },
+          { id: 'tan-travay', label: t('Tan travay'), icon: 'clock',
+            render: () => timeSection(kioskOnly, kpis.refreshHours) },
+          { id: 'konje', label: t('Konje'), icon: 'sun', render: () => leaveSection(kpis.refreshLeave) },
+          { id: 'total-ane', label: t('Total ane a'), icon: 'chart', render: ytdSection },
+        ]));
+
+        if (isManager(role)) colSide.append(approvalsSection(), todaySection());
+        colSide.append(chainSection(), trainingSection());
         return;
       }
 

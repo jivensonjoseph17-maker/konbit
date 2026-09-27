@@ -1053,5 +1053,13 @@
  "Kache fòm lan": "إخفاء النموذج",
  "{type}: HR poko mete balans lan": "{type}: لم تحدد الموارد البشرية الرصيد بعد",
  "Se ou ki administratè a? Konekte pou aktive tablèt sa a.": "هل أنت المسؤول؟ سجّل الدخول لتفعيل هذا الجهاز اللوحي.",
- "Kòd aktivasyon an gen 6 karaktè, egz: K7P-4QX. Administratè a jwenn li nan «Pwentaj ak tablèt».": "يتكون رمز التفعيل من 6 أحرف، مثال: K7P-4QX. يجده المسؤول في «تسجيل الحضور والجهاز اللوحي»."
+ "Kòd aktivasyon an gen 6 karaktè, egz: K7P-4QX. Administratè a jwenn li nan «Pwentaj ak tablèt».": "يتكون رمز التفعيل من 6 أحرف، مثال: K7P-4QX. يجده المسؤول في «تسجيل الحضور والجهاز اللوحي».",
+ "Seksyon yo": "الأقسام",
+ "Pwentaj peryòd la": "سجلات الحضور لهذه الفترة",
+ "Travay|kolòn": "مدة العمل",
+ "Ap travay|estati": "جارٍ",
+ "Konplè|pwentaj": "مكتمل",
+ "San klòk out": "بدون تسجيل خروج",
+ "Wè pòs la": "عرض الوظيفة",
+ "1 pòs louvri": "وظيفة واحدة شاغرة"
 }
