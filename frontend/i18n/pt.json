@@ -988,5 +988,7 @@
  "{n} jounen san klòk out: HR ap korije yo.": "{n} dia(s) sem registro de saída: o RH vai corrigi-los.",
  "Total ane a": "Acumulado do ano",
  "Sou {count} fich peye.": "Em {count} contracheque(s).",
- "Poko gen fich peye pou {year}.": "Ainda não há contracheques pagos em {year}."
+ "Poko gen fich peye pou {year}.": "Ainda não há contracheques pagos em {year}.",
+ "Telechaje PDF": "Baixar PDF",
+ "Ap prepare PDF la…": "Preparando o PDF…"
 }

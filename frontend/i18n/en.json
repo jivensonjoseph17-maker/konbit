@@ -988,5 +988,7 @@
  "{n} jounen san klòk out: HR ap korije yo.": "{n} day(s) without a clock-out: HR will correct them.",
  "Total ane a": "Year to date",
  "Sou {count} fich peye.": "Across {count} payslip(s).",
- "Poko gen fich peye pou {year}.": "No paid payslips for {year} yet."
+ "Poko gen fich peye pou {year}.": "No paid payslips for {year} yet.",
+ "Telechaje PDF": "Download PDF",
+ "Ap prepare PDF la…": "Preparing the PDF…"
 }

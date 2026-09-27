@@ -988,5 +988,7 @@
  "{n} jounen san klòk out: HR ap korije yo.": "{n} journée(s) sans pointage de sortie : les RH vont les corriger.",
  "Total ane a": "Cumul de l'année",
  "Sou {count} fich peye.": "Sur {count} bulletin(s) de paie.",
- "Poko gen fich peye pou {year}.": "Aucun bulletin de paie payé pour {year}."
+ "Poko gen fich peye pou {year}.": "Aucun bulletin de paie payé pour {year}.",
+ "Telechaje PDF": "Télécharger le PDF",
+ "Ap prepare PDF la…": "Préparation du PDF…"
 }

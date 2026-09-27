@@ -988,5 +988,7 @@
  "{n} jounen san klòk out: HR ap korije yo.": "{n} 天没有打卡下班：人事部门会更正。",
  "Total ane a": "年度累计",
  "Sou {count} fich peye.": "共 {count} 张工资单。",
- "Poko gen fich peye pou {year}.": "{year} 年还没有已支付的工资单。"
+ "Poko gen fich peye pou {year}.": "{year} 年还没有已支付的工资单。",
+ "Telechaje PDF": "下载 PDF",
+ "Ap prepare PDF la…": "正在准备 PDF…"
 }

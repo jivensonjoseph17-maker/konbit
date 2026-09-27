@@ -988,5 +988,7 @@
  "{n} jounen san klòk out: HR ap korije yo.": "{n} jornada(s) sin registro de salida: RR. HH. las corregirá.",
  "Total ane a": "Acumulado del año",
  "Sou {count} fich peye.": "En {count} recibo(s) de nómina.",
- "Poko gen fich peye pou {year}.": "Aún no hay recibos pagados en {year}."
+ "Poko gen fich peye pou {year}.": "Aún no hay recibos pagados en {year}.",
+ "Telechaje PDF": "Descargar PDF",
+ "Ap prepare PDF la…": "Preparando el PDF…"
 }
