@@ -18,6 +18,13 @@ Endpoint yo:
 RÈG APWOBASYON: se manadjè dirèk la ki apwouve. HR ak ORG_ADMIN ka apwouve
 nenpòt demann — EKSEPTE pa yo. PÈSONN pa ka apwouve pwòp demann pa l,
 menm HR: se yon règ kontwòl entèn (separasyon travay).
+
+RÈG BALANS (konje ki rache: vakans, maladi, matènite, patènite):
+  - HR dwe mete balans lan pou ane a ANVAN moun nan ka mande konje sa a.
+  - Jou ki disponib = dwa + pote − itilize − demann ki TOUJOU AP TANN.
+    Konsa de demann an menm tan pa ka depase balans lan.
+  - Lè manadjè a apwouve, nou verifye balans lan ANKÒ (HR te ka chanje l).
+    Balans lan pa janm tonbe anba zewo.
 """
 
 import logging
@@ -27,7 +34,7 @@ from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session
 
 from ..deps import (
@@ -66,6 +73,12 @@ router = APIRouter()
 
 # Konje ki pa rache nan balans lan
 NON_DEDUCTIBLE = {LeaveType.UNPAID, LeaveType.BEREAVEMENT, LeaveType.OTHER}
+
+NO_BALANCE = "HR poko mete balans konje sa a pou ou. Pale ak HR."
+NOT_ENOUGH_TO_APPROVE = (
+    "Balans lan pa ase pou apwouve demann sa a. "
+    "Mete balans lan anvan, oswa refize demann lan."
+)
 
 
 # ---------------------------------------------------------------------------
@@ -144,14 +157,19 @@ def _get_request_or_404(db: Session, org_id: int, request_id: int) -> LeaveReque
     return req
 
 
-def _get_or_create_balance(db: Session, org_id: int, employee_id: int,
-                           leave_type: LeaveType, year: int) -> LeaveBalance:
-    bal = db.query(LeaveBalance).filter(
+def _find_balance(db: Session, org_id: int, employee_id: int,
+                  leave_type: LeaveType, year: int) -> Optional[LeaveBalance]:
+    return db.query(LeaveBalance).filter(
         LeaveBalance.organization_id == org_id,
         LeaveBalance.employee_id == employee_id,
         LeaveBalance.leave_type == leave_type,
         LeaveBalance.year == year,
     ).first()
+
+
+def _get_or_create_balance(db: Session, org_id: int, employee_id: int,
+                           leave_type: LeaveType, year: int) -> LeaveBalance:
+    bal = _find_balance(db, org_id, employee_id, leave_type, year)
     if bal is None:
         bal = LeaveBalance(
             organization_id=org_id,
@@ -165,6 +183,41 @@ def _get_or_create_balance(db: Session, org_id: int, employee_id: int,
         db.add(bal)
         db.flush()
     return bal
+
+
+def _balance_total(bal: Optional[LeaveBalance]) -> Decimal:
+    """Dwa + pote. 0 si HR poko mete balans lan."""
+    if bal is None:
+        return Decimal(0)
+    return Decimal(bal.entitled_days or 0) + Decimal(bal.carried_over_days or 0)
+
+
+def _balance_remaining(bal: Optional[LeaveBalance]) -> Decimal:
+    """Dwa + pote − itilize (demann ki deja apwouve yo)."""
+    if bal is None:
+        return Decimal(0)
+    return _balance_total(bal) - Decimal(bal.used_days or 0)
+
+
+def _pending_days(db: Session, org_id: int, employee_id: int, leave_type: LeaveType,
+                  year: int, exclude_id: Optional[int] = None) -> Decimal:
+    """Jou nan demann ki toujou ap tann pou menm kalite konje ak menm ane a."""
+    q = db.query(func.coalesce(func.sum(LeaveRequest.total_days), 0)).filter(
+        LeaveRequest.organization_id == org_id,
+        LeaveRequest.employee_id == employee_id,
+        LeaveRequest.leave_type == leave_type,
+        LeaveRequest.status == RequestStatus.PENDING,
+        LeaveRequest.start_date >= date(year, 1, 1),
+        LeaveRequest.start_date <= date(year, 12, 31),
+    )
+    if exclude_id is not None:
+        q = q.filter(LeaveRequest.id != exclude_id)
+    return Decimal(str(q.scalar() or 0))
+
+
+def _fmt_days(value: Decimal) -> str:
+    """Decimal('2.00') → '2', Decimal('1.50') → '1.5'."""
+    return format(value.normalize(), "f") if value != value.to_integral() else str(int(value))
 
 
 def _has_overlap(db: Session, org_id: int, employee_id: int,
@@ -233,29 +286,25 @@ def create_leave_request(
             detail="Peryòd la pa gen okenn jou travay (sèlman wikenn).",
         )
 
-    # Verifye balans lan si se yon konje ki rache
+    # Konje ki rache: HR dwe mete balans lan, epi li dwe ase — menm lè
+    # nou konte lòt demann ki toujou ap tann yo.
     if payload.leave_type not in NON_DEDUCTIBLE:
         year = payload.start_date.year
-        bal = db.query(LeaveBalance).filter(
-            LeaveBalance.organization_id == org_id,
-            LeaveBalance.employee_id == emp.id,
-            LeaveBalance.leave_type == payload.leave_type,
-            LeaveBalance.year == year,
-        ).first()
-        if bal is not None:
-            remaining = (
-                Decimal(bal.entitled_days or 0)
-                + Decimal(bal.carried_over_days or 0)
-                - Decimal(bal.used_days or 0)
+        bal = _find_balance(db, org_id, emp.id, payload.leave_type, year)
+        if _balance_total(bal) == 0:
+            raise HTTPException(status_code=400, detail=NO_BALANCE)
+
+        available = _balance_remaining(bal) - _pending_days(
+            db, org_id, emp.id, payload.leave_type, year,
+        )
+        if total_days > available:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Ou mande {_fmt_days(total_days)} jou men ou gen sèlman "
+                    f"{_fmt_days(max(Decimal(0), available))} jou ki rete."
+                ),
             )
-            if total_days > remaining:
-                raise HTTPException(
-                    status_code=400,
-                    detail=(
-                        f"Ou mande {total_days} jou men ou gen sèlman "
-                        f"{remaining} jou ki rete."
-                    ),
-                )
 
     req = LeaveRequest(
         organization_id=org_id,
@@ -432,6 +481,14 @@ def decide_request(
             detail="Ou pa gen dwa pou deside sou demann sa a.",
         )
 
+    # Apwobasyon: verifye balans lan ANKÒ — HR te ka chanje l depi demann
+    # lan fèt, oswa demann lan te fèt anvan règ la te egziste. Refize toujou posib.
+    bal = None
+    if payload.approve and req.leave_type not in NON_DEDUCTIBLE:
+        bal = _find_balance(db, org_id, req.employee_id, req.leave_type, req.start_date.year)
+        if _balance_total(bal) == 0 or Decimal(req.total_days) > _balance_remaining(bal):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=NOT_ENOUGH_TO_APPROVE)
+
     approver = db.query(Employee).filter(Employee.user_id == user.id).first()
 
     req.status = RequestStatus.APPROVED if payload.approve else RequestStatus.REJECTED
@@ -440,10 +497,7 @@ def decide_request(
     req.decision_note = payload.note
 
     # Rache jou yo nan balans lan sèlman lè demann lan apwouve
-    if payload.approve and req.leave_type not in NON_DEDUCTIBLE:
-        bal = _get_or_create_balance(
-            db, org_id, req.employee_id, req.leave_type, req.start_date.year
-        )
+    if bal is not None:
         bal.used_days = Decimal(bal.used_days or 0) + Decimal(req.total_days)
 
     db.commit()

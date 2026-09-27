@@ -1042,5 +1042,16 @@
  "Administratè a jenere yon kòd 6 karaktè nan paj «Pwentaj ak tablèt». Tape l isit la. Li ekspire apre 10 minit.": "O administrador gera um código de 6 caracteres na página «Ponto e tablet». Digite-o aqui. Ele expira após 10 minutos.",
  "Egz: K7P-4QX": "Ex.: K7P-4QX",
  "Kòd tablèt pou {name}": "Código do tablet para {name}",
- "Kòd sa a mache yon sèl fwa epi li ekspire a {time}. Louvri {url} sou tablèt la epi tape l.": "Este código funciona uma única vez e expira às {time}. Abra {url} no tablet e digite-o."
+ "Kòd sa a mache yon sèl fwa epi li ekspire a {time}. Louvri {url} sou tablèt la epi tape l.": "Este código funciona uma única vez e expira às {time}. Abra {url} no tablet e digite-o.",
+ "Peryòd pewòl": "Período da folha",
+ "Jou vakans ki rete": "Dias de férias restantes",
+ "W ap travay kounye a": "Trabalhando agora",
+ "HR poko mete balans ou.": "O RH ainda não definiu seu saldo.",
+ "sou {n} jou": "de {n} dias",
+ "Repo|orè": "Folga",
+ "Mande konje": "Solicitar folga",
+ "Kache fòm lan": "Ocultar o formulário",
+ "{type}: HR poko mete balans lan": "{type}: o RH ainda não definiu o saldo",
+ "Se ou ki administratè a? Konekte pou aktive tablèt sa a.": "Você é o administrador? Entre para ativar este tablet.",
+ "Kòd aktivasyon an gen 6 karaktè, egz: K7P-4QX. Administratè a jwenn li nan «Pwentaj ak tablèt».": "O código de ativação tem 6 caracteres, ex.: K7P-4QX. O administrador o encontra em «Ponto e tablet»."
 }

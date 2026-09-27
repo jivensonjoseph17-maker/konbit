@@ -1042,5 +1042,16 @@
  "Administratè a jenere yon kòd 6 karaktè nan paj «Pwentaj ak tablèt». Tape l isit la. Li ekspire apre 10 minit.": "يُنشئ المسؤول رمزًا من 6 أحرف في صفحة «تسجيل الحضور والجهاز اللوحي». اكتبه هنا. تنتهي صلاحيته بعد 10 دقائق.",
  "Egz: K7P-4QX": "مثال: K7P-4QX",
  "Kòd tablèt pou {name}": "رمز الجهاز اللوحي لـ {name}",
- "Kòd sa a mache yon sèl fwa epi li ekspire a {time}. Louvri {url} sou tablèt la epi tape l.": "يعمل هذا الرمز مرة واحدة فقط وتنتهي صلاحيته عند {time}. افتح {url} على الجهاز اللوحي واكتبه."
+ "Kòd sa a mache yon sèl fwa epi li ekspire a {time}. Louvri {url} sou tablèt la epi tape l.": "يعمل هذا الرمز مرة واحدة فقط وتنتهي صلاحيته عند {time}. افتح {url} على الجهاز اللوحي واكتبه.",
+ "Peryòd pewòl": "فترة الرواتب",
+ "Jou vakans ki rete": "أيام الإجازة المتبقية",
+ "W ap travay kounye a": "تعمل الآن",
+ "HR poko mete balans ou.": "لم تحدد الموارد البشرية رصيدك بعد.",
+ "sou {n} jou": "من {n} يوم",
+ "Repo|orè": "راحة",
+ "Mande konje": "طلب إجازة",
+ "Kache fòm lan": "إخفاء النموذج",
+ "{type}: HR poko mete balans lan": "{type}: لم تحدد الموارد البشرية الرصيد بعد",
+ "Se ou ki administratè a? Konekte pou aktive tablèt sa a.": "هل أنت المسؤول؟ سجّل الدخول لتفعيل هذا الجهاز اللوحي.",
+ "Kòd aktivasyon an gen 6 karaktè, egz: K7P-4QX. Administratè a jwenn li nan «Pwentaj ak tablèt».": "يتكون رمز التفعيل من 6 أحرف، مثال: K7P-4QX. يجده المسؤول في «تسجيل الحضور والجهاز اللوحي»."
 }

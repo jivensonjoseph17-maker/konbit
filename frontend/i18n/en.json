@@ -1042,5 +1042,16 @@
  "Administratè a jenere yon kòd 6 karaktè nan paj «Pwentaj ak tablèt». Tape l isit la. Li ekspire apre 10 minit.": "The administrator generates a 6-character code on the “Clock-in and tablet” page. Type it here. It expires after 10 minutes.",
  "Egz: K7P-4QX": "E.g. K7P-4QX",
  "Kòd tablèt pou {name}": "Tablet code for {name}",
- "Kòd sa a mache yon sèl fwa epi li ekspire a {time}. Louvri {url} sou tablèt la epi tape l.": "This code works only once and expires at {time}. Open {url} on the tablet and type it in."
+ "Kòd sa a mache yon sèl fwa epi li ekspire a {time}. Louvri {url} sou tablèt la epi tape l.": "This code works only once and expires at {time}. Open {url} on the tablet and type it in.",
+ "Peryòd pewòl": "Pay period",
+ "Jou vakans ki rete": "Vacation days left",
+ "W ap travay kounye a": "Working now",
+ "HR poko mete balans ou.": "HR has not set your balance yet.",
+ "sou {n} jou": "of {n} days",
+ "Repo|orè": "Off",
+ "Mande konje": "Request leave",
+ "Kache fòm lan": "Hide the form",
+ "{type}: HR poko mete balans lan": "{type}: HR has not set the balance yet",
+ "Se ou ki administratè a? Konekte pou aktive tablèt sa a.": "Are you the administrator? Sign in to activate this tablet.",
+ "Kòd aktivasyon an gen 6 karaktè, egz: K7P-4QX. Administratè a jwenn li nan «Pwentaj ak tablèt».": "The activation code has 6 characters, e.g. K7P-4QX. The administrator finds it under “Clock-in and tablet”."
 }

@@ -2,6 +2,7 @@
 <html lang="ht">
 <head>
   <meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="logo.svg">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title data-i18n>Tablo de bò — KONMBIT</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -9,6 +10,47 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="theme.js"></script>
   <link rel="stylesheet" href="app.css">
+  <style>
+    /* --- Kat chif anlè yo --- */
+    .dash-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
+    .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; min-width: 0; }
+    .kpi .k-label { font-size: 13px; font-weight: 600; color: var(--muted); }
+    .kpi .k-value { font-size: 26px; font-weight: 800; margin-top: 6px; line-height: 1.1;
+      font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .kpi .k-sub { font-size: 12.5px; color: var(--muted); margin-top: 4px; min-height: 1em;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .kpi .k-sub.warn { color: #b45309; }
+    @media (max-width: 1000px) { .dash-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+    .dash-note { margin: -4px 0 18px; padding: 12px 16px; border-radius: 12px; font-size: 14px;
+      background: var(--surface-2, rgba(37, 99, 235, 0.06)); color: var(--muted); }
+
+    /* --- Prezans: yon ba konpak, pa yon gwo kat --- */
+    .clockbar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .clockbar .dot { width: 12px; height: 12px; border-radius: 50%; flex: none; background: var(--line-strong, #cbd5e1); }
+    .clockbar.is-on .dot { background: #16a34a; box-shadow: 0 0 0 6px rgba(22, 163, 74, 0.15); }
+    .clockbar .c-main { flex: 1; min-width: 180px; }
+    .clockbar .c-label { font-size: 13px; font-weight: 600; color: var(--muted); }
+    .clockbar .c-timer { font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.2; }
+    .clockbar .c-since { font-size: 13px; color: var(--muted); }
+    .clockbar .c-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+    /* --- Orè: 7 jou --- */
+    .week-strip { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+    .day { border: 1px solid var(--line); border-radius: 12px; padding: 10px 6px; text-align: center; min-width: 0; }
+    .day .dn { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+    .day .dd { font-size: 19px; font-weight: 800; margin-top: 2px; }
+    .day .dt { font-size: 12px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+    .day.is-off { background: var(--surface-2, rgba(148, 163, 184, 0.1)); color: var(--muted); }
+    .day.is-today { border-color: var(--accent, #2563eb); box-shadow: inset 0 0 0 1px var(--accent, #2563eb); }
+    @media (max-width: 640px) {
+      .week-strip { gap: 4px; }
+      .day { padding: 8px 2px; }
+      .day .dt { font-size: 10.5px; }
+    }
+
+    .panel-head .btn { margin-inline-start: auto; }
+  </style>
 </head>
 <body>
   <div class="app">
@@ -22,6 +64,8 @@
           <h1 id="greeting"></h1>
           <p id="today-label"></p>
         </div>
+
+        <div id="top"></div>
 
         <div class="grid">
           <div class="col" id="col-main"></div>
@@ -38,6 +82,7 @@
     'use strict';
     const { api, fmt, h, ApiError, shell, t } = Konbit;
 
+    const top = document.getElementById('top');
     const colMain = document.getElementById('col-main');
     const colSide = document.getElementById('col-side');
 
@@ -45,13 +90,10 @@
     // ZOUTI
     // -----------------------------------------------------------------------
 
-    function panel(title, meta) {
+    function panel(title, action) {
       const body = h('div', {}, h('p', { class: 'loading' }, t('Ap chaje…')));
       const el = h('section', { class: 'panel' },
-        h('div', { class: 'panel-head' },
-          h('h2', {}, title),
-          meta ? h('span', { class: 'meta' }, meta) : null,
-        ),
+        h('div', { class: 'panel-head' }, h('h2', {}, title), action || null),
         body,
       );
       return { el, body };
@@ -71,19 +113,21 @@
         .map((p) => p[0].toUpperCase()).join('');
     }
 
-    /** Yon liy montan (fich peye, total ane a). */
+    const pad2 = (n) => String(n).padStart(2, '0');
+    const isoDate = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+    const hhmm = (v) => (v || '').slice(0, 5);
+
     function moneyRow(label, value, cur) {
       return h('div', { class: 'row' }, h('span', { class: 'k' }, label), h('span', {}, fmt.money(value, cur)));
     }
 
-    /** Yon liy dediksyon. Si montan an se 0, liy lan pa parèt. */
     function minusRow(label, value, cur) {
       return value
         ? h('div', { class: 'row minus' }, h('span', { class: 'k' }, label), h('span', { class: 'v' }, `−${fmt.money(value, cur)}`))
         : null;
     }
 
-    /** Tout liy dediksyon yo. Non ofisyèl yo (ONA, OFATMA, CFGDCT, FDU / CAS) pa tradui. */
+    /** Non ofisyèl yo (ONA, OFATMA, CFGDCT, FDU / CAS) pa tradui. */
     function deductionRows(s, cur) {
       return [
         minusRow(t('Enpo sou salè (IRI)'), s.tax_amount, cur),
@@ -96,11 +140,7 @@
       ];
     }
 
-    /**
-     * Bouton "Telechaje PDF" pou yon fich peye. `quiet`: ti bouton pou lis la.
-     * San `quiet`, se yon bouton prensipal — pou dènye fich la parèt klè.
-     * Si telechajman an echwe, mesaj la parèt bò kote bouton an.
-     */
+    /** Bouton "Telechaje PDF". `quiet`: ti bouton pou lis la. */
     function pdfButton(slipId, quiet) {
       const label = t('Telechaje PDF');
       const btn = h('button', {
@@ -154,31 +194,89 @@
     }
 
     // -----------------------------------------------------------------------
-    // KLÒK IN / KLÒK OUT
-    // `onChange`: rele apre chak klòk in / klòk out (pou rechaje Èdtan mwen).
+    // 4 KAT CHIF — èdtan jodi a, semèn nan, peryòd pewòl la, vakans ki rete
+    // -----------------------------------------------------------------------
+
+    function kpiSection() {
+      function kpi(label) {
+        const value = h('div', { class: 'k-value' }, '—');
+        const sub = h('div', { class: 'k-sub' });
+        return { el: h('div', { class: 'kpi' }, h('div', { class: 'k-label' }, label), value, sub), value, sub };
+      }
+      const day = kpi(t('Jodi a'));
+      const week = kpi(t('Semèn sa a'));
+      const period = kpi(t('Peryòd pewòl'));
+      const leave = kpi(t('Jou vakans ki rete'));
+      let timer = null;
+
+      async function refreshHours() {
+        clearTimeout(timer);
+        try {
+          const d = await api.get('/api/portal/hours');
+          day.value.textContent = fmt.duration(d.day.worked_minutes);
+          day.sub.textContent = d.clocked_in ? t('W ap travay kounye a') : '';
+          week.value.textContent = fmt.duration(d.week.worked_minutes);
+          week.sub.textContent = t('{n} jou travay', { n: d.week.days_worked });
+          period.value.textContent = fmt.duration(d.period.worked_minutes);
+          // Non peryòd la se HR ki ekri l ("Septanm 2026"): nou pa tradui l.
+          period.sub.className = d.needs_correction ? 'k-sub warn' : 'k-sub';
+          period.sub.textContent = d.needs_correction
+            ? t('{n} jounen san klòk out: HR ap korije yo.', { n: d.needs_correction })
+            : (d.period_info.name || t('Mwa sa a'));
+          if (d.clocked_in) timer = setTimeout(refreshHours, 60000);
+        } catch {
+          [day, week, period].forEach((k) => { k.value.textContent = '—'; });
+        }
+      }
+
+      async function refreshLeave() {
+        try {
+          const data = await api.get('/api/leaves/me/balances');
+          const v = data.balances.find((b) => b.leave_type === 'vacation');
+          const total = v ? Number(v.entitled_days) + Number(v.carried_over_days) : 0;
+          if (!v || total === 0) {
+            leave.value.textContent = '—';
+            leave.sub.textContent = t('HR poko mete balans ou.');
+          } else {
+            leave.value.textContent = String(Math.max(0, Number(v.remaining_days)));
+            leave.sub.textContent = t('sou {n} jou', { n: total });
+          }
+        } catch {
+          leave.value.textContent = '—';
+        }
+      }
+
+      refreshHours();
+      refreshLeave();
+      return {
+        el: h('div', { class: 'dash-kpis' }, day.el, week.el, period.el, leave.el),
+        refreshHours,
+        refreshLeave,
+      };
+    }
+
+    // -----------------------------------------------------------------------
+    // PREZANS — sèlman si biznis la kite anplwaye yo pwente sou telefòn
     // -----------------------------------------------------------------------
 
     function clockSection(onChange) {
-      const label = h('p', { class: 'clock-label' }, t('Ap chaje…'));
-      const time = h('p', { class: 'clock-time', 'aria-live': 'off' }, '00:00:00');
-      const since = h('p', { class: 'clock-since' });
+      const { el, body } = panel(t('Prezans'));
+      const bar = h('div', { class: 'clockbar' });
+      const dot = h('span', { class: 'dot', 'aria-hidden': 'true' });
+      const label = h('div', { class: 'c-label' }, t('Ap chaje…'));
+      const time = h('div', { class: 'c-timer', 'aria-live': 'off' }, '00:00:00');
+      const since = h('div', { class: 'c-since' });
       const message = h('p', { class: 'field-error', role: 'status' });
-      // Mòd "kiosk": pwentaj la fèt sou tablèt biznis la, pa sou telefòn nan.
-      const kioskNote = h('p', { class: 'clock-since', hidden: true },
-        t('Biznis ou a sèvi ak tablèt la pou pwentaj. Pwente sou tablèt la lè w rive ak lè w ale.'));
       const breakSelect = h('select', { class: 'select', 'aria-label': t('Tan repo'), hidden: true },
         h('option', { value: '0' }, t('Pa gen repo')),
         h('option', { value: '30' }, t('30 min repo')),
         h('option', { value: '60' }, t('1 èdtan repo')),
       );
-      breakSelect.style.marginBottom = '10px';
+      breakSelect.style.width = 'auto';
       const button = h('button', { class: 'btn btn-primary', type: 'button', disabled: true }, t('Klòk in'));
 
-      const el = h('section', { class: 'clock', 'aria-label': t('Prezans') },
-        h('div', { class: 'clock-ring', 'aria-hidden': 'true' }, h('span', { class: 'clock-dot' })),
-        h('div', {}, label, time, since, kioskNote, message),
-        h('div', {}, breakSelect, button),
-      );
+      bar.append(dot, h('div', { class: 'c-main' }, label, time, since), h('div', { class: 'c-actions' }, breakSelect, button));
+      fill(body, bar, message);
 
       let timer = null;
       let clockedIn = false;
@@ -190,7 +288,7 @@
       function render(status) {
         clearInterval(timer);
         clockedIn = status.clocked_in;
-        el.classList.toggle('is-on', clockedIn);
+        bar.classList.toggle('is-on', clockedIn);
         breakSelect.hidden = !clockedIn;
         button.disabled = false;
 
@@ -213,15 +311,7 @@
 
       async function load() {
         try {
-          const [status, settings] = await Promise.all([
-            api.get('/api/attendance/status'),
-            api.get('/api/kiosk/settings').catch(() => ({ clock_mode: 'phone' })),
-          ]);
-          render(status);
-          const kioskOnly = settings.clock_mode === 'kiosk';
-          kioskNote.hidden = !kioskOnly;
-          button.hidden = kioskOnly;
-          if (kioskOnly) breakSelect.hidden = true;
+          render(await api.get('/api/attendance/status'));
         } catch (err) {
           label.textContent = t('Prezans');
           message.textContent = errorText(err);
@@ -247,7 +337,6 @@
             });
           }
           await load();
-          // Apre load(): render() ta efase mesaj la.
           if (finished) {
             since.textContent = t('Jounen fini: {duration} travay.', { duration: fmt.duration(finished.worked_minutes) });
           }
@@ -264,55 +353,7 @@
     }
 
     // -----------------------------------------------------------------------
-    // ÈDTAN MWEN — jodi a, semèn sa a, peryòd pewòl la
-    // Rechaje apre chak klòk out, epi chak minit pandan moun nan ap travay.
-    // -----------------------------------------------------------------------
-
-    function hoursSection() {
-      const { el, body } = panel(t('Èdtan mwen'));
-      let timer = null;
-
-      const stat = (label, bucket, note) => h('div', { class: 'stat' },
-        h('div', { class: 'n' }, fmt.duration(bucket.worked_minutes)),
-        h('div', { class: 't' }, label),
-        note ? h('div', { class: 't' }, note) : null,
-      );
-
-      async function refresh() {
-        clearTimeout(timer);
-        try {
-          const d = await api.get('/api/portal/hours');
-          const p = d.period;
-          // Non peryòd la se HR ki ekri l ("Septanm 2026"): nou pa tradui l.
-          const periodLabel = d.period_info.name || t('Mwa sa a');
-
-          fill(body,
-            h('div', { class: 'stat-line' },
-              stat(t('Jodi a'), d.day, null),
-              stat(t('Semèn sa a'), d.week, t('{n} jou travay', { n: d.week.days_worked })),
-              stat(periodLabel, p, t('{n} jou travay', { n: p.days_worked })),
-            ),
-            h('p', { class: 'sub', style: 'margin-top: 10px;' },
-              `${fmt.shortDate(p.start_date)} → ${fmt.shortDate(p.end_date)}`
-              + (p.overtime_minutes ? ` · ${t('Siplemantè')}: ${fmt.duration(p.overtime_minutes)}` : '')),
-            d.needs_correction
-              ? h('p', { class: 'field-error', style: 'margin-top: 8px;' },
-                  t('{n} jounen san klòk out: HR ap korije yo.', { n: d.needs_correction }))
-              : null,
-          );
-
-          if (d.clocked_in) timer = setTimeout(refresh, 60000);
-        } catch (err) {
-          fill(body, h('p', { class: 'empty' }, errorText(err)));
-        }
-      }
-
-      refresh();
-      return { el, refresh };
-    }
-
-    // -----------------------------------------------------------------------
-    // ORÈ MWEN SEMÈN SA A — sèlman sa manadjè a pibliye
+    // ORÈ SEMÈN NAN — 7 jou, jou OFF yo make klè (sèlman orè pibliye)
     // -----------------------------------------------------------------------
 
     function scheduleSection() {
@@ -323,20 +364,34 @@
           fill(body, h('p', { class: 'empty' }, t('Pa gen orè pibliye pou semèn sa a.')));
           return;
         }
-        const hhmm = (v) => (v || '').slice(0, 5);
-        const today = fmt.todayIso();
+        const todayIso = fmt.todayIso();
+        const today = fmt.parseDate(todayIso);
+        const monday = new Date(today);
+        monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+        const byDate = new Map(week.shifts.map((s) => [s.work_date, s]));
+        const names = fmt.DAYS;          // dimanch an premye
+
+        const cells = Array.from({ length: 7 }, (_, i) => {
+          const d = new Date(monday);
+          d.setDate(monday.getDate() + i);
+          const key = isoDate(d);
+          const s = byDate.get(key);
+          const cls = ['day', key === todayIso ? 'is-today' : '', s ? '' : 'is-off'].filter(Boolean).join(' ');
+          const title = s && (s.template_name || s.note)
+            ? [s.template_name, s.note].filter(Boolean).join(' · ')
+            : null;
+          return h('div', { class: cls, title, 'aria-current': key === todayIso ? 'date' : null },
+            h('div', { class: 'dn' }, names[d.getDay()].slice(0, 3)),
+            h('div', { class: 'dd' }, String(d.getDate())),
+            h('div', { class: 'dt' }, s
+              ? `${hhmm(s.start_time)}–${hhmm(s.end_time)}${s.overnight ? ' (+1)' : ''}`
+              : t('Repo|orè')),
+          );
+        });
+
         fill(body,
-          h('ul', { class: 'list' }, ...week.shifts.map((s) => h('li', {
-            style: s.work_date === today ? 'font-weight: 700;' : null,
-          },
-            h('div', {},
-              h('div', {}, fmt.longDate(s.work_date)),
-              s.template_name || s.note
-                ? h('div', { class: 'sub' }, [s.template_name, s.note].filter(Boolean).join(' · '))
-                : null),
-            h('span', {}, `${hhmm(s.start_time)}–${hhmm(s.end_time)}${s.overnight ? ' (+1)' : ''}`),
-          ))),
-          h('p', { class: 'sub', style: 'margin-top: 10px;' },
+          h('div', { class: 'week-strip' }, ...cells),
+          h('p', { class: 'sub', style: 'margin-top: 12px;' },
             t('Total semèn nan: {duration}', { duration: fmt.duration(week.minutes_total) })),
         );
       }).catch((err) => fill(body, h('p', { class: 'empty' }, errorText(err))));
@@ -455,11 +510,12 @@
     }
 
     // -----------------------------------------------------------------------
-    // KONJE
+    // KONJE — balans yo, dènye demann yo, fòm lan kache dèyè yon bouton
     // -----------------------------------------------------------------------
 
-    function leaveSection() {
-      const { el, body } = panel(t('Konje'));
+    function leaveSection(onChange) {
+      const toggle = h('button', { class: 'btn btn-ghost btn-sm', type: 'button', 'aria-expanded': 'false' }, t('Mande konje'));
+      const { el, body } = panel(t('Konje'), toggle);
 
       const balancesBox = h('div', { class: 'balances' });
       const requestsBox = h('div', {});
@@ -481,7 +537,7 @@
         if (!end.value || end.value < start.value) end.value = start.value;
       });
 
-      const form = h('form', { class: 'leave-form', novalidate: true },
+      const form = h('form', { class: 'leave-form', novalidate: true, hidden: true },
         h('div', { class: 'field' }, h('label', { for: 'leave-type' }, t('Kalite konje')), typeSelect),
         h('div', { class: 'form-row' },
           h('div', { class: 'field' }, h('label', { for: 'leave-start' }, t('Premye jou')), start),
@@ -492,9 +548,16 @@
           reason,
           h('span', { class: 'hint' }, t('Sèlman manadjè w ak HR ap wè sa.')),
         ),
-        formMessage,
         h('div', {}, submit),
       );
+
+      function setOpen(open) {
+        form.hidden = !open;
+        toggle.setAttribute('aria-expanded', String(open));
+        toggle.textContent = open ? t('Kache fòm lan') : t('Mande konje');
+        if (open) typeSelect.focus();
+      }
+      toggle.addEventListener('click', () => setOpen(form.hidden));
 
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -515,11 +578,13 @@
             end_date: end.value,
             reason: reason.value.trim() || null,
           });
+          form.reset();
+          setOpen(false);
           formMessage.className = 'alert alert-ok';
           formMessage.textContent =
             t('Demann lan voye: {days} jou travay. Manadjè w ap resevwa l.', { days: created.total_days });
-          form.reset();
           await load();
+          if (onChange) onChange();
         } catch (err) {
           formMessage.className = 'field-error';
           formMessage.textContent = errorText(err);
@@ -537,17 +602,27 @@
         if (balances.status === 'fulfilled') {
           const items = balances.value.balances;
           fill(balancesBox, items.length
-            ? items.map((b) => h('div', { class: 'balance' },
-                h('div', { class: 'n' }, String(b.remaining_days), h('small', {}, ` / ${b.entitled_days + b.carried_over_days}`)),
-                h('div', { class: 't' }, t('{type}: jou ki rete', { type: fmt.leaveType(b.leave_type) })),
-              ))
+            ? items.map((b) => {
+                const total = Number(b.entitled_days) + Number(b.carried_over_days);
+                // Pa gen balans (0 jou): pa montre yon chif negatif ki pa vle di anyen.
+                if (total === 0) {
+                  return h('div', { class: 'balance' },
+                    h('div', { class: 'n' }, '—'),
+                    h('div', { class: 't' }, t('{type}: HR poko mete balans lan', { type: fmt.leaveType(b.leave_type) })),
+                  );
+                }
+                return h('div', { class: 'balance' },
+                  h('div', { class: 'n' }, String(Math.max(0, Number(b.remaining_days))), h('small', {}, ` / ${total}`)),
+                  h('div', { class: 't' }, t('{type}: jou ki rete', { type: fmt.leaveType(b.leave_type) })),
+                );
+              })
             : h('p', { class: 'empty' }, t('HR poko mete balans konje w pou ane sa a.')));
         } else {
           fill(balancesBox, h('p', { class: 'empty' }, errorText(balances.reason)));
         }
 
         if (requests.status === 'fulfilled' && requests.value.items.length) {
-          const recent = requests.value.items.slice(0, 4);
+          const recent = requests.value.items.slice(0, 3);
           fill(requestsBox,
             h('ul', { class: 'list' }, ...recent.map((r) =>
               h('li', {},
@@ -565,7 +640,7 @@
         }
       }
 
-      fill(body, balancesBox, requestsBox, form);
+      fill(body, balancesBox, formMessage, form, requestsBox);
       load();
       return el;
     }
@@ -582,7 +657,6 @@
           fill(body, h('p', { class: 'empty' }, t('Pa gen pesonn sou tèt ou nan òganigram lan.')));
           return;
         }
-        // API a bay manadjè dirèk la an premye; nou montre l de anwo an ba.
         const topDown = [...data.chain].reverse();
         const person = (p, isMe) => {
           const fullName = `${p.first_name} ${p.last_name}`;
@@ -744,12 +818,26 @@
       const isAdmin = shell.ADMIN.includes(role);
 
       if (hasEmployee) {
-        const hours = hoursSection();
-        colMain.append(clockSection(hours.refresh), hours.el, scheduleSection(), payslipSection(), leaveSection());
-        colSide.append(chainSection(), ytdSection(), trainingSection());
+        // Mòd "kiosk": pwentaj la fèt sou tablèt biznis la — pa gen bouton sou telefòn nan.
+        const settings = await api.get('/api/kiosk/settings').catch(() => ({ clock_mode: 'phone' }));
+        const kioskOnly = settings.clock_mode === 'kiosk';
+
+        const kpis = kpiSection();
+        top.append(kpis.el);
+        if (kioskOnly) {
+          top.append(h('p', { class: 'dash-note' },
+            t('Biznis ou a sèvi ak tablèt la pou pwentaj. Pwente sou tablèt la lè w rive ak lè w ale.')));
+        }
+
+        colMain.append(
+          kioskOnly ? null : clockSection(kpis.refreshHours),
+          scheduleSection(),
+          payslipSection(),
+        );
+        colSide.append(leaveSection(kpis.refreshLeave), ytdSection(), chainSection(), trainingSection());
         if (isManager(role)) {
           colSide.prepend(approvalsSection());
-          colSide.append(todaySection());
+          colMain.append(todaySection());
         }
         return;
       }

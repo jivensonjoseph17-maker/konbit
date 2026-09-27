@@ -1042,5 +1042,16 @@
  "Administratè a jenere yon kòd 6 karaktè nan paj «Pwentaj ak tablèt». Tape l isit la. Li ekspire apre 10 minit.": "Der Administrator erzeugt auf der Seite „Stempeln und Tablet“ einen 6-stelligen Code. Geben Sie ihn hier ein. Er läuft nach 10 Minuten ab.",
  "Egz: K7P-4QX": "Z. B. K7P-4QX",
  "Kòd tablèt pou {name}": "Tablet-Code für {name}",
- "Kòd sa a mache yon sèl fwa epi li ekspire a {time}. Louvri {url} sou tablèt la epi tape l.": "Dieser Code funktioniert nur einmal und läuft um {time} ab. Öffnen Sie {url} am Tablet und geben Sie ihn ein."
+ "Kòd sa a mache yon sèl fwa epi li ekspire a {time}. Louvri {url} sou tablèt la epi tape l.": "Dieser Code funktioniert nur einmal und läuft um {time} ab. Öffnen Sie {url} am Tablet und geben Sie ihn ein.",
+ "Peryòd pewòl": "Abrechnungszeitraum",
+ "Jou vakans ki rete": "Verbleibende Urlaubstage",
+ "W ap travay kounye a": "Gerade im Dienst",
+ "HR poko mete balans ou.": "Die Personalabteilung hat Ihr Guthaben noch nicht festgelegt.",
+ "sou {n} jou": "von {n} Tagen",
+ "Repo|orè": "Frei",
+ "Mande konje": "Urlaub beantragen",
+ "Kache fòm lan": "Formular ausblenden",
+ "{type}: HR poko mete balans lan": "{type}: Guthaben noch nicht festgelegt",
+ "Se ou ki administratè a? Konekte pou aktive tablèt sa a.": "Sind Sie der Administrator? Melden Sie sich an, um dieses Tablet zu aktivieren.",
+ "Kòd aktivasyon an gen 6 karaktè, egz: K7P-4QX. Administratè a jwenn li nan «Pwentaj ak tablèt».": "Der Aktivierungscode hat 6 Zeichen, z. B. K7P-4QX. Der Administrator findet ihn unter „Stempeln und Tablet“."
 }

@@ -47,7 +47,7 @@
 </head>
 <body class="kiosk">
   <header class="k-top">
-    <span class="k-brand"><img class="brand-logo" src="logo.svg" alt="" width="40" height="40"><span class="k-org" id="org-name">KONMBIT</span></span>
+    <span class="k-brand"><span class="brand-mark" aria-hidden="true">K</span><span class="k-org" id="org-name">KONMBIT</span></span>
     <span id="lang-slot"></span>
   </header>
 
@@ -64,6 +64,7 @@
       </div>
       <p class="field-error" id="a-error" role="alert"></p>
       <button class="btn btn-primary" type="button" id="a-submit" data-i18n>Aktive</button>
+      <a class="plain-link" href="login.html?next=kiosk-settings.html" style="text-align: center;" data-i18n>Se ou ki administratè a? Konekte pou aktive tablèt sa a.</a>
     </section>
 
     <!-- Pwentaj -->
@@ -210,6 +211,10 @@
       try {
         if (value.startsWith('kk_')) {
           store.set(value);
+        } else if (value.replace(/[^a-z0-9]/gi, '').length !== 6) {
+          // Egz: yon imel oswa yon kòd pwentaj 6 chif kole nan move kote.
+          $('a-error').textContent = t('Kòd aktivasyon an gen 6 karaktè, egz: K7P-4QX. Administratè a jwenn li nan «Pwentaj ak tablèt».');
+          return;
         } else {
           store.clear();
           const r = await call('POST', '/api/kiosk/pair', { code: value });

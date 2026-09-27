@@ -1042,5 +1042,16 @@
  "Administratè a jenere yon kòd 6 karaktè nan paj «Pwentaj ak tablèt». Tape l isit la. Li ekspire apre 10 minit.": "L'administrateur génère un code de 6 caractères depuis la page « Pointage et tablette ». Saisissez-le ici. Il expire après 10 minutes.",
  "Egz: K7P-4QX": "Ex. : K7P-4QX",
  "Kòd tablèt pou {name}": "Code de tablette pour {name}",
- "Kòd sa a mache yon sèl fwa epi li ekspire a {time}. Louvri {url} sou tablèt la epi tape l.": "Ce code ne fonctionne qu'une fois et expire à {time}. Ouvrez {url} sur la tablette et saisissez-le."
+ "Kòd sa a mache yon sèl fwa epi li ekspire a {time}. Louvri {url} sou tablèt la epi tape l.": "Ce code ne fonctionne qu'une fois et expire à {time}. Ouvrez {url} sur la tablette et saisissez-le.",
+ "Peryòd pewòl": "Période de paie",
+ "Jou vakans ki rete": "Jours de congé restants",
+ "W ap travay kounye a": "En service actuellement",
+ "HR poko mete balans ou.": "Les RH n'ont pas encore défini votre solde.",
+ "sou {n} jou": "sur {n} jours",
+ "Repo|orè": "Repos",
+ "Mande konje": "Demander un congé",
+ "Kache fòm lan": "Masquer le formulaire",
+ "{type}: HR poko mete balans lan": "{type} : solde pas encore défini par les RH",
+ "Se ou ki administratè a? Konekte pou aktive tablèt sa a.": "Vous êtes l'administrateur ? Connectez-vous pour activer cette tablette.",
+ "Kòd aktivasyon an gen 6 karaktè, egz: K7P-4QX. Administratè a jwenn li nan «Pwentaj ak tablèt».": "Le code d'activation comporte 6 caractères, ex. : K7P-4QX. L'administrateur le trouve dans « Pointage et tablette »."
 }

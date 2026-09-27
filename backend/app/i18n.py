@@ -593,6 +593,14 @@ _ROWS: list[tuple[str, str, str]] = [
     ("Twòp esè. Tann kèk minit.",
      "Trop de tentatives. Attendez quelques minutes.",
      "Too many attempts. Wait a few minutes."),
+
+    # --- Konje: règ balans (leaves.py) ---
+    ("HR poko mete balans konje sa a pou ou. Pale ak HR.",
+     "Les RH n'ont pas encore défini votre solde pour ce congé. Parlez aux RH.",
+     "HR has not set your balance for this leave yet. Talk to HR."),
+    ("Balans lan pa ase pou apwouve demann sa a. Mete balans lan anvan, oswa refize demann lan.",
+     "Le solde ne suffit pas pour approuver cette demande. Définissez d'abord le solde, ou refusez la demande.",
+     "The balance is not enough to approve this request. Set the balance first, or reject the request."),
 ]
 
 MESSAGES: dict[str, dict[str, str]] = {ht: {"fr": fr, "en": en} for ht, fr, en in _ROWS}

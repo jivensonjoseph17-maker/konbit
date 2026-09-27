@@ -14,7 +14,7 @@ def _next_monday() -> date:
 def _request_leave(client, headers, weeks_ahead=1):
     start = _next_monday() + timedelta(weeks=weeks_ahead)
     resp = client.post("/api/leaves", json={
-        "leave_type": "vacation",
+        "leave_type": "unpaid",          # pèmisyon, pa balans: san peye pa bezwen balans
         "start_date": start.isoformat(),
         "end_date": (start + timedelta(days=1)).isoformat(),
     }, headers=headers)

@@ -1042,5 +1042,16 @@
  "Administratè a jenere yon kòd 6 karaktè nan paj «Pwentaj ak tablèt». Tape l isit la. Li ekspire apre 10 minit.": "管理员在“打卡与平板”页面生成一个 6 位代码。请在此输入。代码 10 分钟后失效。",
  "Egz: K7P-4QX": "例如：K7P-4QX",
  "Kòd tablèt pou {name}": "{name} 的平板代码",
- "Kòd sa a mache yon sèl fwa epi li ekspire a {time}. Louvri {url} sou tablèt la epi tape l.": "此代码只能使用一次，将于 {time} 失效。在平板上打开 {url} 并输入。"
+ "Kòd sa a mache yon sèl fwa epi li ekspire a {time}. Louvri {url} sou tablèt la epi tape l.": "此代码只能使用一次，将于 {time} 失效。在平板上打开 {url} 并输入。",
+ "Peryòd pewòl": "工资周期",
+ "Jou vakans ki rete": "剩余年假天数",
+ "W ap travay kounye a": "正在工作",
+ "HR poko mete balans ou.": "人事部尚未设置您的余额。",
+ "sou {n} jou": "共 {n} 天",
+ "Repo|orè": "休息",
+ "Mande konje": "申请休假",
+ "Kache fòm lan": "隐藏表单",
+ "{type}: HR poko mete balans lan": "{type}：人事部尚未设置余额",
+ "Se ou ki administratè a? Konekte pou aktive tablèt sa a.": "您是管理员吗？登录以激活此平板。",
+ "Kòd aktivasyon an gen 6 karaktè, egz: K7P-4QX. Administratè a jwenn li nan «Pwentaj ak tablèt».": "激活码为 6 个字符，例如：K7P-4QX。管理员可在“打卡与平板”中找到。"
 }
