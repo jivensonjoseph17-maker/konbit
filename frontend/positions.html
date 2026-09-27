@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n>Pozisyon — KONMBIT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div class="app">
+    <aside id="sidebar"></aside>
+
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+
+      <main class="page">
+        <div class="page-head-row">
+          <div class="page-head">
+            <h1 data-i18n>Pozisyon</h1>
+            <p data-i18n>Tit travay biznis ou yo. Pozisyon Direksyon yo parèt anlè òganigram lan.</p>
+          </div>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn btn-ghost" type="button" id="defaults-btn" data-i18n>Ajoute lis pa defo yo</button>
+            <button class="btn btn-primary" type="button" id="new-btn" data-i18n>Nouvo pozisyon</button>
+          </div>
+        </div>
+
+        <p class="alert alert-ok" id="notice" role="status"></p>
+
+        <section class="panel form-panel" id="new-panel" hidden aria-labelledby="new-title">
+          <div class="panel-head"><h2 id="new-title" data-i18n>Nouvo pozisyon</h2></div>
+          <form id="new-form" novalidate>
+            <div class="form-grid">
+              <div class="field">
+                <label for="p-title" data-i18n>Tit pozisyon an</label>
+                <input class="input" id="p-title" maxlength="150" autocomplete="off">
+              </div>
+              <div class="field" style="align-self: end;">
+                <label class="check">
+                  <input type="checkbox" id="p-lead">
+                  <span data-i18n>Pati Direksyon</span>
+                </label>
+              </div>
+            </div>
+            <p class="field-error" id="new-error" role="alert" style="margin-top: 12px;"></p>
+            <div class="form-actions">
+              <button class="btn btn-primary" type="submit" id="new-submit" data-i18n>Kreye pozisyon an</button>
+              <button class="btn btn-ghost" type="button" id="new-cancel" data-i18n="Anile|aksyon">Anile</button>
+            </div>
+          </form>
+        </section>
+
+        <div class="toolbar">
+          <label class="check">
+            <input type="checkbox" id="show-inactive">
+            <span data-i18n>Montre pozisyon inaktif yo</span>
+          </label>
+        </div>
+
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col" data-i18n>Pozisyon</th>
+                <th scope="col" class="num-col" data-i18n>Moun</th>
+                <th scope="col" data-i18n>Estati</th>
+                <th scope="col"><span class="visually-hidden" data-i18n>Aksyon</span></th>
+              </tr>
+            </thead>
+            <tbody id="rows">
+              <tr><td colspan="4" class="loading" data-i18n>Ap chaje…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script src="shell.js"></script>
+  <script>
+  (async function () {
+    'use strict';
+    const { api, h, ApiError, shell, t } = Konbit;
+
+    const identity = await shell.mount('positions', shell.ADMIN);
+    if (!identity) return;
+
+    const $ = (id) => document.getElementById(id);
+    let showInactive = false;
+
+    const errorText = (err) => (err instanceof ApiError ? err.message : t('Yon bagay pa mache.'));
+
+    function notify(text) {
+      $('notice').textContent = text;
+    }
+
+    // ---------------------------------------------------------------------
+    // LIS
+    // ---------------------------------------------------------------------
+
+    async function load() {
+      const body = $('rows');
+      try {
+        const data = await api.get(`/api/positions${showInactive ? '?include_inactive=true' : ''}`);
+        if (!data.items.length) {
+          body.replaceChildren(h('tr', {}, h('td', { colspan: '4', class: 'empty' },
+            t('Pa gen pozisyon ankò. Klike "Ajoute lis pa defo yo" pou kòmanse.'))));
+          return;
+        }
+        body.replaceChildren(...data.items.map(row));
+      } catch (err) {
+        body.replaceChildren(h('tr', {}, h('td', { colspan: '4', class: 'empty' }, errorText(err))));
+      }
+    }
+
+    function row(p) {
+      const msg = h('span', { class: 'field-error', role: 'status' });
+
+      async function patch(changes) {
+        msg.textContent = '';
+        try {
+          await api.patch(`/api/positions/${p.id}`, changes);
+          await load();
+        } catch (err) {
+          msg.textContent = errorText(err);
+        }
+      }
+
+      const leadBtn = h('button', { class: 'btn btn-quiet btn-sm', type: 'button' },
+        p.is_leadership ? t('Retire nan Direksyon') : t('Mete nan Direksyon'));
+      leadBtn.addEventListener('click', () => patch({ is_leadership: !p.is_leadership }));
+
+      const renameBtn = h('button', { class: 'btn btn-quiet btn-sm', type: 'button' }, t('Chanje non'));
+      renameBtn.addEventListener('click', () => {
+        const title = prompt(t('Nouvo non pou pozisyon an:'), p.title);
+        if (title === null) return;
+        if (title.trim().length < 2) { msg.textContent = t('Mete tit pozisyon an (omwen 2 karaktè).'); return; }
+        patch({ title: title.trim() });
+      });
+
+      const activeBtn = h('button', { class: 'btn btn-quiet btn-sm', type: 'button' },
+        p.is_active ? t('Dezaktive') : t('Reaktive'));
+      activeBtn.addEventListener('click', () => patch({ is_active: !p.is_active }));
+
+      const deleteBtn = h('button', { class: 'btn btn-quiet btn-sm', type: 'button' }, t('Efase'));
+      deleteBtn.addEventListener('click', async () => {
+        if (!confirm(t('Efase pozisyon "{title}"?', { title: p.title }))) return;
+        msg.textContent = '';
+        try {
+          await api.del(`/api/positions/${p.id}`);
+          await load();
+        } catch (err) {
+          msg.textContent = errorText(err);
+        }
+      });
+
+      return h('tr', {},
+        h('td', {},
+          h('span', { class: 'who' }, p.title), ' ',
+          p.is_leadership ? h('span', { class: 'badge badge-info' }, t('Direksyon')) : null),
+        h('td', { class: 'num-col' }, String(p.employee_count)),
+        h('td', {}, h('span', { class: p.is_active ? 'badge badge-active' : 'badge badge-cancelled' },
+          p.is_active ? t('Aktif') : t('Inaktif'))),
+        h('td', { class: 'actions' }, leadBtn, renameBtn, activeBtn,
+          p.employee_count ? null : deleteBtn, h('div', {}, msg)),
+      );
+    }
+
+    $('show-inactive').addEventListener('change', (e) => {
+      showInactive = e.target.checked;
+      load();
+    });
+
+    // ---------------------------------------------------------------------
+    // LIS PA DEFO
+    // ---------------------------------------------------------------------
+
+    $('defaults-btn').addEventListener('click', async () => {
+      const btn = $('defaults-btn');
+      btn.disabled = true;
+      notify('');
+      try {
+        const r = await api.post('/api/positions/defaults');
+        notify(r.created
+          ? t('{n} pozisyon ajoute.', { n: r.created })
+          : t('Tout pozisyon pa defo yo deja la.'));
+        await load();
+      } catch (err) {
+        notify(errorText(err));
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    // ---------------------------------------------------------------------
+    // NOUVO POZISYON
+    // ---------------------------------------------------------------------
+
+    function closeForm() {
+      $('new-panel').hidden = true;
+      $('new-btn').hidden = false;
+      $('new-form').reset();
+      $('new-error').textContent = '';
+    }
+
+    $('new-btn').addEventListener('click', () => {
+      $('new-panel').hidden = false;
+      $('new-btn').hidden = true;
+      $('p-title').focus();
+    });
+    $('new-cancel').addEventListener('click', closeForm);
+
+    $('new-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = $('p-title').value.trim();
+      if (title.length < 2) {
+        $('new-error').textContent = t('Mete tit pozisyon an (omwen 2 karaktè).');
+        return;
+      }
+      $('new-submit').disabled = true;
+      try {
+        await api.post('/api/positions', { title, is_leadership: $('p-lead').checked });
+        closeForm();
+        await load();
+      } catch (err) {
+        $('new-error').textContent = errorText(err);
+      } finally {
+        $('new-submit').disabled = false;
+      }
+    });
+
+    await load();
+  })();
+  </script>
+</body>
+</html>

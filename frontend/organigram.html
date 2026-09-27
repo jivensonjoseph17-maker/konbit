@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n>Òganigram — KONMBIT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="app.css">
+  <style>
+    /* --- Direksyon: kat anlè paj la --- */
+    .leaders {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 14px;
+    }
+    .leader {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 12px;
+      align-items: center;
+      padding: 16px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      border-inline-start: 3px solid var(--gold);
+      background: var(--surface);
+    }
+    .leader .avatar { width: 44px; height: 44px; font-size: 14px; }
+    .leader .who { font-weight: 700; }
+    .leader .what { color: var(--muted); font-size: 13px; }
+
+    /* --- Pyebwa a: lis anndan lis, ak liy ki montre kiyès ki anba kiyès --- */
+    .tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+    .tree ul {
+      margin-inline-start: 18px;
+      padding-inline-start: 18px;
+      border-inline-start: 2px solid var(--line-strong);
+    }
+    .tree li { position: relative; padding: 6px 0; }
+    .tree ul > li::before {
+      content: '';
+      position: absolute;
+      inset-inline-start: -18px;
+      top: 26px;
+      width: 16px;
+      border-top: 2px solid var(--line-strong);
+    }
+    .node {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--line);
+      background: var(--surface);
+      max-width: 100%;
+    }
+    .node .who { font-weight: 600; font-size: 14px; }
+    .node .what { color: var(--muted); font-size: 12.5px; }
+    .node .badge { margin-inline-start: 4px; }
+    .node.is-leader { border-color: rgba(214, 166, 58, 0.55); }
+    .tree-count { color: var(--faint); font-size: 12px; margin-inline-start: 6px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside id="sidebar"></aside>
+
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+
+      <main class="page">
+        <div class="page-head">
+          <h1 data-i18n>Òganigram</h1>
+          <p id="count-label" data-i18n>Kiyès ki travay ak kiyès nan biznis la.</p>
+        </div>
+
+        <section class="panel" aria-labelledby="lead-title" style="margin-bottom: 20px;">
+          <div class="panel-head"><h2 id="lead-title" data-i18n>Direksyon</h2></div>
+          <div id="leaders"><p class="loading" data-i18n>Ap chaje…</p></div>
+        </section>
+
+        <section class="panel" aria-labelledby="tree-title">
+          <div class="panel-head"><h2 id="tree-title" data-i18n>Tout ekip la</h2></div>
+          <div id="tree" style="overflow-x: auto;"><p class="loading" data-i18n>Ap chaje…</p></div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script src="shell.js"></script>
+  <script>
+  (async function () {
+    'use strict';
+    const { api, h, ApiError, shell, t } = Konbit;
+
+    const identity = await shell.mount('organigram');
+    if (!identity) return;
+
+    // HR ak admin ka louvri dosye moun yo; lòt moun wè non ak tit sèlman.
+    const canOpen = shell.ADMIN.includes(identity.user.role);
+
+    function name(node) {
+      return canOpen
+        ? h('a', { class: 'who plain-link', href: `employee.html?id=${node.id}` }, node.full_name)
+        : h('span', { class: 'who' }, node.full_name);
+    }
+
+    function subtitle(node) {
+      return [node.position_title, node.department_name].filter(Boolean).join(' · ');
+    }
+
+    function leaderCard(node) {
+      return h('div', { class: 'leader' },
+        h('span', { class: 'avatar', 'aria-hidden': 'true' }, shell.initials(node.full_name)),
+        h('div', {},
+          name(node),
+          h('div', { class: 'what' }, subtitle(node) || node.employee_number),
+        ),
+      );
+    }
+
+    function countAll(node) {
+      return node.reports.reduce((n, r) => n + 1 + countAll(r), 0);
+    }
+
+    function treeItem(node) {
+      const total = countAll(node);
+      return h('li', {},
+        h('div', { class: node.is_leadership ? 'node is-leader' : 'node' },
+          h('span', { class: 'avatar', 'aria-hidden': 'true' }, shell.initials(node.full_name)),
+          h('div', {},
+            h('div', {},
+              name(node),
+              node.is_leadership ? h('span', { class: 'badge badge-pending' }, t('Direksyon')) : null,
+              total ? h('span', { class: 'tree-count' }, total === 1 ? t('1 moun') : t('{n} moun', { n: total })) : null,
+            ),
+            subtitle(node) ? h('div', { class: 'what' }, subtitle(node)) : null,
+          ),
+        ),
+        node.reports.length ? h('ul', {}, ...node.reports.map(treeItem)) : null,
+      );
+    }
+
+    try {
+      const data = await api.get('/api/hierarchy/tree');
+
+      document.getElementById('count-label').textContent =
+        data.total_employees === 1 ? t('1 moun') : t('{n} moun', { n: data.total_employees });
+
+      document.getElementById('leaders').replaceChildren(data.leadership.length
+        ? h('div', { class: 'leaders' }, ...data.leadership.map(leaderCard))
+        : h('p', { class: 'empty' },
+            t('Pa gen pesonn nan Direksyon an. HR ka make pozisyon Direksyon yo nan paj Pozisyon an.')));
+
+      document.getElementById('tree').replaceChildren(data.roots.length
+        ? h('ul', { class: 'tree', 'aria-label': t('Òganigram') }, ...data.roots.map(treeItem))
+        : h('p', { class: 'empty' }, t('Pa gen pesonn nan òganigram lan ankò.')));
+    } catch (err) {
+      const text = err instanceof ApiError ? err.message : t('Nou pa t ka chaje seksyon sa a.');
+      document.getElementById('leaders').replaceChildren(h('p', { class: 'empty' }, text));
+      document.getElementById('tree').replaceChildren();
+    }
+  })();
+  </script>
+</body>
+</html>

@@ -166,6 +166,27 @@
         h('label', { for: 'pay-date' }, t('Dat peman')), input, btn);
     }
 
+    /** Telechaje fich peye a an PDF (HR ka telechaje yon bouyon: li make "BOUYON"). */
+    function pdfButton(slip, employeeNumber) {
+      const label = t('Telechaje PDF');
+      const btn = h('button', { class: 'btn btn-quiet btn-sm', type: 'button' }, label);
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        btn.textContent = t('Ap prepare PDF la…');
+        try {
+          await api.download(`/api/payroll/payslips/${slip.id}/pdf`,
+            `fich-peye-${employeeNumber || slip.id}.pdf`);
+          btn.textContent = label;
+        } catch (err) {
+          btn.textContent = errorMessage(err);
+        } finally {
+          btn.disabled = false;
+          setTimeout(() => { btn.textContent = label; }, 4000);
+        }
+      });
+      return btn;
+    }
+
     function selectPeriod(id) {
       selectedId = id;
       lastWarnings = [];
@@ -605,7 +626,7 @@
             h('td', { class: 'num-col hide-sm cell-muted' }, `−${fmt.money(deductionsOf(s))}`),
             h('td', { class: 'num-col strong' }, fmt.money(s.net_amount)),
             h('td', { class: 'cell-muted' }, fmt.paymentMethod(s)),
-            h('td', { class: 'actions' }, toggle),
+            h('td', { class: 'actions' }, pdfButton(s, employee_number), toggle),
           ),
           detailRow,
         );

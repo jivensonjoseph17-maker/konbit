@@ -415,8 +415,9 @@ button { font: inherit; color: inherit; }
    tout sa ki anndan l (bouton Meni, avatar, chwa lang, Dekonekte…) —
    kidonk yo li byen sou fon fonse a san okenn règ apa. */
 .topbar {
-  --surface: #0b0f19;
-  --surface-2: #162036;
+  --bg: #0b0f19;             /* fon meni ki louvri anba ba a (chwa lang…) */
+  --surface: #162036;        /* fon lè sourit la pase sou yon bouton */
+  --surface-2: #1e2a44;
   --line: #1f2937;
   --line-strong: #374151;
   --text: #f3f4f6;
@@ -1069,7 +1070,7 @@ a.nav-item:hover { background: var(--nav-hover); color: var(--nav-active-text); 
 .plain-list .num { color: var(--faint); font-size: 12.5px; }
 
 /* =========================================================================
-   PEWÒL
+   PEYÒL
    ========================================================================= */
 
 .badge-info { background: var(--blue-soft); color: var(--info-text); }

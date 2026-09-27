@@ -9,6 +9,9 @@
  * Sèvi avè l konsa nan yon paj:
  *     <script src="api.js"></script>
  *     const me = await Konbit.api.get('/api/auth/identity');
+ *
+ * Telechaje yon fichye (egz: fich peye PDF) ak koneksyon moun nan:
+ *     await Konbit.api.download('/api/payroll/payslips/12/pdf', 'fich-peye-12.pdf');
  */
 (function () {
   'use strict';
@@ -226,7 +229,10 @@
     return svg;
   }
 
-  /** Stil bouton lang lan, mete yon sèl fwa. Sèvi ak koulè app.css yo si yo la. */
+  /**
+   * Stil bouton lang lan, mete yon sèl fwa. Li sèvi ak koulè app.css yo:
+   * nan ba anlè a (.topbar), --bg / --surface / --text se koulè ble nwit yo.
+   */
   function ensurePickerStyles() {
     if (document.getElementById('konbit-lang-picker-css')) return;
     const style = document.createElement('style');
@@ -244,7 +250,8 @@
         position: absolute; inset-inline-end: 0; top: calc(100% + 6px); min-width: 200px;
         max-height: min(70vh, 460px); overflow-y: auto; padding: 6px;
         display: grid; gap: 2px; z-index: 3000; border-radius: 12px;
-        border: 1px solid var(--line, #1f2937); background: var(--bg, #0b0f19);
+        border: 1px solid var(--line-strong, #374151); background: var(--bg, #0b0f19);
+        color: var(--text, #f3f4f6);
         box-shadow: var(--shadow, 0 20px 40px rgba(0, 0, 0, 0.5));
       }
       .lang-picker-menu[hidden] { display: none; }
@@ -495,11 +502,17 @@
 
   // -------------------------------------------------------------------------
   // REKÈT
+  //
+  // `raw: true` = repons lan se yon FICHYE (PDF…), pa JSON. request() retounen
+  // { blob, filename } olye done JSON. Erè yo toujou vini an JSON.
   // -------------------------------------------------------------------------
 
-  async function request(method, path, { body, auth = true, retried = false } = {}) {
-    // Accept-Language: backend la tradui mesaj erè yo nan lang sa a (oswa angle).
-    const headers = { Accept: 'application/json', 'Accept-Language': acceptLanguage() };
+  async function request(method, path, { body, auth = true, retried = false, raw = false } = {}) {
+    // Accept-Language: backend la tradui mesaj erè yo (ak PDF yo) nan lang sa a (oswa angle).
+    const headers = {
+      Accept: raw ? 'application/pdf, application/octet-stream, application/json' : 'application/json',
+      'Accept-Language': acceptLanguage(),
+    };
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     if (auth && tokens.access) headers.Authorization = `Bearer ${tokens.access}`;
 
@@ -517,11 +530,19 @@
 
     if (res.status === 401 && auth && !retried) {
       if (await refreshTokens()) {
-        return request(method, path, { body, auth, retried: true });
+        return request(method, path, { body, auth, retried: true, raw });
       }
       tokens.clear();
       goToLogin();
       throw new ApiError(401, defaultMessage(401));
+    }
+
+    if (raw && res.ok) {
+      const blob = await res.blob();
+      // Non fichye a soti nan backend la si CORS kite nou li header la.
+      const disposition = res.headers.get('Content-Disposition') || '';
+      const match = /filename="?([^";]+)"?/i.exec(disposition);
+      return { blob, filename: match ? match[1] : null };
     }
 
     const text = await res.text();
@@ -540,6 +561,25 @@
     patch: (path, body, opts) => request('PATCH', path, { ...opts, body: body ?? {} }),
     put: (path, body, opts) => request('PUT', path, { ...opts, body: body ?? {} }),
     del: (path, opts) => request('DELETE', path, opts),
+
+    /**
+     * Telechaje yon fichye (PDF…) ak koneksyon moun nan.
+     * Yon lyen <a href> senp pa ka mache: li pa voye token an.
+     * `fallbackName`: non fichye a si backend la pa ba nou pa l.
+     */
+    async download(path, fallbackName = 'dokiman.pdf') {
+      const { blob, filename } = await request('GET', path, { raw: true });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename || fallbackName;
+      link.rel = 'noopener';
+      document.body.append(link);
+      link.click();
+      link.remove();
+      // Kite navigatè a fini louvri l anvan nou libere memwa a.
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    },
   };
 
   // -------------------------------------------------------------------------

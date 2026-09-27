@@ -13,6 +13,7 @@ Endpoint yo:
     GET    /api/payroll/periods/{id}/payslips  Tout fich peye yon peryòd
     GET    /api/payroll/me/payslips          Pwòp fich peye mwen
     GET    /api/payroll/payslips/{id}        Yon fich peye
+    GET    /api/payroll/payslips/{id}/pdf    Fich peye a an PDF (ht / fr / en)
     PATCH  /api/payroll/payslips/{id}        Ajiste (bonis, dediksyon, chèk/depo)
     GET    /api/payroll/employee/{id}/payslips
     GET    /api/payroll/tax-rates            To sistèm lan itilize yo
@@ -28,6 +29,9 @@ DEDIKSYON AYITI (valè pa defo — chak biznis ka gen pwòp to pa l):
   - Yon moun ki gen pwentaj nan peryòd la dwe gen èdtan APWOUVE.
   - Si non, /run refize (409) jiskaske HR konfime ak `confirm_unapproved=true`.
     Lè sa a, moun sa yo touche salè de baz yo, men PA èdtan siplemantè.
+
+PA SOU PEWÒL (employees.on_payroll = False): pwopriyetè, fondatè ki pa
+touche salè. Yo rete nan òganigram lan, men /run pa janm kreye fich pou yo.
 
 DAT PEMAN AN (retni sou bonis 10% → 15% nan dat 1ye okt 2026):
   - Fich yo kalkile ak dat peman PREVWA peryòd la (period.pay_date).
@@ -45,7 +49,7 @@ import logging
 from datetime import date, datetime, timedelta, timezone
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session
@@ -67,10 +71,12 @@ from ..models import (
     LeaveRequest,
     LeaveType,
     Notification,
+    Organization,
     PaymentMethod,
     PayPeriod,
     PayrollStatus,
     Payslip,
+    Position,
     RequestStatus,
     TimeEntry,
     User,
@@ -83,6 +89,8 @@ from ..schemas import (
     PayslipAdjust,
     PayslipOut,
 )
+from ..i18n import SUPPORTED, resolve_language
+from ..payslip_pdf import PayslipDoc, render_payslip_pdf
 from ..timezone_utils import get_local_today, get_org_timezone
 from .timesheets import approved_employee_ids, has_time_entries
 
@@ -614,6 +622,7 @@ def run_payroll(
     unapproved_emps = [
         emp for emp in employees
         if emp.id not in already
+        and emp.on_payroll
         and emp.id not in approved
         and employment_window(emp, period)[0] is not None
         and has_time_entries(db, org_id, emp.id, period.start_date, period.end_date)
@@ -643,6 +652,10 @@ def run_payroll(
             continue
 
         full_name = f"{emp.first_name} {emp.last_name} ({emp.employee_number})"
+        if not emp.on_payroll:
+            warnings.append(f"{full_name}: pa sou pewòl — sote.")
+            skipped += 1
+            continue
         window_start, window_end = employment_window(emp, period)
         if window_start is None:
             if emp.hire_date and emp.hire_date > period.end_date:
@@ -1077,6 +1090,105 @@ def read_payslip(payslip_id: int, user: CurrentUser, org_id: TenantId, db: DbSes
             detail="Fich peye sa a poko apwouve.",
         )
     return slip
+
+
+def _pdf_filename(emp: Employee, period: PayPeriod) -> str:
+    """fich-peye-KB-0007-2026-09.pdf — sèlman lèt, chif ak tirè."""
+    number = "".join(c for c in (emp.employee_number or "") if c.isalnum() or c in "-_") or str(emp.id)
+    return f"fich-peye-{number}-{period.start_date:%Y-%m}.pdf"
+
+
+@router.get("/payslips/{payslip_id}/pdf")
+def payslip_pdf(
+    payslip_id: int,
+    user: CurrentUser,
+    org_id: TenantId,
+    request: Request,
+    db: DbSession,
+    lang: Annotated[Optional[str], Query(description="ht, fr oswa en. Pa defo: lang navigatè a.")] = None,
+):
+    """
+    Fich peye a an PDF, pou enprime oswa voye sou WhatsApp.
+
+    Menm règ ak GET /payslips/{id}: yon anplwaye jwenn pwòp fich li
+    (apwouve oswa peye), manadjè a jwenn pa ekip li, HR jwenn tout.
+    HR ka telechaje yon BOUYON pou verifye l — PDF la make "BOUYON" an gwo.
+    Chak telechajman ekri nan jounal odit la.
+    """
+    slip = _get_payslip_or_404(db, org_id, payslip_id)
+    emp = db.query(Employee).filter(Employee.id == slip.employee_id).first()
+    if emp is None:
+        raise HTTPException(status_code=404, detail="Anplwaye a pa jwenn.")
+
+    ensure_can_view_employee(user, emp, db)
+
+    if slip.status == PayrollStatus.DRAFT and emp.user_id == user.id:
+        raise HTTPException(status_code=403, detail="Fich peye sa a poko apwouve.")
+
+    period = _get_period_or_404(db, org_id, slip.pay_period_id)
+    org = db.query(Organization).filter(Organization.id == org_id).first()
+    position = (
+        db.query(Position).filter(Position.id == emp.position_id).first()
+        if emp.position_id else None
+    )
+
+    language = lang if lang in SUPPORTED else resolve_language(request.headers.get("accept-language"))
+    address = ", ".join(p for p in (org.address if org else None, org.city if org else None) if p)
+
+    doc = PayslipDoc(
+        lang=language,
+        slip_id=slip.id,
+        status=slip.status.value,
+        currency=slip.currency.value,
+        org_name=(org.legal_name or org.name) if org else "",
+        org_address=address or None,
+        org_tax_id=org.tax_id if org else None,
+        employee_name=f"{emp.first_name} {emp.last_name}",
+        employee_number=emp.employee_number,
+        position_title=position.title if position else None,
+        period_name=period.name,
+        start_date=period.start_date,
+        end_date=period.end_date,
+        pay_date=period.pay_date,
+        paid_on=_local_date_of(db, org_id, slip.paid_at) if slip.paid_at else None,
+        generated_on=get_local_today(db, org_id),
+        base_amount=slip.base_amount or 0,
+        overtime_amount=slip.overtime_amount or 0,
+        overtime_hours=float(slip.overtime_hours or 0),
+        bonus_amount=slip.bonus_amount or 0,
+        gross_amount=slip.gross_amount or 0,
+        tax_amount=slip.tax_amount or 0,
+        supplemental_tax_amount=slip.supplemental_tax_amount or 0,
+        ona_amount=slip.ona_amount or 0,
+        ofatma_amount=slip.ofatma_amount or 0,
+        cfgdct_amount=slip.cfgdct_amount or 0,
+        fdu_cas_amount=slip.fdu_cas_amount or 0,
+        other_deductions=slip.other_deductions or 0,
+        net_amount=slip.net_amount or 0,
+        supplemental_rate=supplemental_tax_rate(period.pay_date),
+        ona_rate=ONA_RATE,
+        ofatma_rate=OFATMA_RATE,
+        cfgdct_rate=CFGDCT_RATE,
+        fdu_cas_rate=FDU_CAS_RATE,
+        payment_method=slip.payment_method.value,
+        check_number=slip.check_number,
+        bank_name=slip.bank_name,
+        account_last4=slip.account_last4,
+        transaction_ref=slip.transaction_ref,
+    )
+    pdf = render_payslip_pdf(doc)
+
+    _audit(db, request, user, "download_pdf", "payslip", slip.id,
+           changes=f"Lang: {language}. Estati: {slip.status.value}.")
+
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{_pdf_filename(emp, period)}"',
+            "Cache-Control": "no-store",
+        },
+    )
 
 
 @router.patch(

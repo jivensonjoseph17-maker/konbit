@@ -43,9 +43,10 @@ MAX_DEPTH = 20      # gad kont bouk enfini
 class _Row:
     """Yon anplwaye ak non pozisyon l ak depatman l deja rezoud."""
     __slots__ = ("id", "first_name", "last_name", "employee_number",
-                 "photo_url", "manager_id", "position_title", "department_name")
+                 "photo_url", "manager_id", "position_title", "department_name",
+                 "is_leadership")
 
-    def __init__(self, emp, position_title, department_name):
+    def __init__(self, emp, position_title, department_name, is_leadership=False):
         self.id = emp.id
         self.first_name = emp.first_name
         self.last_name = emp.last_name
@@ -54,6 +55,7 @@ class _Row:
         self.manager_id = emp.manager_id
         self.position_title = position_title
         self.department_name = department_name
+        self.is_leadership = bool(is_leadership)
 
     def to_node(self) -> OrgNode:
         return OrgNode(
@@ -63,6 +65,7 @@ class _Row:
             position_title=self.position_title,
             department_name=self.department_name,
             photo_url=self.photo_url,
+            is_leadership=self.is_leadership,
             reports=[],
         )
 
@@ -70,7 +73,7 @@ class _Row:
 def _load_rows(db, org_id: int, include_inactive: bool) -> list[_Row]:
     """Yon sèl rekèt ak jwenti sou pozisyon ak depatman."""
     query = (
-        db.query(Employee, Position.title, Department.name)
+        db.query(Employee, Position.title, Department.name, Position.is_leadership)
         .outerjoin(Position, Employee.position_id == Position.id)
         .outerjoin(Department, Employee.department_id == Department.id)
         .filter(Employee.organization_id == org_id)
@@ -78,7 +81,7 @@ def _load_rows(db, org_id: int, include_inactive: bool) -> list[_Row]:
     if not include_inactive:
         query = query.filter(Employee.is_active.is_(True))
 
-    return [_Row(emp, title, dept) for emp, title, dept in query.all()]
+    return [_Row(emp, title, dept, lead) for emp, title, dept, lead in query.all()]
 
 
 def _build_tree(rows: list[_Row], root_id: Optional[int] = None) -> list[OrgNode]:
@@ -142,6 +145,7 @@ def _my_employee(db, user) -> Employee:
 class TreeResponse(BaseModel):
     total_employees: int
     roots: list[OrgNode]
+    leadership: list[OrgNode] = []     # moun Direksyon yo, san ekip yo (bann anlè a)
 
 
 @router.get("/tree", response_model=TreeResponse)
@@ -160,7 +164,11 @@ def org_tree(
     if root_employee_id is not None:
         _get_employee_or_404(db, org_id, root_employee_id)
     roots = _build_tree(rows, root_id=root_employee_id)
-    return TreeResponse(total_employees=len(rows), roots=roots)
+    leadership = sorted(
+        (r.to_node() for r in rows if r.is_leadership),
+        key=lambda n: n.full_name or "",
+    )
+    return TreeResponse(total_employees=len(rows), roots=roots, leadership=leadership)
 
 
 # ---------------------------------------------------------------------------

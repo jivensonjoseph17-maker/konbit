@@ -160,6 +160,7 @@
             h('span', {}, emp.employee_number),
             h('span', { class: `badge badge-${emp.status}` }, fmt.employmentStatus(emp.status)),
             h('span', {}, t('Depi {date}', { date: fmt.date(emp.hire_date) })),
+            emp.on_payroll === false ? h('span', { class: 'badge badge-pending' }, t('Pa sou pewòl')) : null,
           ),
           terminated && emp.termination_date
             ? h('p', { class: 'emp-meta' }, t('Soti {date}', { date: fmt.date(emp.termination_date) }))
@@ -286,6 +287,8 @@
 
         // Chwazi pa rechèch: pa gen limit 100 moun. Yon moun pa ka manadjè tèt li.
         manager: shell.employeePicker({ id: 'e-manager', excludeIds: [id] }),
+        position: select('e-position', [['', t('Pa gen pozisyon')]], ''),
+        onPayroll: h('input', { type: 'checkbox', id: 'e-payroll' }),
         type: select('e-type', [
           ['full_time', t('Tan plen')], ['part_time', t('Tan pasyèl')], ['contract', t('Kontra')],
           ['intern', t('Estaj')], ['seasonal', t('Sezon')],
@@ -305,6 +308,14 @@
       };
 
       if (emp.manager_id) f.manager.set(emp.manager_id, shell.cachedName(emp.manager_id) || `#${emp.manager_id}`);
+      f.onPayroll.checked = emp.on_payroll !== false;
+
+      // Pozisyon aktif yo + pozisyon aktyèl la menm si l dezaktive.
+      api.get('/api/positions?include_inactive=true').then((data) => {
+        const usable = data.items.filter((p) => p.is_active || p.id === emp.position_id);
+        f.position.append(...usable.map((p) => h('option', { value: String(p.id) }, p.title)));
+        f.position.value = emp.position_id ? String(emp.position_id) : '';
+      }).catch(() => {});
 
       const amountLabel = h('label', { for: 'e-amount' });
       const amountHint = h('span', { class: 'hint' });
@@ -357,9 +368,14 @@
             h('label', { for: 'e-manager' }, t('Manadjè')),
             f.manager.el,
             h('span', { class: 'hint' }, t('Se manadjè a ki apwouve konje moun nan.'))),
+          field(t('Pozisyon'), f.position),
           field(t('Kalite kontra'), f.type),
 
           h('p', { class: 'form-section-title' }, t('Salè ak peman')),
+          h('div', { class: 'span-2' },
+            h('label', { class: 'check' }, f.onPayroll, h('span', {}, t('Sou pewòl'))),
+            h('span', { class: 'hint', style: 'display: block;' },
+              t('Retire koch la pou yon pwopriyetè oswa yon fondatè ki pa touche salè: li ap parèt nan òganigram lan, men pewòl la p ap kalkile fich pou li.'))),
           field(t('Kijan li peye'), f.paytype),
           amountField,
           h('div', { class: 'field span-2' },
@@ -404,6 +420,8 @@
           emergency_contact_name: orNull(f.ecName.value),
           emergency_contact_phone: orNull(f.ecPhone.value),
           manager_id: f.manager.value,
+          position_id: f.position.value ? Number(f.position.value) : null,
+          on_payroll: f.onPayroll.checked,
           employment_type: f.type.value,
           base_salary: isHourly ? null : cents,
           hourly_rate: isHourly ? cents : null,

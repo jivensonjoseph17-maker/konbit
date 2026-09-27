@@ -88,6 +88,12 @@
                 <div id="f-manager-slot"></div>
               </div>
               <div class="field">
+                <label for="f-position" data-i18n>Pozisyon</label>
+                <select class="select" id="f-position">
+                  <option value="" data-i18n>Pa gen pozisyon</option>
+                </select>
+              </div>
+              <div class="field">
                 <label for="f-role" data-i18n>Aksè nan KONMBIT</label>
                 <select class="select" id="f-role">
                   <option value="employee" data-i18n>Anplwaye</option>
@@ -133,6 +139,13 @@
                 <input class="input" id="f-mobile" type="tel" placeholder="+509 3000 0000" autocomplete="off">
               </div>
 
+              <div class="span-2">
+                <label class="check">
+                  <input type="checkbox" id="f-payroll" checked>
+                  <span data-i18n>Sou pewòl</span>
+                </label>
+                <span class="hint" style="display: block;" data-i18n>Retire koch la pou yon pwopriyetè oswa yon fondatè ki pa touche salè: li ap parèt nan òganigram lan, men pewòl la p ap kalkile fich pou li.</span>
+              </div>
               <div class="span-2" style="margin-top: 6px;">
                 <label class="check">
                   <input type="checkbox" id="f-login" checked>
@@ -204,6 +217,11 @@
     // Chwazi manadjè a pa rechèch: yon lis dewoulan pa ka gen plis pase 100 moun.
     const managerPicker = shell.employeePicker({ id: 'f-manager' });
     $('f-manager-slot').append(managerPicker.el);
+
+    // Pozisyon aktif yo (Direksyon yo an premye). Si lis la pa chaje, chan an rete opsyonèl.
+    api.get('/api/positions').then((data) => {
+      $('f-position').append(...data.items.map((p) => h('option', { value: String(p.id) }, p.title)));
+    }).catch(() => {});
 
     // ---------------------------------------------------------------------
     // MODPAS TANPORÈ
@@ -418,6 +436,8 @@
         hire_date: hire,
         employment_type: $('f-type').value,
         manager_id: managerPicker.value,
+        position_id: $('f-position').value ? Number($('f-position').value) : null,
+        on_payroll: $('f-payroll').checked,
         base_salary: !hourly ? cents : null,
         hourly_rate: hourly ? cents : null,
         currency: 'HTG',

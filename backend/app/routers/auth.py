@@ -37,6 +37,7 @@ from ..schemas import (
     TokenPair,
     UserOut,
 )
+from .positions import seed_default_positions
 from ..security import (
     REFRESH_TOKEN,
     create_access_token,
@@ -178,6 +179,9 @@ def signup(payload: SignupRequest, request: Request, db: DbSession):
         org = Organization(**org_data)
         db.add(org)
         db.flush()          # pou nou jwenn org.id san nou pa komite
+
+        # Lis pozisyon pare (Pwopriyetè, Fondatè, Kesye...). Biznis la ka chanje yo.
+        seed_default_positions(db, org.id)
 
         admin = User(
             organization_id=org.id,

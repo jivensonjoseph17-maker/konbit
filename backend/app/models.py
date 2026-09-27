@@ -27,7 +27,9 @@ from sqlalchemy import (
     Text,
     Time,
     UniqueConstraint,
+    false,
     func,
+    true,
 )
 from sqlalchemy.orm import relationship
 
@@ -247,6 +249,9 @@ class Position(Base, TimestampMixin):
     min_salary = Column(Integer)                # an santim
     max_salary = Column(Integer)
     currency = Column(SQLEnum(Currency), default=Currency.HTG)
+    # Direksyon (Pwopriyetè, Fondatè, Direktè...): parèt anlè òganigram lan.
+    # Sa pa bay okenn dwa nan sistèm lan — dwa yo soti nan wòl kont lan.
+    is_leadership = Column(Boolean, default=False, nullable=False, server_default=false())
     is_active = Column(Boolean, default=True, nullable=False)
 
 
@@ -295,6 +300,10 @@ class Employee(Base, TimestampMixin):
     bank_account_number = Column(String(80))    # chiffre sa nan pwodiksyon
     mobile_money_number = Column(String(50))    # MonCash / NatCash
 
+    # False = moun nan nan òganigram lan, men pewòl la pa kalkile fich pou li
+    # (pwopriyetè, fondatè ki pa touche salè oswa ki touche dividann).
+    on_payroll = Column(Boolean, default=True, nullable=False, server_default=true())
+
     is_active = Column(Boolean, default=True, nullable=False)
 
     organization = relationship("Organization", back_populates="employees")
@@ -304,6 +313,11 @@ class Employee(Base, TimestampMixin):
     @property
     def full_name(self) -> str:
         return f"{self.first_name} {self.last_name}"
+
+    @property
+    def has_bank_account(self) -> bool:
+        """Pou frontend lan: gen yon nimewo kont — san nou pa janm voye nimewo a."""
+        return bool((self.bank_account_number or "").strip())
 
     def chain_of_command(self, max_depth: int = 10) -> list:
         """Tout moun ki sou tèt anplwaye a, soti nan manadjè dirèk la jouk anwo."""

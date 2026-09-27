@@ -357,7 +357,8 @@ def create_employee(
         )
 
     db.refresh(emp)
-    _audit(db, request, user, "create", emp.id)
+    _audit(db, request, user, "create", emp.id,
+           changes=None if emp.on_payroll else "on_payroll: False")
 
     return EmployeeCreated(
         employee=EmployeeOut.model_validate(emp),
@@ -439,11 +440,16 @@ def update_employee(
                 detail="Chanjman sa a ap kreye yon bouk nan òganigram lan.",
             )
 
+    # on_payroll pa ka NULL: yon `null` nan kò rekèt la pa chanje anyen.
+    if "on_payroll" in data and data["on_payroll"] is None:
+        data.pop("on_payroll")
+
     changed = []
     for field, value in data.items():
         old = getattr(emp, field, None)
         if old != value:
-            changed.append(field)
+            # Pewòl: ekri ansyen ak nouvo valè a — desizyon sa a gen konsekans sou lajan.
+            changed.append(f"{field}: {old} -> {value}" if field == "on_payroll" else field)
             setattr(emp, field, value)
 
     if not changed:

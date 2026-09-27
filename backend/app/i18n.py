@@ -398,6 +398,17 @@ _ROWS: list[tuple[str, str, str]] = [
      "L'employé n'a pas de numéro de compte bancaire pour le virement direct.",
      "The employee has no bank account number for direct deposit."),
 
+    # --- Pozisyon (positions.py) ---
+    ("Yon pozisyon ak non sa a deja egziste.",
+     "Un poste portant ce nom existe déjà.",
+     "A position with this name already exists."),
+    ("Pozisyon sa a gen moun ki okipe l. Dezaktive l pito.",
+     "Ce poste est occupé par au moins une personne. Désactivez-le plutôt.",
+     "Someone holds this position. Deactivate it instead."),
+    ("Pozisyon an efase.",
+     "Le poste a été supprimé.",
+     "The position was deleted."),
+
     # --- Tan travay (timesheets.py) ---
     ("Pewòl peryòd sa a deja apwouve oswa peye. Èdtan yo pa ka chanje ankò.",
      "La paie de cette période est déjà approuvée ou payée. Les heures ne peuvent plus changer.",

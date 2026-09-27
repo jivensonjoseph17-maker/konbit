@@ -258,6 +258,7 @@ class PositionCreate(BaseModel):
     min_salary: Optional[int] = Field(default=None, ge=0)
     max_salary: Optional[int] = Field(default=None, ge=0)
     currency: Currency = Currency.HTG
+    is_leadership: bool = False
 
     @model_validator(mode="after")
     def check_salary_range(self):
@@ -276,7 +277,17 @@ class PositionOut(BaseModel):
     min_salary: Optional[int] = None
     max_salary: Optional[int] = None
     currency: Currency
+    is_leadership: bool = False
     is_active: bool
+    employee_count: int = 0          # moun aktif ki okipe l
+
+
+class PositionUpdate(BaseModel):
+    title: Optional[str] = Field(default=None, min_length=2, max_length=150)
+    level: Optional[str] = None
+    description: Optional[str] = None
+    is_leadership: Optional[bool] = None
+    is_active: Optional[bool] = None
 
 
 # ---------------------------------------------------------------------------
@@ -324,6 +335,8 @@ class EmployeeCreate(BaseModel):
     bank_name: Optional[str] = None
     bank_account_number: Optional[str] = None
     mobile_money_number: Optional[str] = None
+    # False = pa sou pewòl (pwopriyetè, fondatè ki pa touche salè...).
+    on_payroll: bool = True
 
     # Kont koneksyon
     create_login: bool = True
@@ -370,6 +383,7 @@ class EmployeeUpdate(BaseModel):
     bank_name: Optional[str] = None
     bank_account_number: Optional[str] = None
     mobile_money_number: Optional[str] = None
+    on_payroll: Optional[bool] = None
 
 
 class EmployeeOut(EmployeeBrief):
@@ -392,6 +406,8 @@ class EmployeeOut(EmployeeBrief):
     preferred_payment_method: PaymentMethod
     bank_name: Optional[str] = None
     mobile_money_number: Optional[str] = None
+    has_bank_account: bool = False   # nimewo kont lan li menm pa janm soti
+    on_payroll: bool = True
     is_active: bool
     created_at: datetime
 
@@ -417,6 +433,7 @@ class OrgNode(BaseModel):
     position_title: Optional[str] = None
     department_name: Optional[str] = None
     photo_url: Optional[str] = None
+    is_leadership: bool = False
     reports: list["OrgNode"] = []
 
 

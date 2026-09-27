@@ -27,9 +27,11 @@
   const NAV = [
     { group: null, items: [
       { id: 'dashboard', label: 'Akèy', href: 'dashboard.html' },
+      { id: 'organigram', label: 'Òganigram', href: 'organigram.html' },
     ] },
     { group: 'Jesyon', roles: ADMIN, items: [
       { id: 'employees', label: 'Anplwaye|meni', href: 'employees.html' },
+      { id: 'positions', label: 'Pozisyon', href: 'positions.html' },
       { id: 'payroll', label: 'Pewòl', href: 'payroll.html' },
       { id: 'leave-admin', label: 'Balans konje', href: 'leave-balances.html' },
       { id: 'hiring', label: 'Rekritman', href: 'jobs.html' },

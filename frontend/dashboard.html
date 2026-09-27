@@ -71,6 +71,32 @@
         .map((p) => p[0].toUpperCase()).join('');
     }
 
+    /**
+     * Bouton "Telechaje PDF" pou yon fich peye. `quiet`: ti bouton pou lis la.
+     * Si telechajman an echwe, mesaj la parèt bò kote bouton an.
+     */
+    function pdfButton(slipId, quiet) {
+      const label = t('Telechaje PDF');
+      const btn = h('button', {
+        class: quiet ? 'btn btn-quiet btn-sm' : 'btn btn-ghost btn-sm', type: 'button',
+      }, label);
+      const msg = h('span', { class: 'field-error', role: 'status' });
+      btn.addEventListener('click', async () => {
+        msg.textContent = '';
+        btn.disabled = true;
+        btn.textContent = t('Ap prepare PDF la…');
+        try {
+          await api.download(`/api/payroll/payslips/${slipId}/pdf`, `fich-peye-${slipId}.pdf`);
+        } catch (err) {
+          msg.textContent = errorText(err);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = label;
+        }
+      });
+      return h('span', { style: 'display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap;' }, btn, msg);
+    }
+
     /** Pozisyon GPS pou klòk in. Si moun nan refize, nou kontinye san li. */
     function getPosition(timeoutMs = 6000) {
       return new Promise((resolve) => {
@@ -276,6 +302,7 @@
           h('p', { class: 'pay-meta' },
             s.paid_at ? t('Peye {date}', { date: fmt.date(s.paid_at) }) : t('Ap peye nan pwochen jou yo'),
           ),
+          h('div', { style: 'margin-top: 12px;' }, pdfButton(s.id, false)),
           breakdown,
           older.length ? h('ul', { class: 'list' }, ...older.map((o) =>
             h('li', {},
@@ -283,7 +310,10 @@
                 h('div', {}, fmt.money(o.net_amount, o.currency)),
                 h('div', { class: 'sub' }, fmt.paymentMethod(o)),
               ),
-              h('span', { class: 'sub' }, o.paid_at ? fmt.shortDate(o.paid_at) : '—'),
+              h('div', { style: 'display: flex; align-items: center; gap: 6px;' },
+                h('span', { class: 'sub' }, o.paid_at ? fmt.shortDate(o.paid_at) : '—'),
+                pdfButton(o.id, true),
+              ),
             )
           )) : null,
         );
