@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="logo.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n>Paramèt biznis — KONMBIT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="app.css">
+  <style>
+    .settings { display: grid; gap: 18px; max-width: 920px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+    .grid-2 .full { grid-column: 1 / -1; }
+    .logo-row { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+    .logo-preview {
+      width: 72px; height: 72px; border-radius: 16px; flex: none; overflow: hidden;
+      display: grid; place-items: center; border: 1px solid var(--line);
+      background: linear-gradient(135deg, #1d4ed8, #0b1f4b); color: #fff; font-size: 26px; font-weight: 800;
+    }
+    .logo-preview img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+    .logo-row .field { flex: 1; min-width: 240px; margin: 0; }
+    .mode-options { display: grid; gap: 10px; }
+    .mode-option { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px;
+      border: 1px solid var(--line); border-radius: var(--radius-sm, 10px); cursor: pointer; }
+    .mode-option input { margin-top: 4px; }
+    .mode-option .t { font-weight: 700; }
+    .mode-option .d { color: var(--muted); font-size: 14px; display: block; margin-top: 2px; }
+    .mode-option:has(input:checked) { border-color: var(--accent, #2563eb); }
+    .save-bar {
+      position: sticky; bottom: 0; z-index: 5; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      padding: 14px 18px; border: 1px solid var(--line); border-radius: 14px;
+      background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(6px);
+    }
+    .save-bar .msg { flex: 1; min-width: 200px; margin: 0; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside id="sidebar"></aside>
+
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+
+      <main class="page">
+        <div class="page-head">
+          <h1 data-i18n>Paramèt biznis</h1>
+          <p data-i18n>Enfòmasyon biznis ou, logo a, lè lokal la, pewòl la ak pwentaj la — tout nan yon sèl kote.</p>
+        </div>
+
+        <form class="settings" id="form" novalidate hidden>
+          <!-- Idantite -->
+          <section class="panel" aria-labelledby="s-id">
+            <div class="panel-head"><h2 id="s-id" data-i18n>Idantite biznis la</h2></div>
+            <div class="grid-2">
+              <div class="field">
+                <label for="f-name" data-i18n>Non biznis la</label>
+                <input class="input" id="f-name" maxlength="200" required>
+              </div>
+              <div class="field">
+                <label for="f-legal" data-i18n>Non legal</label>
+                <input class="input" id="f-legal" maxlength="200">
+                <span class="hint" data-i18n>Non ki parèt sou fich peye yo, si li diferan.</span>
+              </div>
+              <div class="field">
+                <label for="f-tax" data-i18n>NIF / Patant</label>
+                <input class="input" id="f-tax" maxlength="50">
+              </div>
+              <div class="field">
+                <label for="f-industry" data-i18n>Domèn aktivite</label>
+                <input class="input" id="f-industry" maxlength="100"
+                       data-i18n-attr="placeholder" placeholder="Egz: Komès, Restoran, Konstriksyon">
+              </div>
+              <div class="field full">
+                <label for="f-address" data-i18n>Adrès</label>
+                <input class="input" id="f-address" maxlength="500">
+              </div>
+              <div class="field">
+                <label for="f-city" data-i18n>Vil</label>
+                <input class="input" id="f-city" maxlength="100">
+              </div>
+              <div class="field">
+                <label for="f-phone" data-i18n>Telefòn</label>
+                <input class="input" id="f-phone" type="tel" maxlength="50" placeholder="+509 3000 0000">
+              </div>
+              <div class="field">
+                <label for="f-email" data-i18n>Imel</label>
+                <input class="input" id="f-email" type="email">
+              </div>
+              <div class="field">
+                <label data-i18n>Lyen paj karyè a</label>
+                <a class="plain-link" id="careers-link" target="_blank" rel="noopener"></a>
+              </div>
+            </div>
+          </section>
+
+          <!-- Logo -->
+          <section class="panel" aria-labelledby="s-logo">
+            <div class="panel-head"><h2 id="s-logo" data-i18n>Logo</h2></div>
+            <div class="logo-row">
+              <div class="logo-preview" id="logo-preview" aria-hidden="true"></div>
+              <div class="field">
+                <label for="f-logo" data-i18n>Lyen logo a</label>
+                <input class="input" id="f-logo" type="url" maxlength="500" placeholder="https://…">
+                <span class="hint" data-i18n>Yon imaj PNG, JPG oswa SVG ki disponib sou entènèt (https://). Telechaje yon fichye ap vini apre deplwaman an.</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- Rejyon -->
+          <section class="panel" aria-labelledby="s-region">
+            <div class="panel-head"><h2 id="s-region" data-i18n>Lè ak lajan</h2></div>
+            <div class="grid-2">
+              <div class="field">
+                <label for="f-tz" data-i18n>Fizo orè</label>
+                <select class="select" id="f-tz"></select>
+                <span class="hint" data-i18n>Pwentaj, "jodi a" ak dat peman yo kalkile ak lè sa a.</span>
+              </div>
+              <div class="field">
+                <label for="f-currency" data-i18n>Lajan</label>
+                <select class="select" id="f-currency">
+                  <option value="HTG" data-i18n>Goud (HTG)</option>
+                  <option value="USD" data-i18n>Dola ameriken (USD)</option>
+                </select>
+              </div>
+            </div>
+          </section>
+
+          <!-- Pewòl -->
+          <section class="panel" aria-labelledby="s-pay">
+            <div class="panel-head"><h2 id="s-pay" data-i18n>Pewòl</h2></div>
+            <div class="field" style="max-width: 420px;">
+              <label for="f-freq" data-i18n>Chak konbyen tan ou peye anplwaye yo</label>
+              <select class="select" id="f-freq">
+                <option value="monthly" data-i18n>Chak mwa</option>
+                <option value="semimonthly" data-i18n>De fwa pa mwa (1ye–15, 16–fen mwa)</option>
+                <option value="biweekly" data-i18n>Chak de semèn</option>
+                <option value="weekly" data-i18n>Chak semèn</option>
+              </select>
+              <span class="hint" data-i18n>Asistan pewòl la ap pwopoze peryòd yo dapre chwa sa a.</span>
+            </div>
+          </section>
+
+          <!-- Pwentaj -->
+          <section class="panel" aria-labelledby="s-clock">
+            <div class="panel-head">
+              <h2 id="s-clock" data-i18n>Pwentaj</h2>
+              <a class="btn btn-ghost btn-sm" href="kiosk-settings.html" style="margin-inline-start: auto;" data-i18n>Jere tablèt yo</a>
+            </div>
+            <div class="mode-options" role="radiogroup" aria-labelledby="s-clock">
+              <label class="mode-option">
+                <input type="radio" name="mode" value="phone">
+                <span><span class="t" data-i18n>Sou telefòn yo</span>
+                  <span class="d" data-i18n>Chak anplwaye peze Klòk in sou telefòn li.</span></span>
+              </label>
+              <label class="mode-option">
+                <input type="radio" name="mode" value="kiosk">
+                <span><span class="t" data-i18n>Sèlman sou tablèt biznis la</span>
+                  <span class="d" data-i18n>Anplwaye yo tape nimewo yo ak kòd pèsonèl yo sou tablèt la. Telefòn yo pa ka pwente ankò.</span></span>
+              </label>
+              <label class="mode-option">
+                <input type="radio" name="mode" value="both">
+                <span><span class="t" data-i18n>Toulède</span>
+                  <span class="d" data-i18n>Anplwaye yo ka pwente sou telefòn yo oswa sou tablèt la.</span></span>
+              </label>
+            </div>
+          </section>
+
+          <div class="save-bar">
+            <p class="msg" id="msg" role="status"></p>
+            <button class="btn btn-primary" type="submit" id="save" data-i18n>Anrejistre chanjman yo</button>
+          </div>
+        </form>
+
+        <div id="loading"><p class="loading" data-i18n>Ap chaje…</p></div>
+      </main>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script src="shell.js"></script>
+  <script>
+  (async function () {
+    'use strict';
+    const { api, h, ApiError, shell, t } = Konbit;
+
+    const identity = await shell.mount('settings', shell.OWNERS);
+    if (!identity) return;
+
+    const $ = (id) => document.getElementById(id);
+
+    // Fizo orè ki pi itil pou biznis ayisyen ak dyaspora a (non vil yo pa tradui).
+    // Backend la aksepte nenpòt non IANA valab; si biznis la gen yon lòt, nou ajoute l nan lis la.
+    const ZONES = [
+      ['America/Port-au-Prince', 'Port-au-Prince'],
+      ['America/Santo_Domingo', 'Santo Domingo'],
+      ['America/New_York', 'Miami / New York / Boston'],
+      ['America/Chicago', 'Chicago'],
+      ['America/Los_Angeles', 'Los Angeles'],
+      ['America/Toronto', 'Montréal / Toronto'],
+      ['America/Martinique', 'Martinique / Guadeloupe'],
+      ['America/Cayenne', 'Cayenne'],
+      ['America/Sao_Paulo', 'São Paulo'],
+      ['Europe/Paris', 'Paris'],
+      ['UTC', 'UTC'],
+    ];
+
+    const TEXT_FIELDS = {
+      name: 'f-name', legal_name: 'f-legal', tax_id: 'f-tax', industry: 'f-industry',
+      address: 'f-address', city: 'f-city', phone: 'f-phone', email: 'f-email', logo_url: 'f-logo',
+    };
+
+    let original = null;
+
+    function errorMessage(err) {
+      let msg = err instanceof ApiError ? err.message : t('Yon bagay pa mache.');
+      if (err && err.fields && err.fields.length) {
+        msg += ' ' + err.fields.map((f) => `${f.field}: ${f.message}`).join('; ');
+      }
+      return msg;
+    }
+
+    function initials(name) {
+      return (name || '?').split(/\s+/).filter(Boolean).slice(0, 2)
+        .map((p) => p[0].toUpperCase()).join('');
+    }
+
+    /** Apèsi logo a: imaj la si lyen an bon, sinon inisyal biznis la. */
+    function renderLogo() {
+      const box = $('logo-preview');
+      const url = $('f-logo').value.trim();
+      if (/^https?:\/\//i.test(url)) {
+        const img = h('img', { src: url, alt: '' });
+        img.addEventListener('error', () => box.replaceChildren(initials($('f-name').value)));
+        box.replaceChildren(img);
+      } else {
+        box.replaceChildren(initials($('f-name').value));
+      }
+    }
+
+    function fill(s) {
+      original = s;
+      for (const [key, id] of Object.entries(TEXT_FIELDS)) $(id).value = s[key] || '';
+
+      const tz = $('f-tz');
+      const zones = ZONES.some(([z]) => z === s.timezone) || !s.timezone
+        ? ZONES : [[s.timezone, s.timezone], ...ZONES];
+      tz.replaceChildren(...zones.map(([z, label]) => h('option', { value: z }, `${label} (${z})`)));
+      tz.value = s.timezone || 'America/Port-au-Prince';
+
+      $('f-currency').value = s.default_currency;
+      $('f-freq').value = s.pay_frequency;
+      document.querySelectorAll('input[name="mode"]').forEach((r) => { r.checked = r.value === s.clock_mode; });
+
+      const careers = new URL(`careers.html?org=${encodeURIComponent(s.slug)}`, location.href).href;
+      $('careers-link').href = careers;
+      $('careers-link').textContent = careers;
+      renderLogo();
+    }
+
+    $('f-logo').addEventListener('input', renderLogo);
+    $('f-name').addEventListener('input', renderLogo);
+
+    $('form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = $('msg');
+      msg.className = 'msg';
+      msg.textContent = '';
+
+      if ($('f-name').value.trim().length < 2) {
+        msg.className = 'msg field-error';
+        msg.textContent = t('Bay biznis la yon non.');
+        $('f-name').focus();
+        return;
+      }
+      const logo = $('f-logo').value.trim();
+      if (logo && !/^https?:\/\//i.test(logo)) {
+        msg.className = 'msg field-error';
+        msg.textContent = t('Lyen logo a dwe kòmanse ak https://');
+        $('f-logo').focus();
+        return;
+      }
+
+      // Nou voye SÈLMAN sa ki chanje. Yon imel vid tounen null (backend la efase l).
+      const patch = {};
+      for (const [key, id] of Object.entries(TEXT_FIELDS)) {
+        const value = $(id).value.trim();
+        if (value !== (original[key] || '')) patch[key] = key === 'email' && !value ? null : value;
+      }
+      if ($('f-tz').value !== original.timezone) patch.timezone = $('f-tz').value;
+      if ($('f-currency').value !== original.default_currency) patch.default_currency = $('f-currency').value;
+      if ($('f-freq').value !== original.pay_frequency) patch.pay_frequency = $('f-freq').value;
+      const mode = (document.querySelector('input[name="mode"]:checked') || {}).value;
+
+      $('save').disabled = true;
+      try {
+        let saved = original;
+        if (Object.keys(patch).length) saved = await api.patch('/api/organization', patch);
+        if (mode && mode !== original.clock_mode) {
+          await api.put('/api/kiosk/settings', { clock_mode: mode });
+          saved = { ...saved, clock_mode: mode };
+        }
+        fill(saved);
+        msg.className = 'msg alert alert-ok';
+        msg.textContent = t('Chanjman an anrejistre.');
+        // Non biznis la nan ba anlè a
+        const org = document.querySelector('.topbar-org');
+        if (org && patch.name) org.textContent = saved.name;
+      } catch (err) {
+        msg.className = 'msg field-error';
+        msg.textContent = errorMessage(err);
+      } finally {
+        $('save').disabled = false;
+      }
+    });
+
+    try {
+      fill(await api.get('/api/organization'));
+      $('loading').hidden = true;
+      $('form').hidden = false;
+    } catch (err) {
+      $('loading').replaceChildren(h('div', { class: 'alert alert-error' }, errorMessage(err)));
+    }
+  })();
+  </script>
+</body>
+</html>

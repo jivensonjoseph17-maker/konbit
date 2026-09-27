@@ -23,7 +23,7 @@ from .routers import (
     auth, employees, hierarchy, attendance, leaves,
     payroll, training, feedback,
     jobs, applications, offers, application_questions, timesheets,
-    calculator, schedules, positions, portal, kiosk, team, admin,
+    calculator, schedules, positions, portal, kiosk, team, admin, organization,
 )
 
 # --- Router ki poko pare ---
@@ -199,6 +199,8 @@ app.include_router(kiosk.router,        prefix="/api/kiosk",        tags=["Kiyò
 app.include_router(team.router,         prefix="/api/team",         tags=["Ekip"])
 # Tablo jesyon: kòmanse ak KONMBIT, chif yo, pwochen pewòl, deklarasyon
 app.include_router(admin.router,        prefix="/api/admin",        tags=["Tablo jesyon"])
+# Paramèt biznis: non, logo, fizo orè, lajan, frekans pewòl
+app.include_router(organization.router, prefix="/api/organization", tags=["Paramèt biznis"])
 app.include_router(
     application_questions.router,
     prefix="/api/application-questions",

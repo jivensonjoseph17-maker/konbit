@@ -41,6 +41,7 @@
       { id: 'training', label: 'Fòmasyon', href: 'training.html' },
       // Sèlman administratè biznis la (backend: require_admin).
       { id: 'kiosk', label: 'Pwentaj ak tablèt', href: 'kiosk-settings.html', roles: OWNERS },
+      { id: 'settings', label: 'Paramèt biznis', href: 'settings.html', roles: OWNERS },
     ] },
     { group: 'Ekip', roles: MANAGERS, items: [
       { id: 'team', label: 'Ekip mwen', href: 'team.html' },

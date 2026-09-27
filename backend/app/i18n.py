@@ -601,6 +601,11 @@ _ROWS: list[tuple[str, str, str]] = [
     ("Balans lan pa ase pou apwouve demann sa a. Mete balans lan anvan, oswa refize demann lan.",
      "Le solde ne suffit pas pour approuver cette demande. Définissez d'abord le solde, ou refusez la demande.",
      "The balance is not enough to approve this request. Set the balance first, or reject the request."),
+
+    # --- Paramèt biznis (organization.py) ---
+    ("Fizo orè sa a pa valab.",
+     "Ce fuseau horaire n'est pas valide.",
+     "This time zone is not valid."),
 ]
 
 MESSAGES: dict[str, dict[str, str]] = {ht: {"fr": fr, "en": en} for ht, fr, en in _ROWS}

@@ -181,6 +181,8 @@ class Organization(Base, TimestampMixin):
     # Kijan anplwaye yo pwente: "phone" (telefòn yo), "kiosk" (tablèt biznis la
     # sèlman) oswa "both". Gade app/clock_mode.py.
     clock_mode = Column(String(10), default="phone", nullable=False, server_default="phone")
+    # Chak konbyen tan biznis la peye: "weekly", "biweekly", "semimonthly", "monthly".
+    pay_frequency = Column(String(12), default="monthly", nullable=False, server_default="monthly")
     is_active = Column(Boolean, default=True, nullable=False)
 
     users = relationship("User", back_populates="organization")
@@ -967,7 +969,6 @@ class KioskDevice(Base, TimestampMixin):
     is_active = Column(Boolean, default=True, nullable=False, server_default=true())
     revoked_at = Column(DateTime(timezone=True))
 
-    
 
 class KioskPairing(Base, TimestampMixin):
     """
