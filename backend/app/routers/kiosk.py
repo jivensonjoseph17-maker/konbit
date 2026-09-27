@@ -15,7 +15,8 @@ Tablèt la, san koneksyon:
     POST   /api/kiosk/pair                     Kòd kout la → token tablèt la
 
 Tablèt la (header X-Kiosk-Token, PA token itilizatè):
-    GET    /api/kiosk/device                   Non tablèt la ak biznis la
+    GET    /api/kiosk/device                   Non tablèt la, biznis la, kiyès ki aktive l
+    POST   /api/kiosk/device/deactivate        Dekonekte tablèt la (token an pa mache ankò)
     POST   /api/kiosk/punch                    Antre / sòti ak nimewo + kòd
 
 SEKIRITE:
@@ -59,6 +60,7 @@ from ..models import (
     KioskPairing,
     Organization,
     TimeEntry,
+    User,
     UserRole,
 )
 from .attendance import (
@@ -500,15 +502,34 @@ class DeviceInfo(BaseModel):
     device_name: str
     organization_name: str
     clock_mode: str
+    activated_by: Optional[str] = None     # non administratè ki aktive tablèt la
 
 
 @router.get("/device", response_model=DeviceInfo)
 def device_info(device: KioskDeviceDep, db: DbSession):
     org = db.get(Organization, device.organization_id)
+    creator = db.get(User, device.created_by_id) if device.created_by_id else None
     device.last_seen_at = _now()
     db.commit()
     return DeviceInfo(device_name=device.name, organization_name=org.name,
-                      clock_mode=get_clock_mode(db, device.organization_id))
+                      clock_mode=get_clock_mode(db, device.organization_id),
+                      activated_by=creator.full_name if creator else None)
+
+
+@router.post("/device/deactivate", response_model=DeviceOut)
+def deactivate_this_device(device: KioskDeviceDep, request: Request, db: DbSession):
+    """
+    Bouton "Dekonekte tablèt la" sou tablèt la li menm. Nou dezaktive tablèt la
+    sou sèvè a (pa sèlman sou aparèy la): token an pa ka sèvi ankò, menm si
+    yon moun te kopye l. Pou reyitilize l: yon nouvo kòd aktivasyon.
+    """
+    device.is_active = False
+    device.revoked_at = _now()
+    db.commit()
+    _audit(db, request, device.organization_id, None, "revoke", "kiosk_device", device.id,
+           f"Tablèt: {device.name} (dekonekte sou tablèt la)")
+    db.refresh(device)
+    return DeviceOut.model_validate(device)
 
 
 class PunchRequest(BaseModel):

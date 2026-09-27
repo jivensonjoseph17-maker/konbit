@@ -248,3 +248,23 @@ def test_only_admin_creates_short_codes(client, org_admin, make_employee_login):
     resp = client.post("/api/kiosk/pairings", json={"name": "Tablèt"}, headers=manager["headers"])
     assert resp.status_code == 403
     assert client.post("/api/kiosk/pairings", json={"name": "Tablèt"}).status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# DEKONEKTE TABLÈT LA SOU TABLÈT LA LI MENM
+# ---------------------------------------------------------------------------
+
+def test_device_shows_who_activated_it_and_can_log_out(client, org_admin, make_employee):
+    h, _, kh, emp, pin = _setup(client, org_admin, make_employee)
+
+    info = client.get("/api/kiosk/device", headers=kh)
+    assert info.status_code == 200
+    assert info.json()["activated_by"]                    # non administratè a
+
+    out = client.post("/api/kiosk/device/deactivate", headers=kh)
+    assert out.status_code == 200 and out.json()["is_active"] is False
+
+    # Token an pa mache ankò, ni pou wè tablèt la ni pou pwente
+    assert client.get("/api/kiosk/device", headers=kh).status_code == 401
+    assert _punch(client, kh, emp["employee_number"], pin).status_code == 401
+    assert client.post("/api/kiosk/device/deactivate").status_code == 401

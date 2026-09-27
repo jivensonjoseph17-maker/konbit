@@ -40,6 +40,11 @@
     .k-result.err { background: rgba(220, 38, 38, 0.12); color: #b91c1c; }
     [data-theme="dark"] .k-result.ok { color: #4ade80; }
     [data-theme="dark"] .k-result.err { color: #f87171; }
+    .k-right { display: flex; align-items: center; gap: 12px; }
+    .k-who { text-align: end; line-height: 1.25; }
+    .k-who .d { font-weight: 700; font-size: 14px; }
+    .k-who .a { color: var(--muted); font-size: 12.5px; }
+    @media (max-width: 640px) { .k-who { display: none; } }
     .k-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px;
       padding: 10px 22px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); }
     .k-foot button { font-size: 13px; }
@@ -48,7 +53,14 @@
 <body class="kiosk">
   <header class="k-top">
     <span class="k-brand"><span class="brand-mark" aria-hidden="true">K</span><span class="k-org" id="org-name">KONMBIT</span></span>
-    <span id="lang-slot"></span>
+    <div class="k-right">
+      <div class="k-who" id="who" hidden>
+        <div class="d" id="device-name"></div>
+        <div class="a" id="activated-by"></div>
+      </div>
+      <button class="btn btn-ghost btn-sm" type="button" id="deactivate" hidden data-i18n>Dekonekte tablèt la</button>
+      <span id="lang-slot"></span>
+    </div>
   </header>
 
   <main class="k-main">
@@ -109,10 +121,6 @@
     </section>
   </main>
 
-  <footer class="k-foot" id="foot" hidden>
-    <span id="device-name"></span>
-    <button class="btn btn-quiet btn-sm" type="button" id="deactivate" data-i18n>Retire aktivasyon an</button>
-  </footer>
 
   <script src="api.js"></script>
   <script>
@@ -171,7 +179,8 @@
 
     function showActivate(message) {
       $('punch').hidden = true;
-      $('foot').hidden = true;
+      $('who').hidden = true;
+      $('deactivate').hidden = true;
       $('activate').hidden = false;
       $('org-name').textContent = 'KONMBIT';
       $('a-error').textContent = message || '';
@@ -183,10 +192,12 @@
         const d = await call('GET', '/api/kiosk/device');
         $('org-name').textContent = d.organization_name;
         $('device-name').textContent = d.device_name;
+        $('activated-by').textContent = d.activated_by ? t('Aktive pa {name}', { name: d.activated_by }) : '';
         $('mode-note').hidden = d.clock_mode !== 'phone';
         $('activate').hidden = true;
         $('punch').hidden = false;
-        $('foot').hidden = false;
+        $('who').hidden = false;
+        $('deactivate').hidden = false;
         return true;
       } catch (err) {
         if (err.status === 401) {
@@ -231,9 +242,17 @@
     $('a-submit').addEventListener('click', activate);
     $('a-token').addEventListener('keydown', (e) => { if (e.key === 'Enter') activate(); });
 
-    $('deactivate').addEventListener('click', () => {
-      if (!confirm(t('Retire aktivasyon tablèt sa a? W ap bezwen yon administratè pou aktive l ankò.'))) return;
+    // Dekonekte: tablèt la dezaktive sou sèvè a tou — token an pa mache ankò.
+    $('deactivate').addEventListener('click', async () => {
+      if (!confirm(t('Dekonekte tablèt sa a? W ap bezwen yon nouvo kòd aktivasyon pou itilize l ankò.'))) return;
+      $('deactivate').disabled = true;
+      try {
+        await call('POST', '/api/kiosk/device/deactivate');
+      } catch {
+        // Deja dezaktive oswa pa gen entènèt: nou retire l sou aparèy la kanmenm.
+      }
       store.clear();
+      $('deactivate').disabled = false;
       showActivate('');
     });
 

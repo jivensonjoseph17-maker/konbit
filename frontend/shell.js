@@ -9,6 +9,7 @@
  * Paj la dwe gen: <aside id="sidebar"></aside> ak <header id="topbar"></header>.
  * Meni an chanje dapre wòl moun nan. Pou ajoute yon nouvo paj, ajoute yon
  * liy nan NAV anba a (ak tradiksyon l nan frontend/i18n/*.json) epi retire `soon: true`.
+ * Yon liy ka gen pwòp `roles` li (pi sere pase gwoup la).
  *
  * mount() tann tradiksyon yo, mete lang kont lan an plas (Konbit.i18n.sync)
  * epi tradui tèks fiks HTML la (data-i18n) ANVAN li retounen — kidonk tout
@@ -19,6 +20,7 @@
   const { api, auth, fmt, h, i18n, t, theme } = Konbit;
 
   const ADMIN = ['super_admin', 'org_admin', 'hr'];
+  const OWNERS = ['super_admin', 'org_admin'];
   const MANAGERS = ['super_admin', 'org_admin', 'hr', 'manager'];
 
   // `needsEmployee`: paj la sèvi sèlman si kont lan gen yon dosye anplwaye.
@@ -36,6 +38,8 @@
       { id: 'leave-admin', label: 'Balans konje', href: 'leave-balances.html' },
       { id: 'hiring', label: 'Rekritman', href: 'jobs.html' },
       { id: 'training', label: 'Fòmasyon', href: 'training.html' },
+      // Sèlman administratè biznis la (backend: require_admin).
+      { id: 'kiosk', label: 'Pwentaj ak tablèt', href: 'kiosk-settings.html', roles: OWNERS },
     ] },
     { group: 'Ekip', roles: MANAGERS, items: [
       { id: 'team', label: 'Ekip mwen', href: 'team.html' },
@@ -77,22 +81,24 @@
       .filter((g) => !g.roles || g.roles.includes(role))
       .map((g) => h('div', { class: 'nav-group' },
         g.group ? h('p', { class: 'nav-group-label' }, t(g.group)) : null,
-        h('ul', { class: 'nav-list' }, ...g.items.map((item) => {
-          if (item.soon) {
+        h('ul', { class: 'nav-list' }, ...g.items
+          .filter((item) => !item.roles || item.roles.includes(role))
+          .map((item) => {
+            if (item.soon) {
+              return h('li', {},
+                h('span', { class: 'nav-item is-soon', 'aria-disabled': 'true' },
+                  t(item.label), h('span', { class: 'soon' }, t('byento'))),
+              );
+            }
+            const current = item.id === active;
             return h('li', {},
-              h('span', { class: 'nav-item is-soon', 'aria-disabled': 'true' },
-                t(item.label), h('span', { class: 'soon' }, t('byento'))),
+              h('a', {
+                class: current ? 'nav-item is-active' : 'nav-item',
+                href: item.href,
+                'aria-current': current ? 'page' : null,
+              }, t(item.label)),
             );
-          }
-          const current = item.id === active;
-          return h('li', {},
-            h('a', {
-              class: current ? 'nav-item is-active' : 'nav-item',
-              href: item.href,
-              'aria-current': current ? 'page' : null,
-            }, t(item.label)),
-          );
-        })),
+          })),
       ));
 
     aside.replaceChildren(
@@ -374,6 +380,6 @@
   }
 
   Konbit.shell = {
-    mount, initials, ADMIN, MANAGERS, employeePicker, employeeNames, cachedName,
+    mount, initials, ADMIN, OWNERS, MANAGERS, employeePicker, employeeNames, cachedName,
   };
 })();
