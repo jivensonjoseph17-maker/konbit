@@ -968,5 +968,17 @@
  "Pa gen pozisyon": "Aucun poste",
  "Sou pewòl": "Inclus dans la paie",
  "Pa sou pewòl": "Hors paie",
- "Retire koch la pou yon pwopriyetè oswa yon fondatè ki pa touche salè: li ap parèt nan òganigram lan, men pewòl la p ap kalkile fich pou li.": "Décochez pour un propriétaire ou un fondateur non salarié : il apparaîtra dans l'organigramme, mais la paie ne calculera pas de fiche pour lui."
+ "Retire koch la pou yon pwopriyetè oswa yon fondatè ki pa touche salè: li ap parèt nan òganigram lan, men pewòl la p ap kalkile fich pou li.": "Décochez pour un propriétaire ou un fondateur non salarié : il apparaîtra dans l'organigramme, mais la paie ne calculera pas de fiche pour lui.",
+ "Chanje modpas — KONMBIT": "Changer le mot de passe — KONMBIT",
+ "Chanje modpas": "Changer le mot de passe",
+ "Chwazi pwòp modpas ou": "Choisissez votre propre mot de passe",
+ "Modpas ou te resevwa a se yon modpas tanporè. Chwazi yon lòt ke se ou sèlman ki konnen.": "Le mot de passe reçu est temporaire. Choisissez-en un que vous seul connaissez.",
+ "Modpas aktyèl la": "Mot de passe actuel",
+ "Konfime nouvo modpas la": "Confirmez le nouveau mot de passe",
+ "De modpas yo pa menm.": "Les deux mots de passe ne correspondent pas.",
+ "Anrejistre nouvo modpas la": "Enregistrer le nouveau mot de passe",
+ "Retounen nan tablo de bò a": "Retour au tableau de bord",
+ "Chanje aksè a": "Modifier l'accès",
+ "Aksè a chanje. Li aplike touswit.": "L'accès a été modifié. Il s'applique immédiatement.",
+ "Yon manadjè apwouve konje ak èdtan moun ki anba l nan òganigram lan.": "Un manager approuve les congés et les heures des personnes placées sous lui dans l'organigramme."
 }

@@ -466,6 +466,7 @@ def hire_candidate(
             organization_id=org_id,
             email=login_email,
             hashed_password=hash_password(temp_password),
+            must_change_password=True,
             full_name=f"{payload.first_name.strip()} {payload.last_name.strip()}",
             role=payload.login_role,
             is_active=True,

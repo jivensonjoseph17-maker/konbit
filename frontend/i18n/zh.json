@@ -968,5 +968,17 @@
  "Pa gen pozisyon": "无职位",
  "Sou pewòl": "计入工资",
  "Pa sou pewòl": "不计入工资",
- "Retire koch la pou yon pwopriyetè oswa yon fondatè ki pa touche salè: li ap parèt nan òganigram lan, men pewòl la p ap kalkile fich pou li.": "对于不领薪水的所有者或创始人，请取消勾选：他会出现在组织架构图中，但工资不会为其计算工资单。"
+ "Retire koch la pou yon pwopriyetè oswa yon fondatè ki pa touche salè: li ap parèt nan òganigram lan, men pewòl la p ap kalkile fich pou li.": "对于不领薪水的所有者或创始人，请取消勾选：他会出现在组织架构图中，但工资不会为其计算工资单。",
+ "Chanje modpas — KONMBIT": "修改密码 — KONMBIT",
+ "Chanje modpas": "修改密码",
+ "Chwazi pwòp modpas ou": "设置您自己的密码",
+ "Modpas ou te resevwa a se yon modpas tanporè. Chwazi yon lòt ke se ou sèlman ki konnen.": "您收到的是临时密码。请设置一个只有您知道的密码。",
+ "Modpas aktyèl la": "当前密码",
+ "Konfime nouvo modpas la": "确认新密码",
+ "De modpas yo pa menm.": "两次输入的密码不一致。",
+ "Anrejistre nouvo modpas la": "保存新密码",
+ "Retounen nan tablo de bò a": "返回仪表板",
+ "Chanje aksè a": "修改访问权限",
+ "Aksè a chanje. Li aplike touswit.": "访问权限已修改，立即生效。",
+ "Yon manadjè apwouve konje ak èdtan moun ki anba l nan òganigram lan.": "经理审批组织架构图中其下属的休假和工时。"
 }

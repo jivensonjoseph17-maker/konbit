@@ -616,22 +616,24 @@
 
     .cta-section {
       margin-top: 72px;
-      background: linear-gradient(135deg, #030712, #0b1f4b);
-      color: #f3f4f6;
       padding: 40px;
       border-radius: 16px;
+      /* Ble pal, menm fanmi ak meni sou kote aplikasyon an */
+      background: linear-gradient(135deg, #eef4fd 0%, #dde8fb 100%);
+      border: 1px solid #cddbf3;
+      color: var(--text-main);
       display: grid;
       grid-template-columns: 1.3fr 1fr;
       gap: 32px;
       align-items: center;
     }
 
-    .cta-section h2 { font-size: 1.8rem; margin-bottom: 10px; color: #fff; }
-    .cta-section p { color: #cbd5e1; line-height: 1.6; }
+    .cta-section h2 { font-size: 1.8rem; margin-bottom: 10px; color: #0b1f4b; }
+    .cta-section p { color: var(--text-secondary); line-height: 1.6; }
     .cta-actions { display: flex; flex-direction: column; gap: 12px; }
     .cta-actions a { width: 100%; }
-    .cta-section .btn-outline { color: #f3f4f6; border-color: #334155; }
-    .cta-section .btn-outline:hover { background: rgba(255, 255, 255, 0.06); }
+    .cta-section .btn-outline { background: #ffffff; color: #0b1f4b; border-color: #b9cbea; }
+    .cta-section .btn-outline:hover { background: #f5f8fe; }
 
     /* ---------------- MODAL ---------------- */
 

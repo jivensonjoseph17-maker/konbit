@@ -17,7 +17,7 @@ RÈG: chak rekèt filtre sou `organization_id` ki soti nan token an.
 """
 
 import logging
-from typing import Annotated, Optional
+from typing import Annotated, Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel
@@ -323,6 +323,7 @@ def create_employee(
             organization_id=org_id,
             email=login_email,
             hashed_password=hash_password(temp_password),
+            must_change_password=True,
             full_name=f"{payload.first_name.strip()} {payload.last_name.strip()}",
             role=payload.login_role,
             is_active=True,
@@ -542,6 +543,85 @@ def reactivate_employee(
 
 
 # ---------------------------------------------------------------------------
+# WÒL KONT KONEKSYON AN (anplwaye → manadjè, HR...)
+# ---------------------------------------------------------------------------
+
+class RoleChange(BaseModel):
+    role: Literal["employee", "manager", "hr", "org_admin"]
+
+
+class RoleChanged(BaseModel):
+    employee_id: int
+    role: UserRole
+
+
+@router.post(
+    "/{employee_id}/role",
+    response_model=RoleChanged,
+    dependencies=[Depends(require_hr)],
+)
+def change_login_role(
+    employee_id: int,
+    payload: RoleChange,
+    user: CurrentUser,
+    org_id: TenantId,
+    request: Request,
+    db: DbSession,
+):
+    """
+    Chanje sa moun nan ka fè nan KONMBIT. Chanjman an aplike touswit:
+    chak rekèt li wòl la nan baz done a, pa nan token an.
+
+    Règ yo:
+      - pèsonn pa chanje pwòp wòl li;
+      - se sèlman yon administratè ki bay oswa retire wòl administratè;
+      - biznis la toujou kenbe omwen yon administratè aktif.
+    """
+    emp = _get_employee_or_404(db, org_id, employee_id)
+    if not emp.user_id:
+        raise HTTPException(status_code=400, detail="Anplwaye a pa gen kont koneksyon.")
+
+    login = db.query(User).filter(
+        User.id == emp.user_id,
+        User.organization_id == org_id,
+    ).first()
+    if login is None:
+        raise HTTPException(status_code=404, detail="Kont koneksyon an pa jwenn.")
+    if login.id == user.id:
+        raise HTTPException(status_code=403, detail="Ou pa ka chanje pwòp wòl ou.")
+
+    new_role = UserRole(payload.role)
+    old_role = login.role
+    if new_role == old_role:
+        return RoleChanged(employee_id=emp.id, role=new_role)
+
+    if UserRole.ORG_ADMIN in (new_role, old_role) \
+            and user.role not in (UserRole.ORG_ADMIN, UserRole.SUPER_ADMIN):
+        raise HTTPException(
+            status_code=403,
+            detail="Se sèlman yon administratè ki ka bay oswa retire wòl administratè.",
+        )
+
+    if old_role == UserRole.ORG_ADMIN:
+        admins = db.query(User).filter(
+            User.organization_id == org_id,
+            User.role == UserRole.ORG_ADMIN,
+            User.is_active.is_(True),
+        ).count()
+        if admins <= 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Biznis la dwe toujou gen omwen yon administratè.",
+            )
+
+    login.role = new_role
+    db.commit()
+    _audit(db, request, user, "change_role", emp.id,
+           changes=f"{old_role.value} -> {new_role.value}")
+    return RoleChanged(employee_id=emp.id, role=new_role)
+
+
+# ---------------------------------------------------------------------------
 # DONE SANSIB
 # ---------------------------------------------------------------------------
 
@@ -610,6 +690,7 @@ def reset_employee_password(
 
     temp = generate_temp_password()
     login.hashed_password = hash_password(temp)
+    login.must_change_password = True
     login.failed_login_count = 0
     db.commit()
 

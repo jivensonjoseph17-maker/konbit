@@ -968,5 +968,17 @@
  "Pa gen pozisyon": "Keine Position",
  "Sou pewòl": "In der Lohnabrechnung",
  "Pa sou pewòl": "Nicht in der Lohnabrechnung",
- "Retire koch la pou yon pwopriyetè oswa yon fondatè ki pa touche salè: li ap parèt nan òganigram lan, men pewòl la p ap kalkile fich pou li.": "Deaktivieren Sie dies für Inhaber oder Gründer ohne Gehalt: Sie erscheinen im Organigramm, aber die Lohnabrechnung erstellt keine Abrechnung für sie."
+ "Retire koch la pou yon pwopriyetè oswa yon fondatè ki pa touche salè: li ap parèt nan òganigram lan, men pewòl la p ap kalkile fich pou li.": "Deaktivieren Sie dies für Inhaber oder Gründer ohne Gehalt: Sie erscheinen im Organigramm, aber die Lohnabrechnung erstellt keine Abrechnung für sie.",
+ "Chanje modpas — KONMBIT": "Passwort ändern — KONMBIT",
+ "Chanje modpas": "Passwort ändern",
+ "Chwazi pwòp modpas ou": "Wählen Sie Ihr eigenes Passwort",
+ "Modpas ou te resevwa a se yon modpas tanporè. Chwazi yon lòt ke se ou sèlman ki konnen.": "Das erhaltene Passwort ist vorläufig. Wählen Sie eines, das nur Sie kennen.",
+ "Modpas aktyèl la": "Aktuelles Passwort",
+ "Konfime nouvo modpas la": "Neues Passwort bestätigen",
+ "De modpas yo pa menm.": "Die beiden Passwörter stimmen nicht überein.",
+ "Anrejistre nouvo modpas la": "Neues Passwort speichern",
+ "Retounen nan tablo de bò a": "Zurück zum Dashboard",
+ "Chanje aksè a": "Zugriff ändern",
+ "Aksè a chanje. Li aplike touswit.": "Zugriff geändert. Er gilt sofort.",
+ "Yon manadjè apwouve konje ak èdtan moun ki anba l nan òganigram lan.": "Eine Führungskraft genehmigt Urlaub und Stunden der ihr im Organigramm unterstellten Personen."
 }

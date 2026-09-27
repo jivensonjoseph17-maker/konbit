@@ -144,6 +144,7 @@
         h('div', { class: 'user-chip' },
           h('div', { class: 'name' }, user.full_name),
           h('div', { class: 'role' }, fmt.role(user.role)),
+          h('a', { class: 'role plain-link', href: 'password.html' }, t('Chanje modpas')),
         ),
         h('span', { class: 'avatar', 'aria-hidden': 'true' }, initials(user.full_name)),
         theme.button(),
@@ -180,6 +181,12 @@
 
     if (allowedRoles && !allowedRoles.includes(identity.user.role)) {
       location.replace('dashboard.html');
+      return null;
+    }
+
+    // Modpas tanporè: moun nan dwe chwazi pa l anvan li fè anyen.
+    if (identity.user.must_change_password) {
+      location.replace('password.html');
       return null;
     }
 

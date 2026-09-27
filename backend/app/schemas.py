@@ -148,6 +148,7 @@ class UserOut(UserBrief):
     preferred_language: str = "ht"
     is_active: bool
     email_verified: bool
+    must_change_password: bool = False
     last_login_at: Optional[datetime] = None
     created_at: datetime
 
@@ -408,6 +409,7 @@ class EmployeeOut(EmployeeBrief):
     mobile_money_number: Optional[str] = None
     has_bank_account: bool = False   # nimewo kont lan li menm pa janm soti
     on_payroll: bool = True
+    login_role: Optional[UserRole] = None    # None = pa gen kont koneksyon
     is_active: bool
     created_at: datetime
 

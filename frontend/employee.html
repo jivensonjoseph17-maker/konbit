@@ -175,7 +175,7 @@
       const missingAccount = emp.preferred_payment_method === 'direct_deposit' && !emp.has_bank_account;
       const missingMobile = ['moncash', 'natcash'].includes(emp.preferred_payment_method) && !emp.mobile_money_number;
 
-      content.replaceChildren(
+      content.replaceChildren(...[
         head,
         missingAccount || missingMobile
           ? h('div', { class: 'alert alert-error', style: 'margin-bottom: 20px;' },
@@ -190,9 +190,9 @@
         terminatePanel,
         h('div', { class: 'grid' },
           h('div', { class: 'col' }, buildForm()),
-          h('div', { class: 'col' }, hierarchyPanel(), payslipsPanel(), leavePanel()),
+          h('div', { class: 'col' }, accessPanel(), hierarchyPanel(), payslipsPanel(), leavePanel()),
         ),
-      );
+      ].filter(Boolean));
     }
 
     function showSecret(box, title, password, email) {
@@ -491,6 +491,60 @@
     function personLink(p) {
       const name = `${p.first_name} ${p.last_name}`;
       return h('a', { class: 'plain-link', href: `employee.html?id=${p.id}` }, name);
+    }
+
+    /**
+     * Wòl kont koneksyon an. HR sèlman; pa pou pwòp kont ou. Se sèlman yon
+     * administratè ki ka bay oswa retire wòl administratè (sèvè a verifye l tou).
+     */
+    function accessPanel() {
+      if (!emp.user_id || emp.user_id === identity.user.id) return null;
+      const isAdmin = ['org_admin', 'super_admin'].includes(identity.user.role);
+      const current = emp.login_role || 'employee';
+      const roles = [
+        ['employee', t('Anplwaye')],
+        ['manager', t('Manadjè — apwouve konje ekip li')],
+        ['hr', t('Resous imèn — jere tout anplwaye')],
+        ['org_admin', t('Administratè')],
+      ];
+      const locked = current === 'org_admin' && !isAdmin;
+      const sel = h('select', { class: 'select', id: 'e-role', disabled: locked || null },
+        ...roles.map(([v, label]) => h('option', {
+          value: v, disabled: (v === 'org_admin' && !isAdmin) || null,
+        }, label)));
+      sel.value = current;
+      const btn = h('button', { class: 'btn btn-ghost btn-sm', type: 'button', disabled: locked || null },
+        t('Chanje aksè a'));
+      const msg = h('p', { role: 'status', style: 'margin-top: 10px;' });
+
+      btn.addEventListener('click', async () => {
+        msg.className = '';
+        msg.textContent = '';
+        if (sel.value === (emp.login_role || 'employee')) return;
+        btn.disabled = true;
+        try {
+          const r = await api.post(`/api/employees/${id}/role`, { role: sel.value });
+          emp.login_role = r.role;
+          msg.className = 'alert alert-ok';
+          msg.textContent = t('Aksè a chanje. Li aplike touswit.');
+        } catch (err) {
+          msg.className = 'field-error';
+          msg.textContent = errorMessage(err);
+        } finally {
+          btn.disabled = false;
+        }
+      });
+
+      return h('section', { class: 'panel' },
+        h('div', { class: 'panel-head' }, h('h2', {}, t('Aksè nan KONMBIT'))),
+        h('div', { class: 'field' },
+          h('label', { for: 'e-role' }, t('Wòl')),
+          sel,
+          h('span', { class: 'hint' },
+            t('Yon manadjè apwouve konje ak èdtan moun ki anba l nan òganigram lan.'))),
+        h('div', { style: 'margin-top: 12px;' }, btn),
+        msg,
+      );
     }
 
     function hierarchyPanel() {

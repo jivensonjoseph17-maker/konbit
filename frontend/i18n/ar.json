@@ -968,5 +968,17 @@
  "Pa gen pozisyon": "بدون منصب",
  "Sou pewòl": "ضمن كشف الرواتب",
  "Pa sou pewòl": "خارج كشف الرواتب",
- "Retire koch la pou yon pwopriyetè oswa yon fondatè ki pa touche salè: li ap parèt nan òganigram lan, men pewòl la p ap kalkile fich pou li.": "ألغِ التحديد لمالك أو مؤسس لا يتقاضى راتبًا: سيظهر في الهيكل التنظيمي، لكن الرواتب لن تحسب له كشف راتب."
+ "Retire koch la pou yon pwopriyetè oswa yon fondatè ki pa touche salè: li ap parèt nan òganigram lan, men pewòl la p ap kalkile fich pou li.": "ألغِ التحديد لمالك أو مؤسس لا يتقاضى راتبًا: سيظهر في الهيكل التنظيمي، لكن الرواتب لن تحسب له كشف راتب.",
+ "Chanje modpas — KONMBIT": "تغيير كلمة المرور — KONMBIT",
+ "Chanje modpas": "تغيير كلمة المرور",
+ "Chwazi pwòp modpas ou": "اختر كلمة مرورك الخاصة",
+ "Modpas ou te resevwa a se yon modpas tanporè. Chwazi yon lòt ke se ou sèlman ki konnen.": "كلمة المرور التي تلقيتها مؤقتة. اختر كلمة لا يعرفها أحد غيرك.",
+ "Modpas aktyèl la": "كلمة المرور الحالية",
+ "Konfime nouvo modpas la": "أكّد كلمة المرور الجديدة",
+ "De modpas yo pa menm.": "كلمتا المرور غير متطابقتين.",
+ "Anrejistre nouvo modpas la": "حفظ كلمة المرور الجديدة",
+ "Retounen nan tablo de bò a": "العودة إلى اللوحة",
+ "Chanje aksè a": "تغيير الصلاحية",
+ "Aksè a chanje. Li aplike touswit.": "تم تغيير الصلاحية. وهي سارية فورًا.",
+ "Yon manadjè apwouve konje ak èdtan moun ki anba l nan òganigram lan.": "يوافق المدير على إجازات وساعات الأشخاص التابعين له في الهيكل التنظيمي."
 }

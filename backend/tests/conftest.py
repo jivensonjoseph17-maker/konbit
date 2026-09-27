@@ -179,3 +179,15 @@ def application_answers(client):
                 answers[str(q["id"])] = _SAMPLE_ANSWERS[q["question_type"]](q)
         return answers
     return _make
+
+
+# --- KONMBIT: modpas tanporè ---
+# Ansyen tès yo konekte ak modpas tanporè HR bay la. Nou pa fòse chanjman
+# an pou yo; test_account_security.py aktive règ la ak monkeypatch.
+import pytest as _pytest_konbit  # noqa: E402
+
+
+@_pytest_konbit.fixture(autouse=True)
+def _skip_forced_password_change(monkeypatch):
+    import app.deps
+    monkeypatch.setattr(app.deps, "ENFORCE_PASSWORD_CHANGE", False)

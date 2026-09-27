@@ -968,5 +968,17 @@
  "Pa gen pozisyon": "No position",
  "Sou pewòl": "On payroll",
  "Pa sou pewòl": "Not on payroll",
- "Retire koch la pou yon pwopriyetè oswa yon fondatè ki pa touche salè: li ap parèt nan òganigram lan, men pewòl la p ap kalkile fich pou li.": "Uncheck for an owner or founder who draws no salary: they will appear in the org chart, but payroll will not calculate a payslip for them."
+ "Retire koch la pou yon pwopriyetè oswa yon fondatè ki pa touche salè: li ap parèt nan òganigram lan, men pewòl la p ap kalkile fich pou li.": "Uncheck for an owner or founder who draws no salary: they will appear in the org chart, but payroll will not calculate a payslip for them.",
+ "Chanje modpas — KONMBIT": "Change password — KONMBIT",
+ "Chanje modpas": "Change password",
+ "Chwazi pwòp modpas ou": "Choose your own password",
+ "Modpas ou te resevwa a se yon modpas tanporè. Chwazi yon lòt ke se ou sèlman ki konnen.": "The password you received is temporary. Choose one that only you know.",
+ "Modpas aktyèl la": "Current password",
+ "Konfime nouvo modpas la": "Confirm the new password",
+ "De modpas yo pa menm.": "The two passwords do not match.",
+ "Anrejistre nouvo modpas la": "Save the new password",
+ "Retounen nan tablo de bò a": "Back to the dashboard",
+ "Chanje aksè a": "Change access",
+ "Aksè a chanje. Li aplike touswit.": "Access changed. It applies immediately.",
+ "Yon manadjè apwouve konje ak èdtan moun ki anba l nan òganigram lan.": "A manager approves leave and hours for the people under them in the org chart."
 }

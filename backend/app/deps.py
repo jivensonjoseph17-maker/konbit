@@ -10,7 +10,7 @@ Pa fè filtraj la nan frontend lan — fè l isit.
 
 from typing import Annotated, Optional
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
@@ -36,7 +36,19 @@ FORBIDDEN_ERROR = HTTPException(
 # ITILIZATÈ KOURAN
 # ---------------------------------------------------------------------------
 
+# Yon moun ki gen yon modpas tanporè ka sèlman wè kiyès li ye, chanje
+# modpas li, oswa dekonekte. Tès yo ka mete sa a False (gade conftest.py).
+ENFORCE_PASSWORD_CHANGE = True
+_PASSWORD_CHANGE_ALLOWED = {
+    "/api/auth/identity",
+    "/api/auth/me",
+    "/api/auth/change-password",
+    "/api/auth/logout",
+}
+
+
 def get_current_user(
+    request: Request,
     token: Annotated[str, Depends(oauth2_scheme)],
     db: Annotated[Session, Depends(get_db)],
 ) -> User:
@@ -47,6 +59,13 @@ def get_current_user(
     user = db.query(User).filter(User.id == int(payload["sub"])).first()
     if user is None or not user.is_active:
         raise CREDENTIALS_ERROR
+
+    if (ENFORCE_PASSWORD_CHANGE and user.must_change_password
+            and request.url.path not in _PASSWORD_CHANGE_ALLOWED):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Chanje modpas tanporè ou a anvan ou kontinye.",
+        )
     return user
 
 

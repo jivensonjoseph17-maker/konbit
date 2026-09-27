@@ -120,6 +120,18 @@ _ROWS: list[tuple[str, str, str]] = [
     ("Lang sa a pa disponib.",
      "Cette langue n'est pas disponible.",
      "This language is not available."),
+    ("Chanje modpas tanporè ou a anvan ou kontinye.",
+     "Changez votre mot de passe temporaire avant de continuer.",
+     "Change your temporary password before continuing."),
+    ("Ou pa ka chanje pwòp wòl ou.",
+     "Vous ne pouvez pas modifier votre propre rôle.",
+     "You cannot change your own role."),
+    ("Se sèlman yon administratè ki ka bay oswa retire wòl administratè.",
+     "Seul un administrateur peut attribuer ou retirer le rôle d'administrateur.",
+     "Only an administrator can grant or remove the administrator role."),
+    ("Biznis la dwe toujou gen omwen yon administratè.",
+     "L'entreprise doit toujours avoir au moins un administrateur.",
+     "The business must always have at least one administrator."),
 
     # --- app/auth.py (ansyen fichye) ---
     ("Imèl oswa modpas la pa kòrèk",

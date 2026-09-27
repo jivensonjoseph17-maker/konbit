@@ -968,5 +968,17 @@
  "Pa gen pozisyon": "Sin puesto",
  "Sou pewòl": "En nómina",
  "Pa sou pewòl": "Fuera de nómina",
- "Retire koch la pou yon pwopriyetè oswa yon fondatè ki pa touche salè: li ap parèt nan òganigram lan, men pewòl la p ap kalkile fich pou li.": "Desmarca para un propietario o fundador sin salario: aparecerá en el organigrama, pero la nómina no calculará un recibo para él."
+ "Retire koch la pou yon pwopriyetè oswa yon fondatè ki pa touche salè: li ap parèt nan òganigram lan, men pewòl la p ap kalkile fich pou li.": "Desmarca para un propietario o fundador sin salario: aparecerá en el organigrama, pero la nómina no calculará un recibo para él.",
+ "Chanje modpas — KONMBIT": "Cambiar contraseña — KONMBIT",
+ "Chanje modpas": "Cambiar contraseña",
+ "Chwazi pwòp modpas ou": "Elige tu propia contraseña",
+ "Modpas ou te resevwa a se yon modpas tanporè. Chwazi yon lòt ke se ou sèlman ki konnen.": "La contraseña que recibiste es temporal. Elige una que solo tú conozcas.",
+ "Modpas aktyèl la": "Contraseña actual",
+ "Konfime nouvo modpas la": "Confirma la nueva contraseña",
+ "De modpas yo pa menm.": "Las dos contraseñas no coinciden.",
+ "Anrejistre nouvo modpas la": "Guardar la nueva contraseña",
+ "Retounen nan tablo de bò a": "Volver al panel",
+ "Chanje aksè a": "Cambiar el acceso",
+ "Aksè a chanje. Li aplike touswit.": "Se cambió el acceso. Se aplica de inmediato.",
+ "Yon manadjè apwouve konje ak èdtan moun ki anba l nan òganigram lan.": "Un responsable aprueba los permisos y las horas de las personas a su cargo en el organigrama."
 }

@@ -205,6 +205,9 @@ class User(Base, TimestampMixin):
     email_verified = Column(Boolean, default=False, nullable=False)
     last_login_at = Column(DateTime(timezone=True))
     failed_login_count = Column(Integer, default=0, nullable=False)
+    # True apre HR kreye kont lan oswa jenere yon modpas tanporè: moun nan
+    # dwe chwazi pwòp modpas li anvan li fè anyen (gade deps.get_current_user).
+    must_change_password = Column(Boolean, default=False, nullable=False, server_default=false())
 
     organization = relationship("Organization", back_populates="users")
     employee = relationship("Employee", back_populates="user", uselist=False)
@@ -318,6 +321,11 @@ class Employee(Base, TimestampMixin):
     def has_bank_account(self) -> bool:
         """Pou frontend lan: gen yon nimewo kont — san nou pa janm voye nimewo a."""
         return bool((self.bank_account_number or "").strip())
+
+    @property
+    def login_role(self):
+        """Wòl kont koneksyon an (employee, manager, hr, org_admin), oswa None."""
+        return self.user.role if self.user is not None else None
 
     def chain_of_command(self, max_depth: int = 10) -> list:
         """Tout moun ki sou tèt anplwaye a, soti nan manadjè dirèk la jouk anwo."""

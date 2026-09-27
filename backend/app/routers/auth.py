@@ -338,6 +338,7 @@ def change_password(
 
     user.hashed_password = hash_password(payload.new_password)
     user.failed_login_count = 0
+    user.must_change_password = False
     db.commit()
     _log(db, request, user, "change_password", "user", user.id)
     return Message(detail="Modpas la chanje.")
