@@ -71,14 +71,40 @@
         .map((p) => p[0].toUpperCase()).join('');
     }
 
+    /** Yon liy montan (fich peye, total ane a). */
+    function moneyRow(label, value, cur) {
+      return h('div', { class: 'row' }, h('span', { class: 'k' }, label), h('span', {}, fmt.money(value, cur)));
+    }
+
+    /** Yon liy dediksyon. Si montan an se 0, liy lan pa parèt. */
+    function minusRow(label, value, cur) {
+      return value
+        ? h('div', { class: 'row minus' }, h('span', { class: 'k' }, label), h('span', { class: 'v' }, `−${fmt.money(value, cur)}`))
+        : null;
+    }
+
+    /** Tout liy dediksyon yo. Non ofisyèl yo (ONA, OFATMA, CFGDCT, FDU / CAS) pa tradui. */
+    function deductionRows(s, cur) {
+      return [
+        minusRow(t('Enpo sou salè (IRI)'), s.tax_amount, cur),
+        minusRow(t('Retni sou bonis / èdtan siplemantè'), s.supplemental_tax_amount, cur),
+        minusRow('ONA', s.ona_amount, cur),
+        minusRow('OFATMA', s.ofatma_amount, cur),
+        minusRow('CFGDCT', s.cfgdct_amount, cur),
+        minusRow('FDU / CAS', s.fdu_cas_amount, cur),
+        minusRow(t('Lòt dediksyon'), s.other_deductions, cur),
+      ];
+    }
+
     /**
      * Bouton "Telechaje PDF" pou yon fich peye. `quiet`: ti bouton pou lis la.
+     * San `quiet`, se yon bouton prensipal — pou dènye fich la parèt klè.
      * Si telechajman an echwe, mesaj la parèt bò kote bouton an.
      */
     function pdfButton(slipId, quiet) {
       const label = t('Telechaje PDF');
       const btn = h('button', {
-        class: quiet ? 'btn btn-quiet btn-sm' : 'btn btn-ghost btn-sm', type: 'button',
+        class: quiet ? 'btn btn-quiet btn-sm' : 'btn btn-primary', type: 'button',
       }, label);
       const msg = h('span', { class: 'field-error', role: 'status' });
       btn.addEventListener('click', async () => {
@@ -129,9 +155,10 @@
 
     // -----------------------------------------------------------------------
     // KLÒK IN / KLÒK OUT
+    // `onChange`: rele apre chak klòk in / klòk out (pou rechaje Èdtan mwen).
     // -----------------------------------------------------------------------
 
-    function clockSection() {
+    function clockSection(onChange) {
       const label = h('p', { class: 'clock-label' }, t('Ap chaje…'));
       const time = h('p', { class: 'clock-time', 'aria-live': 'off' }, '00:00:00');
       const since = h('p', { class: 'clock-since' });
@@ -196,11 +223,11 @@
         const original = button.textContent;
         button.textContent = t('Yon ti moman…');
         try {
+          let finished = null;
           if (clockedIn) {
-            const entry = await api.post('/api/attendance/clock-out', {
+            finished = await api.post('/api/attendance/clock-out', {
               break_minutes: Number(breakSelect.value),
             });
-            since.textContent = t('Jounen fini: {duration} travay.', { duration: fmt.duration(entry.worked_minutes) });
           } else {
             const pos = await getPosition();
             await api.post('/api/attendance/clock-in', {
@@ -209,6 +236,11 @@
             });
           }
           await load();
+          // Apre load(): render() ta efase mesaj la.
+          if (finished) {
+            since.textContent = t('Jounen fini: {duration} travay.', { duration: fmt.duration(finished.worked_minutes) });
+          }
+          if (onChange) onChange();
         } catch (err) {
           message.textContent = errorText(err);
           button.textContent = original;
@@ -218,6 +250,54 @@
 
       load();
       return el;
+    }
+
+    // -----------------------------------------------------------------------
+    // ÈDTAN MWEN — jodi a, semèn sa a, peryòd pewòl la
+    // Rechaje apre chak klòk out, epi chak minit pandan moun nan ap travay.
+    // -----------------------------------------------------------------------
+
+    function hoursSection() {
+      const { el, body } = panel(t('Èdtan mwen'));
+      let timer = null;
+
+      const stat = (label, bucket, note) => h('div', { class: 'stat' },
+        h('div', { class: 'n' }, fmt.duration(bucket.worked_minutes)),
+        h('div', { class: 't' }, label),
+        note ? h('div', { class: 't' }, note) : null,
+      );
+
+      async function refresh() {
+        clearTimeout(timer);
+        try {
+          const d = await api.get('/api/portal/hours');
+          const p = d.period;
+          // Non peryòd la se HR ki ekri l ("Septanm 2026"): nou pa tradui l.
+          const periodLabel = d.period_info.name || t('Mwa sa a');
+
+          fill(body,
+            h('div', { class: 'stat-line' },
+              stat(t('Jodi a'), d.day, null),
+              stat(t('Semèn sa a'), d.week, t('{n} jou travay', { n: d.week.days_worked })),
+              stat(periodLabel, p, t('{n} jou travay', { n: p.days_worked })),
+            ),
+            h('p', { class: 'sub', style: 'margin-top: 10px;' },
+              `${fmt.shortDate(p.start_date)} → ${fmt.shortDate(p.end_date)}`
+              + (p.overtime_minutes ? ` · ${t('Siplemantè')}: ${fmt.duration(p.overtime_minutes)}` : '')),
+            d.needs_correction
+              ? h('p', { class: 'field-error', style: 'margin-top: 8px;' },
+                  t('{n} jounen san klòk out: HR ap korije yo.', { n: d.needs_correction }))
+              : null,
+          );
+
+          if (d.clocked_in) timer = setTimeout(refresh, 60000);
+        } catch (err) {
+          fill(body, h('p', { class: 'empty' }, errorText(err)));
+        }
+      }
+
+      refresh();
+      return { el, refresh };
     }
 
     // -----------------------------------------------------------------------
@@ -268,27 +348,15 @@
 
         const s = data.items[0];
         const cur = s.currency;
-        const row = (label, value) =>
-          h('div', { class: 'row' }, h('span', { class: 'k' }, label), h('span', {}, fmt.money(value, cur)));
-        const minus = (label, value) => value
-          ? h('div', { class: 'row minus' }, h('span', { class: 'k' }, label), h('span', { class: 'v' }, `−${fmt.money(value, cur)}`))
-          : null;
 
-        // Non ofisyèl yo (ONA, OFATMA, CFGDCT, FDU / CAS) pa tradui.
         const breakdown = h('details', { class: 'breakdown' },
           h('summary', {}, t('Detay kalkil la')),
           h('div', { class: 'rows' },
-            row(t('Salè debaz'), s.base_amount),
-            s.overtime_amount ? row(t('Èdtan siplemantè'), s.overtime_amount) : null,
-            s.bonus_amount ? row(t('Bonis'), s.bonus_amount) : null,
-            row(t('Brit'), s.gross_amount),
-            minus(t('Enpo sou salè (IRI)'), s.tax_amount),
-            minus(t('Retni sou bonis / èdtan siplemantè'), s.supplemental_tax_amount),
-            minus('ONA', s.ona_amount),
-            minus('OFATMA', s.ofatma_amount),
-            minus('CFGDCT', s.cfgdct_amount),
-            minus('FDU / CAS', s.fdu_cas_amount),
-            minus(t('Lòt dediksyon'), s.other_deductions),
+            moneyRow(t('Salè debaz'), s.base_amount, cur),
+            s.overtime_amount ? moneyRow(t('Èdtan siplemantè'), s.overtime_amount, cur) : null,
+            s.bonus_amount ? moneyRow(t('Bonis'), s.bonus_amount, cur) : null,
+            moneyRow(t('Brit'), s.gross_amount, cur),
+            ...deductionRows(s, cur),
             h('div', { class: 'row total' }, h('span', {}, t('Net')), h('span', {}, fmt.money(s.net_amount, cur))),
           ),
         );
@@ -320,6 +388,58 @@
         if (older.length) body.lastChild.style.marginTop = '14px';
       }).catch((err) => fill(body, h('p', { class: 'empty' }, errorText(err))));
 
+      return el;
+    }
+
+    // -----------------------------------------------------------------------
+    // TOTAL ANE A — sèlman fich PEYE yo
+    // -----------------------------------------------------------------------
+
+    function ytdSection() {
+      const { el, body } = panel(t('Total ane a'));
+
+      async function load(year) {
+        try {
+          const d = await api.get(year ? `/api/portal/ytd?year=${year}` : '/api/portal/ytd');
+
+          const years = d.years.includes(d.year) ? d.years : [d.year, ...d.years];
+          let picker = null;
+          if (years.length > 1) {
+            picker = h('select', { class: 'select', 'aria-label': t('Ane') },
+              ...years.map((y) => h('option', { value: String(y) }, String(y))));
+            picker.value = String(d.year);
+            picker.style.marginBottom = '10px';
+            picker.addEventListener('change', () => load(Number(picker.value)));
+          }
+
+          const tot = d.totals[0];
+          if (!tot) {
+            fill(body, picker, h('p', { class: 'empty' }, t('Poko gen fich peye pou {year}.', { year: d.year })));
+            return;
+          }
+          const cur = tot.currency;
+
+          fill(body,
+            picker,
+            h('p', { class: 'clock-label' }, `${t('Net')} ${d.year}`),
+            h('p', { class: 'pay-net' }, fmt.money(tot.net_amount, cur)),
+            h('p', { class: 'pay-meta' }, t('Sou {count} fich peye.', { count: tot.payslip_count })),
+            h('div', { class: 'rows', style: 'margin-top: 12px;' },
+              moneyRow(t('Brit'), tot.gross_amount, cur),
+              minusRow(t('Dediksyon'), tot.total_deductions, cur),
+              h('div', { class: 'row total' }, h('span', {}, t('Net')), h('span', {}, fmt.money(tot.net_amount, cur))),
+            ),
+            h('details', { class: 'breakdown' },
+              h('summary', {}, t('Detay kalkil la')),
+              h('div', { class: 'rows' }, ...deductionRows(tot, cur)),
+            ),
+          );
+        } catch (err) {
+          fill(body, h('p', { class: 'empty' }, errorText(err)));
+        }
+      }
+
+      load(null);
       return el;
     }
 
@@ -613,8 +733,9 @@
       const isAdmin = shell.ADMIN.includes(role);
 
       if (hasEmployee) {
-        colMain.append(clockSection(), scheduleSection(), payslipSection(), leaveSection());
-        colSide.append(chainSection(), trainingSection());
+        const hours = hoursSection();
+        colMain.append(clockSection(hours.refresh), hours.el, scheduleSection(), payslipSection(), leaveSection());
+        colSide.append(chainSection(), ytdSection(), trainingSection());
         if (isManager(role)) {
           colSide.prepend(approvalsSection());
           colSide.append(todaySection());

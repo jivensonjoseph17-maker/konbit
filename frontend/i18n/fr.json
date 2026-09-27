@@ -980,5 +980,13 @@
  "Retounen nan tablo de bò a": "Retour au tableau de bord",
  "Chanje aksè a": "Modifier l'accès",
  "Aksè a chanje. Li aplike touswit.": "L'accès a été modifié. Il s'applique immédiatement.",
- "Yon manadjè apwouve konje ak èdtan moun ki anba l nan òganigram lan.": "Un manager approuve les congés et les heures des personnes placées sous lui dans l'organigramme."
+ "Yon manadjè apwouve konje ak èdtan moun ki anba l nan òganigram lan.": "Un manager approuve les congés et les heures des personnes placées sous lui dans l'organigramme.",
+ "Èdtan mwen": "Mes heures",
+ "Jodi a": "Aujourd'hui",
+ "Mwa sa a": "Ce mois-ci",
+ "{n} jou travay": "{n} jour(s) travaillé(s)",
+ "{n} jounen san klòk out: HR ap korije yo.": "{n} journée(s) sans pointage de sortie : les RH vont les corriger.",
+ "Total ane a": "Cumul de l'année",
+ "Sou {count} fich peye.": "Sur {count} bulletin(s) de paie.",
+ "Poko gen fich peye pou {year}.": "Aucun bulletin de paie payé pour {year}."
 }

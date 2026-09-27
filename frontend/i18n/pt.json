@@ -980,5 +980,13 @@
  "Retounen nan tablo de bò a": "Voltar ao painel",
  "Chanje aksè a": "Alterar o acesso",
  "Aksè a chanje. Li aplike touswit.": "O acesso foi alterado. Vale imediatamente.",
- "Yon manadjè apwouve konje ak èdtan moun ki anba l nan òganigram lan.": "Um gestor aprova as férias e as horas das pessoas abaixo dele no organograma."
+ "Yon manadjè apwouve konje ak èdtan moun ki anba l nan òganigram lan.": "Um gestor aprova as férias e as horas das pessoas abaixo dele no organograma.",
+ "Èdtan mwen": "Minhas horas",
+ "Jodi a": "Hoje",
+ "Mwa sa a": "Este mês",
+ "{n} jou travay": "{n} dia(s) trabalhado(s)",
+ "{n} jounen san klòk out: HR ap korije yo.": "{n} dia(s) sem registro de saída: o RH vai corrigi-los.",
+ "Total ane a": "Acumulado do ano",
+ "Sou {count} fich peye.": "Em {count} contracheque(s).",
+ "Poko gen fich peye pou {year}.": "Ainda não há contracheques pagos em {year}."
 }

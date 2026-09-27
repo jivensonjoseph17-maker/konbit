@@ -980,5 +980,13 @@
  "Retounen nan tablo de bò a": "Back to the dashboard",
  "Chanje aksè a": "Change access",
  "Aksè a chanje. Li aplike touswit.": "Access changed. It applies immediately.",
- "Yon manadjè apwouve konje ak èdtan moun ki anba l nan òganigram lan.": "A manager approves leave and hours for the people under them in the org chart."
+ "Yon manadjè apwouve konje ak èdtan moun ki anba l nan òganigram lan.": "A manager approves leave and hours for the people under them in the org chart.",
+ "Èdtan mwen": "My hours",
+ "Jodi a": "Today",
+ "Mwa sa a": "This month",
+ "{n} jou travay": "{n} day(s) worked",
+ "{n} jounen san klòk out: HR ap korije yo.": "{n} day(s) without a clock-out: HR will correct them.",
+ "Total ane a": "Year to date",
+ "Sou {count} fich peye.": "Across {count} payslip(s).",
+ "Poko gen fich peye pou {year}.": "No paid payslips for {year} yet."
 }

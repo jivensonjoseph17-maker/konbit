@@ -980,5 +980,13 @@
  "Retounen nan tablo de bò a": "العودة إلى اللوحة",
  "Chanje aksè a": "تغيير الصلاحية",
  "Aksè a chanje. Li aplike touswit.": "تم تغيير الصلاحية. وهي سارية فورًا.",
- "Yon manadjè apwouve konje ak èdtan moun ki anba l nan òganigram lan.": "يوافق المدير على إجازات وساعات الأشخاص التابعين له في الهيكل التنظيمي."
+ "Yon manadjè apwouve konje ak èdtan moun ki anba l nan òganigram lan.": "يوافق المدير على إجازات وساعات الأشخاص التابعين له في الهيكل التنظيمي.",
+ "Èdtan mwen": "ساعاتي",
+ "Jodi a": "اليوم",
+ "Mwa sa a": "هذا الشهر",
+ "{n} jou travay": "{n} يوم عمل",
+ "{n} jounen san klòk out: HR ap korije yo.": "{n} يوم بدون تسجيل خروج: ستصححها الموارد البشرية.",
+ "Total ane a": "المجموع منذ بداية السنة",
+ "Sou {count} fich peye.": "من {count} قسيمة راتب.",
+ "Poko gen fich peye pou {year}.": "لا توجد قسائم رواتب مدفوعة لسنة {year} بعد."
 }

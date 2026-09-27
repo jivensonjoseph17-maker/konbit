@@ -980,5 +980,13 @@
  "Retounen nan tablo de bò a": "Zurück zum Dashboard",
  "Chanje aksè a": "Zugriff ändern",
  "Aksè a chanje. Li aplike touswit.": "Zugriff geändert. Er gilt sofort.",
- "Yon manadjè apwouve konje ak èdtan moun ki anba l nan òganigram lan.": "Eine Führungskraft genehmigt Urlaub und Stunden der ihr im Organigramm unterstellten Personen."
+ "Yon manadjè apwouve konje ak èdtan moun ki anba l nan òganigram lan.": "Eine Führungskraft genehmigt Urlaub und Stunden der ihr im Organigramm unterstellten Personen.",
+ "Èdtan mwen": "Meine Stunden",
+ "Jodi a": "Heute",
+ "Mwa sa a": "Dieser Monat",
+ "{n} jou travay": "{n} Arbeitstag(e)",
+ "{n} jounen san klòk out: HR ap korije yo.": "{n} Tag(e) ohne Ausstempeln: die Personalabteilung korrigiert sie.",
+ "Total ane a": "Seit Jahresbeginn",
+ "Sou {count} fich peye.": "Aus {count} Gehaltsabrechnung(en).",
+ "Poko gen fich peye pou {year}.": "Noch keine bezahlten Abrechnungen für {year}."
 }

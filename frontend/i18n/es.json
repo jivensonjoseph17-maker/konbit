@@ -980,5 +980,13 @@
  "Retounen nan tablo de bò a": "Volver al panel",
  "Chanje aksè a": "Cambiar el acceso",
  "Aksè a chanje. Li aplike touswit.": "Se cambió el acceso. Se aplica de inmediato.",
- "Yon manadjè apwouve konje ak èdtan moun ki anba l nan òganigram lan.": "Un responsable aprueba los permisos y las horas de las personas a su cargo en el organigrama."
+ "Yon manadjè apwouve konje ak èdtan moun ki anba l nan òganigram lan.": "Un responsable aprueba los permisos y las horas de las personas a su cargo en el organigrama.",
+ "Èdtan mwen": "Mis horas",
+ "Jodi a": "Hoy",
+ "Mwa sa a": "Este mes",
+ "{n} jou travay": "{n} día(s) trabajado(s)",
+ "{n} jounen san klòk out: HR ap korije yo.": "{n} jornada(s) sin registro de salida: RR. HH. las corregirá.",
+ "Total ane a": "Acumulado del año",
+ "Sou {count} fich peye.": "En {count} recibo(s) de nómina.",
+ "Poko gen fich peye pou {year}.": "Aún no hay recibos pagados en {year}."
 }

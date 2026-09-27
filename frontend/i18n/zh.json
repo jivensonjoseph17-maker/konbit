@@ -980,5 +980,13 @@
  "Retounen nan tablo de bò a": "返回仪表板",
  "Chanje aksè a": "修改访问权限",
  "Aksè a chanje. Li aplike touswit.": "访问权限已修改，立即生效。",
- "Yon manadjè apwouve konje ak èdtan moun ki anba l nan òganigram lan.": "经理审批组织架构图中其下属的休假和工时。"
+ "Yon manadjè apwouve konje ak èdtan moun ki anba l nan òganigram lan.": "经理审批组织架构图中其下属的休假和工时。",
+ "Èdtan mwen": "我的工时",
+ "Jodi a": "今天",
+ "Mwa sa a": "本月",
+ "{n} jou travay": "工作 {n} 天",
+ "{n} jounen san klòk out: HR ap korije yo.": "{n} 天没有打卡下班：人事部门会更正。",
+ "Total ane a": "年度累计",
+ "Sou {count} fich peye.": "共 {count} 张工资单。",
+ "Poko gen fich peye pou {year}.": "{year} 年还没有已支付的工资单。"
 }
