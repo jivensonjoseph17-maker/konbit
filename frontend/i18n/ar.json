@@ -1064,5 +1064,17 @@
  "1 pòs louvri": "وظيفة واحدة شاغرة",
  "Dekonekte tablèt la": "تسجيل خروج الجهاز اللوحي",
  "Aktive pa {name}": "فعّله {name}",
- "Dekonekte tablèt sa a? W ap bezwen yon nouvo kòd aktivasyon pou itilize l ankò.": "تسجيل خروج هذا الجهاز؟ ستحتاج إلى رمز تفعيل جديد لاستخدامه مرة أخرى."
+ "Dekonekte tablèt sa a? W ap bezwen yon nouvo kòd aktivasyon pou itilize l ankò.": "تسجيل خروج هذا الجهاز؟ ستحتاج إلى رمز تفعيل جديد لاستخدامه مرة أخرى.",
+ "Ekip mwen jodi a": "فريقي اليوم",
+ "Antre jodi a": "حضروا اليوم",
+ "Nan travay": "في العمل",
+ "Fini|jounen": "انتهى",
+ "Absan": "غائب",
+ "Poko antre": "لم يحضر بعد",
+ "Pa gen pesonn nan ekip ou.": "لا يوجد أحد في فريقك.",
+ "Pou apwouve": "بانتظار الموافقة",
+ "Èdtan pou apwouve": "ساعات بانتظار الموافقة",
+ "Pa gen èdtan k ap tann ou.": "لا توجد ساعات بانتظارك.",
+ "{n} moun gen èdtan pou apwouve pou {period}.": "{n} أشخاص لديهم ساعات بانتظار الموافقة لفترة {period}.",
+ "{n} bagay k ap tann ou": "{n} عناصر بانتظارك"
 }

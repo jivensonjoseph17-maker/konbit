@@ -168,6 +168,51 @@
     });
   }
 
+  // -------------------------------------------------------------------------
+  // TI CHIF WOUJ BÒ KOTE "EKIP MWEN" — konje + èdtan k ap tann manadjè a
+  // -------------------------------------------------------------------------
+
+  function ensureBadgeStyles() {
+    if (document.getElementById('konbit-nav-badge-css')) return;
+    const style = document.createElement('style');
+    style.id = 'konbit-nav-badge-css';
+    style.textContent = `
+      .nav-item:has(.nav-badge) { display: flex; align-items: center; gap: 8px; }
+      .nav-badge {
+        margin-inline-start: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px;
+        display: inline-flex; align-items: center; justify-content: center;
+        background: #e5484d; color: #fff; font-size: 12px; font-weight: 700; line-height: 1;
+      }
+    `;
+    document.head.append(style);
+  }
+
+  let currentRole = null;
+
+  /** Mete ajou ti chif la. Paj Ekip mwen rele sa apre yon apwobasyon. */
+  async function refreshInboxBadge() {
+    if (!MANAGERS.includes(currentRole)) return;
+    const link = document.querySelector('#sidebar a[href="team.html"]');
+    if (!link) return;
+    try {
+      const c = await api.get('/api/team/inbox-count');
+      ensureBadgeStyles();
+      let badge = link.querySelector('.nav-badge');
+      if (!c.total) {
+        if (badge) badge.remove();
+        return;
+      }
+      if (!badge) {
+        badge = h('span', { class: 'nav-badge' });
+        link.append(badge);
+      }
+      badge.textContent = c.total > 99 ? '99+' : String(c.total);
+      badge.setAttribute('aria-label', t('{n} bagay k ap tann ou', { n: c.total }));
+    } catch {
+      // Pa grav: meni an mache san chif la.
+    }
+  }
+
   /**
    * Monte kad la epi retounen idantite moun nan.
    * `allowedRoles`: si li bay, moun ki pa gen wòl sa yo voye tounen nan akèy.
@@ -203,6 +248,8 @@
     applySidebarState();
     renderSidebar(identity, active);
     renderTopbar(identity);
+    currentRole = identity.user.role;
+    refreshInboxBadge();
     return identity;
   }
 
@@ -381,5 +428,6 @@
 
   Konbit.shell = {
     mount, initials, ADMIN, OWNERS, MANAGERS, employeePicker, employeeNames, cachedName,
+    refreshInboxBadge,
   };
 })();

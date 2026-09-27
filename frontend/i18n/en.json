@@ -1064,5 +1064,17 @@
  "1 pòs louvri": "1 open position",
  "Dekonekte tablèt la": "Sign out tablet",
  "Aktive pa {name}": "Activated by {name}",
- "Dekonekte tablèt sa a? W ap bezwen yon nouvo kòd aktivasyon pou itilize l ankò.": "Sign out this tablet? You will need a new activation code to use it again."
+ "Dekonekte tablèt sa a? W ap bezwen yon nouvo kòd aktivasyon pou itilize l ankò.": "Sign out this tablet? You will need a new activation code to use it again.",
+ "Ekip mwen jodi a": "My team today",
+ "Antre jodi a": "In today",
+ "Nan travay": "At work",
+ "Fini|jounen": "Done",
+ "Absan": "Absent",
+ "Poko antre": "Not in yet",
+ "Pa gen pesonn nan ekip ou.": "There is no one on your team.",
+ "Pou apwouve": "To approve",
+ "Èdtan pou apwouve": "Hours to approve",
+ "Pa gen èdtan k ap tann ou.": "No hours waiting for you.",
+ "{n} moun gen èdtan pou apwouve pou {period}.": "{n} people have hours to approve for {period}.",
+ "{n} bagay k ap tann ou": "{n} items waiting for you"
 }

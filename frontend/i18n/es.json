@@ -1064,5 +1064,17 @@
  "1 pòs louvri": "1 puesto abierto",
  "Dekonekte tablèt la": "Desconectar la tableta",
  "Aktive pa {name}": "Activada por {name}",
- "Dekonekte tablèt sa a? W ap bezwen yon nouvo kòd aktivasyon pou itilize l ankò.": "¿Desconectar esta tableta? Necesitarás un nuevo código de activación para volver a usarla."
+ "Dekonekte tablèt sa a? W ap bezwen yon nouvo kòd aktivasyon pou itilize l ankò.": "¿Desconectar esta tableta? Necesitarás un nuevo código de activación para volver a usarla.",
+ "Ekip mwen jodi a": "Mi equipo hoy",
+ "Antre jodi a": "Llegaron hoy",
+ "Nan travay": "Trabajando",
+ "Fini|jounen": "Terminado",
+ "Absan": "Ausente",
+ "Poko antre": "Aún no llega",
+ "Pa gen pesonn nan ekip ou.": "No hay nadie en tu equipo.",
+ "Pou apwouve": "Por aprobar",
+ "Èdtan pou apwouve": "Horas por aprobar",
+ "Pa gen èdtan k ap tann ou.": "No hay horas pendientes.",
+ "{n} moun gen èdtan pou apwouve pou {period}.": "{n} persona(s) tienen horas por aprobar para {period}.",
+ "{n} bagay k ap tann ou": "{n} elementos pendientes"
 }

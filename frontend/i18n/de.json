@@ -1064,5 +1064,17 @@
  "1 pòs louvri": "1 offene Stelle",
  "Dekonekte tablèt la": "Tablet abmelden",
  "Aktive pa {name}": "Aktiviert von {name}",
- "Dekonekte tablèt sa a? W ap bezwen yon nouvo kòd aktivasyon pou itilize l ankò.": "Dieses Tablet abmelden? Sie benötigen einen neuen Aktivierungscode, um es wieder zu verwenden."
+ "Dekonekte tablèt sa a? W ap bezwen yon nouvo kòd aktivasyon pou itilize l ankò.": "Dieses Tablet abmelden? Sie benötigen einen neuen Aktivierungscode, um es wieder zu verwenden.",
+ "Ekip mwen jodi a": "Mein Team heute",
+ "Antre jodi a": "Heute gekommen",
+ "Nan travay": "Bei der Arbeit",
+ "Fini|jounen": "Fertig",
+ "Absan": "Abwesend",
+ "Poko antre": "Noch nicht da",
+ "Pa gen pesonn nan ekip ou.": "Niemand in Ihrem Team.",
+ "Pou apwouve": "Zu genehmigen",
+ "Èdtan pou apwouve": "Stunden zu genehmigen",
+ "Pa gen èdtan k ap tann ou.": "Keine Stunden ausstehend.",
+ "{n} moun gen èdtan pou apwouve pou {period}.": "{n} Person(en) haben Stunden zur Genehmigung für {period}.",
+ "{n} bagay k ap tann ou": "{n} ausstehende Einträge"
 }

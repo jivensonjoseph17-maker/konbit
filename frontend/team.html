@@ -2,6 +2,7 @@
 <html lang="ht">
 <head>
   <meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="logo.svg">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title data-i18n>Ekip mwen — KONMBIT</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -9,6 +10,47 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="theme.js"></script>
   <link rel="stylesheet" href="app.css">
+  <style>
+    /* --- Chif anlè yo --- */
+    .team-kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+    .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; }
+    .kpi .k-label { font-size: 13px; font-weight: 600; color: var(--muted); }
+    .kpi .k-value { font-size: 28px; font-weight: 800; margin-top: 4px; font-variant-numeric: tabular-nums; }
+    .kpi.warn .k-value { color: #b45309; }
+    .kpi.bad .k-value { color: #dc2626; }
+    @media (max-width: 1000px) { .team-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 560px) { .team-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+    /* --- Bouton seksyon yo (menm ak tablo de bò a) --- */
+    .dash-tabs {
+      display: flex; gap: 6px; padding: 6px; margin-bottom: 18px; overflow-x: auto;
+      background: var(--surface); border: 1px solid var(--line); border-radius: 14px; scrollbar-width: none;
+    }
+    .dash-tabs::-webkit-scrollbar { display: none; }
+    .dash-tab {
+      display: inline-flex; align-items: center; gap: 8px; flex: none;
+      padding: 10px 16px; border: 0; border-radius: 10px; cursor: pointer;
+      background: transparent; color: var(--muted); font: inherit; font-size: 14.5px; font-weight: 600; white-space: nowrap;
+    }
+    .dash-tab svg { width: 18px; height: 18px; flex: none; }
+    .dash-tab:hover { color: var(--text); background: var(--surface-2, rgba(148, 163, 184, 0.12)); }
+    .dash-tab[aria-selected="true"] { background: var(--accent, #2563eb); color: #fff; }
+    .dash-tab:focus-visible { outline: 2px solid var(--accent, #2563eb); outline-offset: 2px; }
+    .tab-count {
+      min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; font-size: 12px; font-weight: 700;
+      display: inline-flex; align-items: center; justify-content: center; background: #e5484d; color: #fff;
+    }
+    .tab-panel { display: grid; gap: 18px; }
+
+    /* --- Lis ekip la --- */
+    .member { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line); }
+    .member:first-child { border-top: 0; }
+    .member .info { flex: 1; min-width: 0; }
+    .member .name { font-weight: 700; }
+    .member .detail { color: var(--muted); font-size: 13.5px; font-variant-numeric: tabular-nums; }
+    .member .tags { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+    .card { padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-sm, 10px); display: grid; gap: 8px; }
+  </style>
 </head>
 <body>
   <div class="app">
@@ -23,8 +65,8 @@
           <p id="subtitle" data-i18n>Apwouve demann yo epi evalye travay ekip ou.</p>
         </div>
 
-        <div id="leaves"></div>
-        <div id="reviews"></div>
+        <div id="kpis"></div>
+        <div id="tabs"></div>
       </main>
     </div>
   </div>
@@ -40,8 +82,6 @@
     if (!identity) return;
 
     const isHr = ['super_admin', 'org_admin', 'hr'].includes(identity.user.role);
-    const leavesBox = document.getElementById('leaves');
-    const reviewsBox = document.getElementById('reviews');
 
     // -------------------------------------------------------------------
     // ZOUTI
@@ -56,7 +96,7 @@
     }
 
     function panel(title, meta, ...children) {
-      return h('section', { class: 'panel', style: 'margin-top: 20px;' },
+      return h('section', { class: 'panel' },
         h('div', { class: 'panel-head' },
           h('h2', {}, title),
           meta !== null && meta !== undefined ? h('span', { class: 'meta' }, String(meta)) : null,
@@ -96,17 +136,105 @@
       return shell.cachedName(id) || t('Anplwaye #{id}', { id });
     }
 
-    /** "Fòs:" + tèks la, oswa anyen si pa gen tèks. */
     function labeled(label, text) {
       if (!text) return null;
       return h('div', {}, h('span', { class: 'sub' }, `${label} `), text);
     }
 
     // -------------------------------------------------------------------
-    // DEMANN KONJE K AP TANN
+    // ESTATI JODI A — tèks yo dirèkteman anndan t() pou check_i18n.py
     // -------------------------------------------------------------------
 
-    function leaveCard(item) {
+    const STATUS = {
+      working: () => [t('Nan travay'), 'badge-approved'],
+      done: () => [t('Fini|jounen'), 'badge-cancelled'],
+      missing_out: () => [t('San klòk out'), 'badge-late'],
+      on_leave: () => [t('An konje'), 'badge-pending'],
+      absent: () => [t('Absan'), 'badge-rejected'],
+      not_yet: () => [t('Poko antre'), 'badge-cancelled'],
+      off: () => [t('Repo|orè'), 'badge-cancelled'],
+      no_record: () => [t('Poko antre'), 'badge-cancelled'],
+    };
+
+    function badge(status) {
+      const [label, cls] = STATUS[status] ? STATUS[status]() : [status, ''];
+      return h('span', { class: `badge ${cls}` }, label);
+    }
+
+    // -------------------------------------------------------------------
+    // CHIF ANLÈ YO + JODI A
+    // -------------------------------------------------------------------
+
+    const kpiBox = document.getElementById('kpis');
+    const todayBody = h('div', {}, h('p', { class: 'loading' }, t('Ap chaje…')));
+    let todayTimer = null;
+
+    function kpi(label, value, cls) {
+      return h('div', { class: `kpi ${cls || ''}` },
+        h('div', { class: 'k-label' }, label),
+        h('div', { class: 'k-value' }, String(value)));
+    }
+
+    function memberRow(m) {
+      const bits = [];
+      if (m.shift_start) bits.push(`${t('Orè')}: ${m.shift_start}–${m.shift_end}`);
+      if (m.clock_in_at) {
+        bits.push(`${fmt.time(m.clock_in_at)} → ${m.clock_out_at ? fmt.time(m.clock_out_at) : '…'}`);
+      }
+      if (m.worked_minutes != null) bits.push(fmt.duration(m.worked_minutes));
+      if (m.leave_type) bits.push(fmt.leaveType(m.leave_type));
+
+      return h('div', { class: 'member' },
+        h('span', { class: 'avatar', 'aria-hidden': 'true' }, shell.initials(m.employee_name)),
+        h('div', { class: 'info' },
+          h('a', { class: 'name plain-link', href: `employee.html?id=${m.employee_id}` }, m.employee_name),
+          h('div', { class: 'detail' }, [m.employee_number, ...bits].join(' · ')),
+        ),
+        h('div', { class: 'tags' },
+          m.late ? h('span', { class: 'badge badge-late' }, t('An reta')) : null,
+          badge(m.status),
+        ),
+      );
+    }
+
+    async function loadToday() {
+      clearTimeout(todayTimer);
+      try {
+        const d = await api.get('/api/team/today');
+        const c = d.counts;
+        kpiBox.replaceChildren(h('div', { class: 'team-kpis' },
+          kpi(t('Antre jodi a'), c.working + c.done + c.missing_out),
+          kpi(t('Nan travay'), c.working),
+          kpi(t('An reta'), d.late_count, d.late_count ? 'warn' : ''),
+          kpi(t('Absan'), c.absent, c.absent ? 'bad' : ''),
+          kpi(t('An konje'), c.on_leave),
+        ));
+
+        // Moun ki bezwen atansyon an premye: absan, an reta, san klòk out.
+        const order = { absent: 0, missing_out: 1, working: 2, not_yet: 3, done: 4, on_leave: 5, no_record: 6, off: 7 };
+        const items = [...d.items].sort((a, b) =>
+          (order[a.status] - order[b.status]) || (Number(b.late) - Number(a.late)));
+
+        todayBody.replaceChildren(items.length
+          ? h('div', {}, ...items.map(memberRow))
+          : h('p', { class: 'empty' }, t('Pa gen pesonn nan ekip ou.')));
+      } catch (err) {
+        todayBody.replaceChildren(h('p', { class: 'empty' }, errorMessage(err)));
+      }
+      todayTimer = setTimeout(loadToday, 60000);
+    }
+
+    function todaySection() {
+      return panel(t('Ekip mwen jodi a'), fmt.longDate(new Date()), todayBody);
+    }
+
+    // -------------------------------------------------------------------
+    // POU APWOUVE — konje + èdtan
+    // -------------------------------------------------------------------
+
+    const approvalsBox = h('div', { class: 'tab-panel' });
+
+    function leaveCard(item, reload) {
       const r = item.request;
       const msg = h('p', { class: 'field-error', role: 'status', style: 'margin: 0;' });
       const note = input(`note-${r.id}`, '', {
@@ -121,10 +249,8 @@
         btn.disabled = true;
         msg.textContent = '';
         try {
-          await api.post(`/api/leaves/${r.id}/decide`, {
-            approve, note: note.value.trim() || null,
-          });
-          await loadLeaves();
+          await api.post(`/api/leaves/${r.id}/decide`, { approve, note: note.value.trim() || null });
+          await reload();
         } catch (err) {
           msg.textContent = errorMessage(err);
           btn.disabled = false;
@@ -136,9 +262,7 @@
       approveBtn.addEventListener('click', () => decide(true, approveBtn));
       rejectBtn.addEventListener('click', () => decide(false, rejectBtn));
 
-      return h('div', {
-        style: 'padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); display: grid; gap: 8px;',
-      },
+      return h('div', { class: 'card' },
         h('div', { style: 'display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap;' },
           h('strong', {}, `${item.employee_name} · ${item.employee_number}`),
           h('span', { class: 'badge badge-pending' }, fmt.leaveType(r.leave_type)),
@@ -153,23 +277,43 @@
       );
     }
 
-    async function loadLeaves() {
-      const title = t('Demann konje k ap tann');
-      try {
-        const data = await api.get('/api/leaves/pending');
-        leavesBox.replaceChildren(panel(title, data.total,
-          data.items.length
-            ? h('div', { style: 'display: grid; gap: 12px;' }, ...data.items.map(leaveCard))
-            : h('p', { class: 'empty' }, t('Pa gen okenn demann k ap tann ou.')),
-        ));
-      } catch (err) {
-        leavesBox.replaceChildren(panel(title, null, h('p', { class: 'empty' }, errorMessage(err))));
+    async function loadApprovals() {
+      const [leaves, count] = await Promise.allSettled([
+        api.get('/api/leaves/pending'),
+        api.get('/api/team/inbox-count'),
+      ]);
+
+      const leavePanel = leaves.status === 'fulfilled'
+        ? panel(t('Demann konje k ap tann'), leaves.value.total,
+            leaves.value.items.length
+              ? h('div', { style: 'display: grid; gap: 12px;' },
+                  ...leaves.value.items.map((it) => leaveCard(it, refreshApprovals)))
+              : h('p', { class: 'empty' }, t('Pa gen okenn demann k ap tann ou.')))
+        : panel(t('Demann konje k ap tann'), null, h('p', { class: 'empty' }, errorMessage(leaves.reason)));
+
+      let hoursContent = h('p', { class: 'empty' }, t('Pa gen èdtan k ap tann ou.'));
+      let hoursCount = 0;
+      if (count.status === 'fulfilled' && count.value.timesheets) {
+        hoursCount = count.value.timesheets;
+        hoursContent = h('div', { class: 'card' },
+          h('div', {}, t('{n} moun gen èdtan pou apwouve pou {period}.',
+            { n: count.value.timesheets, period: count.value.period_name || '' })),
+          h('div', {}, h('a', { class: 'btn btn-primary btn-sm', href: 'timesheets.html' }, t('Ale nan Tan travay'))),
+        );
       }
+
+      approvalsBox.replaceChildren(
+        leavePanel,
+        panel(t('Èdtan pou apwouve'), hoursCount, hoursContent),
+      );
+      return count.status === 'fulfilled' ? count.value.total : 0;
     }
 
     // -------------------------------------------------------------------
-    // EVALYASYON
+    // EVALYASYON (menm jan ak anvan)
     // -------------------------------------------------------------------
+
+    const reviewsBox = h('div', {});
 
     function reviewRow(r) {
       const msg = h('span', { class: 'field-error', role: 'status' });
@@ -192,9 +336,7 @@
         });
       }
 
-      return h('div', {
-        style: 'padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); display: grid; gap: 6px;',
-      },
+      return h('div', { class: 'card', style: 'gap: 6px;' },
         h('div', { style: 'display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap;' },
           h('strong', {}, r.period_label ? `${personName(r.employee_id)} · ${r.period_label}` : personName(r.employee_id)),
           done ? h('span', { class: 'badge badge-approved' }, t('Finalize|estati'))
@@ -214,8 +356,6 @@
 
     function reviewForm() {
       const msg = h('p', { class: 'field-error', role: 'status' });
-      // Pèsonn pa evalye tèt li: nou retire moun ki konekte a nan rezilta yo.
-      // Pou yon manadjè, API a bay sèlman moun ki anba l.
       const myEmpId = identity.employee_id || null;
       const who = shell.employeePicker({ id: 'rv-who', excludeIds: myEmpId ? [myEmpId] : [] });
       const label = input('rv-label', '', { maxlength: '100', placeholder: t('Egz: 2026 — 2yèm semès') });
@@ -294,6 +434,82 @@
     }
 
     // -------------------------------------------------------------------
+    // BOUTON SEKSYON YO — chwa a rete nan #hash la
+    // -------------------------------------------------------------------
+
+    const ICONS = {
+      users: ['M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1', 'M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
+        'M22 19v-1a4 4 0 0 0-3-3.9', 'M16 4.1a3 3 0 0 1 0 5.8'],
+      check: ['M4 12l5 5L20 6'],
+      star: ['M12 3l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9z'],
+    };
+
+    function icon(name) {
+      const NS = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(NS, 'svg');
+      for (const [k, v] of Object.entries({
+        viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.8',
+        'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true',
+      })) svg.setAttribute(k, v);
+      for (const d of ICONS[name]) {
+        const path = document.createElementNS(NS, 'path');
+        path.setAttribute('d', d);
+        svg.append(path);
+      }
+      return svg;
+    }
+
+    const approvalsCount = h('span', { class: 'tab-count', hidden: true });
+
+    async function refreshApprovals() {
+      const total = await loadApprovals();
+      approvalsCount.textContent = String(total);
+      approvalsCount.hidden = !total;
+      shell.refreshInboxBadge();
+    }
+
+    const TABS = [
+      { id: 'jodi-a', label: t('Jodi a'), icon: 'users', el: todaySection() },
+      { id: 'pou-apwouve', label: t('Pou apwouve'), icon: 'check', el: approvalsBox, extra: approvalsCount },
+      { id: 'evalyasyon', label: t('Evalyasyon'), icon: 'star', el: reviewsBox },
+    ];
+
+    const panelBox = h('div', { class: 'tab-panel', role: 'tabpanel', id: 'team-panel' });
+    const buttons = TABS.map((tab) => {
+      const btn = h('button', {
+        class: 'dash-tab', type: 'button', role: 'tab', id: `tab-${tab.id}`,
+        'aria-controls': 'team-panel', 'aria-selected': 'false', tabindex: '-1',
+      }, icon(tab.icon), h('span', {}, tab.label), tab.extra || null);
+      btn.addEventListener('click', () => select(tab.id, true));
+      return btn;
+    });
+
+    function select(id, fromClick) {
+      const index = Math.max(0, TABS.findIndex((tb) => tb.id === id));
+      buttons.forEach((b, i) => {
+        b.setAttribute('aria-selected', String(i === index));
+        b.tabIndex = i === index ? 0 : -1;
+      });
+      panelBox.setAttribute('aria-labelledby', `tab-${TABS[index].id}`);
+      panelBox.replaceChildren(TABS[index].el);
+      if (fromClick) history.replaceState(null, '', `#${TABS[index].id}`);
+    }
+
+    const bar = h('div', { class: 'dash-tabs', role: 'tablist', 'aria-label': t('Seksyon yo') }, ...buttons);
+    bar.addEventListener('keydown', (e) => {
+      if (!['ArrowRight', 'ArrowLeft'].includes(e.key)) return;
+      const current = buttons.findIndex((b) => b.getAttribute('aria-selected') === 'true');
+      const rtl = document.documentElement.dir === 'rtl';
+      const step = (e.key === 'ArrowRight') !== rtl ? 1 : -1;
+      const next = (current + step + buttons.length) % buttons.length;
+      select(TABS[next].id, true);
+      buttons[next].focus();
+    });
+    window.addEventListener('hashchange', () => select(location.hash.slice(1), false));
+
+    document.getElementById('tabs').append(bar, panelBox);
+
+    // -------------------------------------------------------------------
     // DEMARAJ
     // -------------------------------------------------------------------
 
@@ -302,7 +518,8 @@
         t('Tout demann ki ap tann nan biznis la, ak evalyasyon yo.');
     }
 
-    await Promise.all([loadLeaves(), loadReviews()]);
+    select(location.hash.slice(1), false);
+    await Promise.all([loadToday(), refreshApprovals(), loadReviews()]);
   })();
   </script>
 </body>

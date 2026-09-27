@@ -23,7 +23,7 @@ from .routers import (
     auth, employees, hierarchy, attendance, leaves,
     payroll, training, feedback,
     jobs, applications, offers, application_questions, timesheets,
-    calculator, schedules, positions, portal, kiosk,
+    calculator, schedules, positions, portal, kiosk, team,
 )
 
 # --- Router ki poko pare ---
@@ -195,6 +195,8 @@ app.include_router(positions.router,    prefix="/api/positions",    tags=["Pozis
 app.include_router(portal.router,       prefix="/api/portal",       tags=["Pòtay anplwaye"])
 # Kiyòsk: tablèt biznis la + kòd pèsonèl (header X-Kiosk-Token)
 app.include_router(kiosk.router,        prefix="/api/kiosk",        tags=["Kiyòsk"])
+# Paj manadjè a: ekip mwen jodi a, konbyen bagay k ap tann
+app.include_router(team.router,         prefix="/api/team",         tags=["Ekip"])
 app.include_router(
     application_questions.router,
     prefix="/api/application-questions",

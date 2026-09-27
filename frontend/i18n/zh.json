@@ -1064,5 +1064,17 @@
  "1 pòs louvri": "1 个职位空缺",
  "Dekonekte tablèt la": "注销平板",
  "Aktive pa {name}": "由 {name} 激活",
- "Dekonekte tablèt sa a? W ap bezwen yon nouvo kòd aktivasyon pou itilize l ankò.": "注销此平板？再次使用需要新的激活码。"
+ "Dekonekte tablèt sa a? W ap bezwen yon nouvo kòd aktivasyon pou itilize l ankò.": "注销此平板？再次使用需要新的激活码。",
+ "Ekip mwen jodi a": "今日团队",
+ "Antre jodi a": "今日到岗",
+ "Nan travay": "在岗",
+ "Fini|jounen": "已下班",
+ "Absan": "缺勤",
+ "Poko antre": "尚未到岗",
+ "Pa gen pesonn nan ekip ou.": "您的团队中没有成员。",
+ "Pou apwouve": "待审批",
+ "Èdtan pou apwouve": "待审批工时",
+ "Pa gen èdtan k ap tann ou.": "没有待您审批的工时。",
+ "{n} moun gen èdtan pou apwouve pou {period}.": "{n} 人在 {period} 有待审批的工时。",
+ "{n} bagay k ap tann ou": "{n} 项待处理"
 }
