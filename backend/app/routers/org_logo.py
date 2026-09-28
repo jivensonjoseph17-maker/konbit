@@ -237,7 +237,9 @@ def public_logo(org_slug: str, request: Request, db: DbSession):
         .first()
     )
     if row is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sa ou chèche a pa egziste.")
+        # San `detail`: FastAPI mete "Not Found", e main.py tradui l ("Sa ou chèche a
+        # pa egziste.") menm jan ak yon wout ki pa egziste. Pa ekri tèks la isit.
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
     etag = f'"{row.sha256[:32]}"'
     # ?v=<hash> nan lyen an: kontni an pa janm chanje pou lyen sa a.
