@@ -37,7 +37,7 @@ def test_bank_file_has_full_account_and_net(client, org_admin, make_employee):
     rows = _csv(client.get(f"/api/payroll/periods/{pid}/export/bank", headers=h))
     assert rows[0][0] == "Nimewo"
     line = next(r for r in rows if r[0] == emp["employee_number"])
-    assert line[2] == "direct_deposit" and line[4] == "1234567890"
+    assert line[2] == "Depo dirèk" and line[4] == "1234567890"
     assert line[5] == f"{slip['net_amount'] / 100:.2f}"
     assert rows[-1][0] == "TOTAL" and rows[-1][5] == line[5]
 

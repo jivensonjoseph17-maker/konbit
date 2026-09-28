@@ -489,8 +489,11 @@
      */
     function reportsBox(period) {
       const msg = h('p', { class: 'field-error', role: 'status' });
+      // Excel an franse: ";" kòm separatè ak vigil desimal (backend: ?excel=true).
+      const excelBox = h('input', { type: 'checkbox', id: `csv-excel-${period.id}` });
       const kinds = [
         ['bank', t('Fichye bank / MonCash')],
+        ['checks', t('Chèk ak kach')],
         ['ona', 'ONA'],
         ['ofatma', 'OFATMA'],
         ['dgi', t('DGI (IRI ak retni)')],
@@ -501,7 +504,8 @@
           msg.textContent = '';
           btn.disabled = true;
           try {
-            await api.download(`/api/payroll/periods/${period.id}/export/${kind}`,
+            await api.download(
+              `/api/payroll/periods/${period.id}/export/${kind}${excelBox.checked ? '?excel=true' : ''}`,
               `${kind}-${period.start_date}.csv`);
           } catch (err) {
             msg.textContent = errorMessage(err);
@@ -518,6 +522,8 @@
         h('p', { class: 'hint', style: 'display: block; margin: 4px 0 10px;' },
           t('Fichye CSV pou Excel. Fichye bank lan gen nimewo kont konplè yo: chak telechajman ekri nan jounal odit la. Yon kontab dwe verifye rapò yo anvan ou soumèt yo.')),
         h('div', { style: 'display: flex; gap: 8px; flex-wrap: wrap;' }, ...buttons),
+        h('label', { class: 'check', for: excelBox.id, style: 'margin-top: 10px;' },
+          excelBox, h('span', {}, t('Fòma Excel an franse (; ak vigil)'))),
         msg,
       );
     }

@@ -319,6 +319,20 @@
       renderLogo();
     }
 
+    /** Mete logo ba anlè a ajou touswit (shell.js rann li yon sèl fwa, lè paj la chaje). */
+    async function refreshTopbarLogo() {
+      const slot = document.querySelector('#topbar .topbar-org');
+      if (!slot) return;
+      try {
+        const identity = await api.get('/api/auth/identity');
+        slot.querySelectorAll('.topbar-logo').forEach((el) => el.remove());
+        const img = shell.orgLogo(identity.organization_logo_url, 'topbar-logo');
+        if (img) slot.prepend(img);
+      } catch {
+        // Pa grav: ba a ap ajou lè paj la rechaje.
+      }
+    }
+
     $('logo-pick').addEventListener('click', () => $('f-logo-file').click());
 
     $('f-logo-file').addEventListener('change', async () => {
@@ -334,6 +348,7 @@
         uploadedLogo = await api.put('/api/organization/logo', { data_base64: await readBase64(file) });
         logoStatus(t('Logo a anrejistre.'));
         renderLogo();
+        refreshTopbarLogo();
       } catch (err) {
         logoStatus(errorMessage(err), true);
       } finally {
@@ -348,6 +363,7 @@
         uploadedLogo = await api.del('/api/organization/logo');
         logoStatus(t('Logo a retire.'));
         renderLogo();
+        refreshTopbarLogo();
       } catch (err) {
         logoStatus(errorMessage(err), true);
       } finally {

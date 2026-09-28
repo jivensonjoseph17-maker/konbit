@@ -82,6 +82,22 @@ app.add_middleware(
 )
 
 
+def cors_headers_for(request: Request) -> dict[str, str]:
+    """
+    Header CORS pou yon repons ki PA pase nan CORSMiddleware la (erè 500 yo).
+    Sèlman pou yon orijin ki nan lis la — pa janm "*".
+    """
+    origin = request.headers.get("origin")
+    if not origin or origin not in origins:
+        return {}
+    return {
+        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Expose-Headers": "Content-Disposition",
+        "Vary": "Origin",
+    }
+
+
 # ---------------------------------------------------------------------------
 # JESYON ERÈ
 #
@@ -130,6 +146,10 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     """
     Nan pwodiksyon nou pa janm voye detay yon erè entèn bay kliyan an —
     trace la ka gen non tab, chemen fichye, menm valè done.
+
+    Starlette voye erè sa yo depi ServerErrorMiddleware, ki DEYÒ
+    CORSMiddleware. San cors_headers_for(), navigatè a bloke repons lan
+    epi frontend lan di "Nou pa ka rive jwenn sèvè a" olye vrè mesaj la.
     """
     logger.exception("Erè pa jere sou %s %s", request.method, request.url.path)
     detail = (
@@ -140,6 +160,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={"detail": detail},
+        headers=cors_headers_for(request),
     )
 
 
@@ -184,7 +205,7 @@ app.include_router(hierarchy.router, prefix="/api/hierarchy", tags=["Òganigram"
 app.include_router(attendance.router, prefix="/api/attendance", tags=["Prezans"])
 app.include_router(leaves.router,     prefix="/api/leaves",     tags=["Konje"])
 app.include_router(payroll.router,    prefix="/api/payroll",    tags=["Pewòl"])
-# Rapò ONA / OFATMA / DGI ak fichye bank (CSV)
+# Rapò ONA / OFATMA / DGI, fichye bank ak lis chèk/kach (CSV)
 app.include_router(payroll_exports.router, prefix="/api/payroll", tags=["Pewòl"])
 app.include_router(training.router,   prefix="/api/training",   tags=["Fòmasyon"])
 app.include_router(feedback.router,   prefix="/api/feedback",   tags=["Fidbak"])
