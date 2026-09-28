@@ -24,7 +24,7 @@ from .routers import (
     payroll, training, feedback,
     jobs, applications, offers, application_questions, timesheets,
     calculator, schedules, positions, portal, kiosk, team, admin, organization,
-    payroll_exports,
+    payroll_exports, audit,
 )
 
 # --- Router ki poko pare ---
@@ -204,6 +204,8 @@ app.include_router(team.router,         prefix="/api/team",         tags=["Ekip"
 app.include_router(admin.router,        prefix="/api/admin",        tags=["Tablo jesyon"])
 # Paramèt biznis: non, logo, fizo orè, lajan, frekans pewòl
 app.include_router(organization.router, prefix="/api/organization", tags=["Paramèt biznis"])
+# Jounal odit: kiyès ki fè kisa (administratè biznis la sèlman)
+app.include_router(audit.router,        prefix="/api/audit",        tags=["Jounal odit"])
 app.include_router(
     application_questions.router,
     prefix="/api/application-questions",

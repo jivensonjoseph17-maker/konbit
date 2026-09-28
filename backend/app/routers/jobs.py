@@ -123,7 +123,8 @@ def _is_open(job: JobPosting) -> bool:
     return closes > datetime.now(timezone.utc)
 
 
-def _to_public(job: JobPosting, company_name: Optional[str]) -> JobPostingPublic:
+def _to_public(job: JobPosting, company_name: Optional[str],
+               company_logo: Optional[str] = None) -> JobPostingPublic:
     """
     Vèsyon piblik la. Nou konstwi l chan pa chan eksprè: konsa si yon jou
     yon moun ajoute yon chan sansib nan modèl la, li p ap koule isit.
@@ -142,6 +143,7 @@ def _to_public(job: JobPosting, company_name: Optional[str]) -> JobPostingPublic
         published_at=job.published_at,
         closes_at=job.closes_at,
         company_name=company_name,
+        company_logo=company_logo,
         # Salè a parèt SÈLMAN si HR chwazi montre l
         salary_min=job.salary_min if job.show_salary else None,
         salary_max=job.salary_max if job.show_salary else None,
@@ -207,7 +209,7 @@ def public_jobs(
         company_name=org.name,
         company_logo=org.logo_url,
         total=len(jobs),
-        items=[_to_public(j, org.name) for j in jobs],
+        items=[_to_public(j, org.name, org.logo_url) for j in jobs],
     )
 
 
@@ -232,7 +234,7 @@ def public_job_detail(org_slug: str, job_slug: str, db: DbSession):
     job.view_count = (job.view_count or 0) + 1
     db.commit()
 
-    return _to_public(job, org.name)
+    return _to_public(job, org.name, org.logo_url)
 
 
 # ---------------------------------------------------------------------------

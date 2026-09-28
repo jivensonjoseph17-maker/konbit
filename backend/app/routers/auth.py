@@ -351,6 +351,7 @@ def change_password(
 class Identity(BaseModel):
     user: UserOut
     organization_name: Optional[str] = None
+    organization_logo_url: Optional[str] = None
     employee_id: Optional[int] = None
     employee_number: Optional[str] = None
     department_id: Optional[int] = None
@@ -371,6 +372,7 @@ def read_identity(user: CurrentUser, db: DbSession):
     return Identity(
         user=UserOut.model_validate(user),
         organization_name=org.name if org else None,
+        organization_logo_url=org.logo_url if org else None,
         employee_id=emp.id if emp else None,
         employee_number=emp.employee_number if emp else None,
         department_id=emp.department_id if emp else None,

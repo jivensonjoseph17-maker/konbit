@@ -42,6 +42,7 @@
       // Sèlman administratè biznis la (backend: require_admin).
       { id: 'kiosk', label: 'Pwentaj ak tablèt', href: 'kiosk-settings.html', roles: OWNERS },
       { id: 'settings', label: 'Paramèt biznis', href: 'settings.html', roles: OWNERS },
+      { id: 'audit', label: 'Jounal odit', href: 'audit.html', roles: OWNERS },
     ] },
     { group: 'Ekip', roles: MANAGERS, items: [
       { id: 'team', label: 'Ekip mwen', href: 'team.html' },
@@ -112,6 +113,47 @@
     );
   }
 
+  // -------------------------------------------------------------------------
+  // LOGO BIZNIS LA (lyen ki nan Paramèt biznis). Imaj la parèt sèlman lè l
+  // fin chaje; si lyen an kase, non biznis la rete pou kont li. Pa gen
+  // "Referer": sit logo a pa konnen ki paj moun nan te sou li.
+  // -------------------------------------------------------------------------
+
+  function ensureLogoStyles() {
+    if (document.getElementById('konbit-org-logo-css')) return;
+    const style = document.createElement('style');
+    style.id = 'konbit-org-logo-css';
+    style.textContent = `
+      .topbar-org { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
+      .topbar-logo {
+        height: 30px; width: auto; max-width: 110px; object-fit: contain; flex: none;
+        padding: 3px; border-radius: 7px; background: #fff;
+      }
+    `;
+    document.head.append(style);
+  }
+
+  /** <img> logo a, oswa null si lyen an pa http(s). */
+  function orgLogo(url, cls) {
+    if (!url) return null;
+    let src = null;
+    try {
+      const u = new URL(url);
+      if (u.protocol === 'https:' || u.protocol === 'http:') src = u.href;
+    } catch {
+      return null;
+    }
+    if (!src) return null;
+    ensureLogoStyles();
+    const img = h('img', { class: cls || '', src, decoding: 'async' });
+    img.alt = '';
+    img.referrerPolicy = 'no-referrer';
+    img.hidden = true;
+    img.addEventListener('load', () => { img.hidden = false; });
+    img.addEventListener('error', () => img.remove());
+    return img;
+  }
+
   function renderTopbar(identity) {
     const bar = document.getElementById('topbar');
     if (!bar) return;
@@ -146,7 +188,9 @@
     bar.replaceChildren(
       h('div', { class: 'topbar-left' },
         menuBtn,
-        h('span', { class: 'topbar-org' }, identity.organization_name || ''),
+        h('span', { class: 'topbar-org' },
+          orgLogo(identity.organization_logo_url, 'topbar-logo'),
+          identity.organization_name || ''),
       ),
       h('div', { class: 'topbar-user' },
         h('div', { class: 'user-chip' },
@@ -430,6 +474,6 @@
 
   Konbit.shell = {
     mount, initials, ADMIN, OWNERS, MANAGERS, employeePicker, employeeNames, cachedName,
-    refreshInboxBadge,
+    refreshInboxBadge, orgLogo,
   };
 })();

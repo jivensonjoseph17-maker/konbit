@@ -30,6 +30,9 @@
       display: grid; place-items: center; font-size: 22px; font-weight: 800; color: #fff;
       background: linear-gradient(135deg, #1d4ed8, #0b1f4b);
     }
+    /* Logo biznis la nan kare a (fon blan: logo yo souvan fèt pou fon klè) */
+    .c-avatar.has-logo { background: #fff; border: 1px solid var(--line); padding: 6px; }
+    .c-avatar img { width: 100%; height: 100%; object-fit: contain; display: block; }
     .c-hero .company { font-size: 14px; font-weight: 600; color: var(--muted); margin: 0 0 2px; }
     .c-hero h1 { margin: 0; font-size: clamp(26px, 4vw, 34px); line-height: 1.15; }
     .c-hero .count { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
@@ -215,11 +218,35 @@
       );
     }
 
-    /** Tèt paj: inisyal biznis la, non l, tit la, epi yon ti liy anba (opsyonèl). */
-    function header(companyName, title, subline) {
+    /** Lyen logo a si li http(s), sinon null (pa janm "javascript:" ni "data:"). */
+    function safeLogo(url) {
+      return url && isHttpUrl(url) ? new URL(url).href : null;
+    }
+
+    /**
+     * Kare anlè a: inisyal biznis la touswit, epi logo a ranplase yo lè l
+     * fin chaje. Si lyen logo a kase, inisyal yo rete.
+     */
+    function avatar(companyName, logoUrl) {
+      const box = h('div', { class: 'c-avatar', 'aria-hidden': 'true' }, initials(companyName));
+      const src = safeLogo(logoUrl);
+      if (src) {
+        const img = h('img', { src, decoding: 'async' });
+        img.alt = '';
+        img.referrerPolicy = 'no-referrer';
+        img.addEventListener('load', () => {
+          box.classList.add('has-logo');
+          box.replaceChildren(img);
+        });
+      }
+      return box;
+    }
+
+    /** Tèt paj: logo (oswa inisyal) biznis la, non l, tit la, epi yon ti liy anba (opsyonèl). */
+    function header(companyName, title, subline, logoUrl) {
       document.title = companyName ? `${title} — ${companyName}` : title;
       return h('div', { class: 'c-hero' },
-        h('div', { class: 'c-avatar', 'aria-hidden': 'true' }, initials(companyName)),
+        avatar(companyName, logoUrl),
         h('div', {},
           companyName ? h('p', { class: 'company' }, companyName) : null,
           h('h1', {}, title),
@@ -274,7 +301,8 @@
       const n = data.items.length;
       content.replaceChildren(
         header(data.company_name, t('Travay disponib'),
-          n ? (n === 1 ? t('1 pòs louvri') : t('{n} pòs louvri', { n })) : null),
+          n ? (n === 1 ? t('1 pòs louvri') : t('{n} pòs louvri', { n })) : null,
+          data.company_logo),
         n > 5 ? h('div', { style: 'margin-bottom: 16px;' }, search) : null,
         list,
       );
@@ -549,7 +577,7 @@
         : t('Ekip la ap gade l epi n ap kontakte w si pwofil ou koresponn ak pozisyon an.');
 
       content.replaceChildren(
-        header(job.company_name || '', t('Mèsi!')),
+        header(job.company_name || '', t('Mèsi!'), null, job.company_logo),
         h('section', { class: 'panel' },
           h('p', { style: 'margin: 0 0 10px; font-weight: 600;' },
             t('Aplikasyon w pou "{title}" rive.', { title: job.title })),
@@ -586,7 +614,7 @@
 
       content.replaceChildren(
         h('a', { class: 'back-link', href: listUrl() }, t('Tout pòs yo')),
-        header(job.company_name || '', job.title),
+        header(job.company_name || '', job.title, null, job.company_logo),
         metaLine(job),
         textSection(t('Deskripsyon'), job.description),
         textSection(t('Responsablite'), job.responsibilities),

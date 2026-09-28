@@ -498,6 +498,7 @@ class JobPostingPublic(BaseModel):
     published_at: Optional[datetime] = None
     closes_at: Optional[datetime] = None
     company_name: Optional[str] = None
+    company_logo: Optional[str] = None     # lyen logo biznis la (Paramèt biznis)
     # Ranpli SÈLMAN lè HR tcheke `show_salary` (gade jobs._to_public)
     salary_min: Optional[int] = None
     salary_max: Optional[int] = None

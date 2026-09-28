@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n>Jounal odit — KONMBIT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="app.css">
+  <style>
+    .audit-filters {
+      display: grid; gap: 12px; align-items: end; margin-bottom: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    }
+    .audit-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+    .audit-bar .spacer { flex: 1; }
+    .audit-sub { color: var(--muted); font-size: 12px; }
+    .audit-when { white-space: nowrap; }
+    .audit-detail { max-width: 440px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; }
+    /* Aksyon sansib: ba wouj agoch liy lan + non aksyon an an wouj */
+    tr.is-sensitive > td:first-child { box-shadow: inset 3px 0 0 #e5484d; }
+    tr.is-sensitive .audit-act { color: #e5484d; font-weight: 600; }
+    .audit-badge { margin-inline-start: 6px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside id="sidebar"></aside>
+
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+
+      <main class="page">
+        <div class="page-head">
+          <h1 data-i18n>Jounal odit</h1>
+          <p data-i18n>Kiyès ki fè kisa, ki lè, epi sou ki aparèy. Aksyon sansib yo make an wouj.</p>
+        </div>
+
+        <form class="audit-filters" id="filters" novalidate>
+          <div class="field">
+            <label for="f-from" data-i18n>Depi dat</label>
+            <input class="input" type="date" id="f-from">
+          </div>
+          <div class="field">
+            <label for="f-to" data-i18n>Jiska dat</label>
+            <input class="input" type="date" id="f-to">
+          </div>
+          <div class="field">
+            <label for="f-user" data-i18n="Moun|odit">Moun</label>
+            <select class="select" id="f-user"></select>
+          </div>
+          <div class="field">
+            <label for="f-action" data-i18n>Aksyon</label>
+            <select class="select" id="f-action"></select>
+          </div>
+          <div class="field">
+            <label for="f-q" data-i18n>Chèche</label>
+            <input class="input" type="search" id="f-q" maxlength="100" autocomplete="off"
+                   data-i18n-attr="placeholder" placeholder="Mo nan detay yo, non oswa imel">
+          </div>
+        </form>
+
+        <div class="audit-bar">
+          <label class="check">
+            <input type="checkbox" id="f-sensitive">
+            <span data-i18n>Sèlman aksyon sansib</span>
+          </label>
+          <button class="btn btn-quiet btn-sm" type="button" id="reset" data-i18n>Efase filtè yo</button>
+          <span class="spacer"></span>
+          <span class="audit-sub" id="count"></span>
+          <button class="btn btn-ghost btn-sm" type="button" id="csv" data-i18n>Telechaje CSV</button>
+        </div>
+
+        <p class="field-error" id="msg" role="alert"></p>
+
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col" data-i18n>Dat ak lè</th>
+                <th scope="col" data-i18n="Moun|odit">Moun</th>
+                <th scope="col" data-i18n>Aksyon</th>
+                <th scope="col" class="hide-sm" data-i18n>Sou kisa</th>
+                <th scope="col" data-i18n>Detay</th>
+                <th scope="col" class="hide-sm" data-i18n>Adrès IP</th>
+              </tr>
+            </thead>
+            <tbody id="rows">
+              <tr><td colspan="6" class="loading" data-i18n>Ap chaje…</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pager" id="pager" hidden>
+          <span id="pager-label"></span>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-ghost btn-sm" type="button" id="prev" data-i18n>Anvan</button>
+            <button class="btn btn-ghost btn-sm" type="button" id="next" data-i18n>Apre</button>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script src="shell.js"></script>
+  <script>
+  (async function () {
+    'use strict';
+    const { api, fmt, h, ApiError, shell, t } = Konbit;
+
+    // Backend la: require_admin. HR pa wè paj sa a.
+    const identity = await shell.mount('audit', shell.OWNERS);
+    if (!identity) return;
+
+    const $ = (id) => document.getElementById(id);
+    const PAGE_SIZE = 50;
+    const EXPORT_LIMIT = 5000;     // menm limit ak backend/app/routers/audit.py
+    const DETAIL_MAX = 280;
+    const state = { page: 1, total: 0 };
+
+    // Non aksyon yo. Yon aksyon nou pa konnen parèt jan backend la ekri l.
+    const ACTIONS = {
+      create: () => t('Kreye|odit'),
+      update: () => t('Modifye|odit'),
+      delete: () => t('Efase|odit'),
+      view: () => t('Gade|odit'),
+      login: () => t('Koneksyon|odit'),
+      logout: () => t('Dekoneksyon|odit'),
+      change_password: () => t('Chanje modpas|odit'),
+      view_sensitive: () => t('Gade done sansib'),
+      reset_password: () => t('Nouvo modpas tanporè'),
+      change_role: () => t('Chanje wòl'),
+      terminate: () => t('Mete deyò|odit'),
+      reactivate: () => t('Remete|odit'),
+      run_payroll: () => t('Kalkile pewòl'),
+      approve: () => t('Apwouve|odit'),
+      mark_paid: () => t('Make peye|odit'),
+      change_pay_date: () => t('Chanje dat peman|odit'),
+      download_pdf: () => t('Telechaje fich PDF'),
+      adjust: () => t('Ajiste fich peye'),
+      export: () => t('Telechaje rapò'),
+      activate: () => t('Aktive tablèt'),
+      revoke: () => t('Dezaktive tablèt'),
+      kiosk_pin_set: () => t('Nouvo kòd pwentaj'),
+      kiosk_pin_lock: () => t('Kòd pwentaj bloke'),
+      kiosk_device_lock: () => t('Tablèt bloke'),
+    };
+    const ENTITIES = {
+      employee: () => t('Anplwaye|odit'),
+      user: () => t('Kont|odit'),
+      organization: () => t('Biznis|odit'),
+      organization_settings: () => t('Paramèt biznis'),
+      pay_period: () => t('Peryòd pewòl'),
+      payslip: () => t('Fich peye|odit'),
+      kiosk_device: () => t('Tablèt|odit'),
+      audit_log: () => t('Jounal odit'),
+    };
+    const actionLabel = (a) => (ACTIONS[a] ? ACTIONS[a]() : a);
+    const entityLabel = (e) => (ENTITIES[e] ? ENTITIES[e]() : e);
+
+    function errorMessage(err) {
+      let msg = err instanceof ApiError ? err.message : t('Yon bagay pa mache.');
+      if (err && err.fields && err.fields.length) {
+        msg += ' ' + err.fields.map((f) => `${f.field}: ${f.message}`).join('; ');
+      }
+      return msg;
+    }
+
+    function params() {
+      const p = new URLSearchParams();
+      if ($('f-from').value) p.set('date_from', $('f-from').value);
+      if ($('f-to').value) p.set('date_to', $('f-to').value);
+      if ($('f-user').value) p.set('user_id', $('f-user').value);
+      if ($('f-action').value) p.set('action', $('f-action').value);
+      const q = $('f-q').value.trim();
+      if (q) p.set('q', q);
+      if ($('f-sensitive').checked) p.set('sensitive_only', 'true');
+      return p;
+    }
+
+    // ---------------------------------------------------------------------
+    // LIS DEWOULAN YO (sèlman valè ki nan jounal biznis la)
+    // ---------------------------------------------------------------------
+
+    async function loadFilters() {
+      const keepUser = $('f-user').value;
+      const keepAction = $('f-action').value;
+      let data = { actions: [], users: [] };
+      try {
+        data = await api.get('/api/audit/filters');
+      } catch {
+        // Pa grav: lis la mache san filtè sa yo.
+      }
+      $('f-user').replaceChildren(
+        h('option', { value: '' }, t('Tout moun')),
+        ...data.users.map((u) => h('option', { value: String(u.id) }, u.name)),
+      );
+      const actions = data.actions
+        .map((a) => [a, actionLabel(a)])
+        .sort((x, y) => x[1].localeCompare(y[1]));
+      $('f-action').replaceChildren(
+        h('option', { value: '' }, t('Tout aksyon')),
+        ...actions.map(([value, label]) => h('option', { value }, label)),
+      );
+      $('f-user').value = keepUser;
+      $('f-action').value = keepAction;
+    }
+
+    // ---------------------------------------------------------------------
+    // TABLO A
+    // ---------------------------------------------------------------------
+
+    function row(e) {
+      const detail = e.changes || '';
+      const short = detail.length > DETAIL_MAX ? `${detail.slice(0, DETAIL_MAX)}…` : detail;
+      return h('tr', e.sensitive ? { class: 'is-sensitive' } : {},
+        h('td', { class: 'audit-when' },
+          fmt.date(e.local_date),
+          h('div', { class: 'audit-sub' }, e.local_time)),
+        h('td', {},
+          e.user_name || t('Tablèt / sistèm'),
+          e.user_email ? h('div', { class: 'audit-sub' }, e.user_email) : null),
+        h('td', {},
+          h('span', { class: 'audit-act' }, actionLabel(e.action)),
+          e.sensitive ? h('span', { class: 'badge badge-cancelled audit-badge' }, t('Sansib')) : null),
+        h('td', { class: 'hide-sm' },
+          entityLabel(e.entity_type) + (e.entity_id ? ` #${e.entity_id}` : '')),
+        h('td', {},
+          h('div', { class: 'audit-detail', title: detail.length > DETAIL_MAX ? detail : '' }, short || '—')),
+        h('td', { class: 'hide-sm' }, e.ip_address || '—'),
+      );
+    }
+
+    function renderPager() {
+      const pages = Math.max(1, Math.ceil(state.total / PAGE_SIZE));
+      $('pager').hidden = pages <= 1;
+      $('pager-label').textContent = t('Paj {page} sou {pages}', { page: state.page, pages });
+      $('prev').disabled = state.page <= 1;
+      $('next').disabled = state.page >= pages;
+    }
+
+    async function load() {
+      const p = params();
+      p.set('page', String(state.page));
+      p.set('size', String(PAGE_SIZE));
+      $('msg').textContent = '';
+      const body = $('rows');
+      try {
+        const data = await api.get(`/api/audit?${p}`);
+        state.total = data.total;
+        $('count').textContent = data.total === 1 ? t('1 liy') : t('{n} liy', { n: data.total });
+        body.replaceChildren(...(data.items.length
+          ? data.items.map(row)
+          : [h('tr', {}, h('td', { colspan: '6', class: 'empty' },
+              t('Pa gen anyen nan jounal la pou filtè sa yo.')))]));
+        renderPager();
+      } catch (err) {
+        body.replaceChildren(h('tr', {}, h('td', { colspan: '6', class: 'field-error' }, errorMessage(err))));
+        $('pager').hidden = true;
+      }
+    }
+
+    function reload() {
+      state.page = 1;
+      load();
+    }
+
+    // ---------------------------------------------------------------------
+    // AKSYON
+    // ---------------------------------------------------------------------
+
+    ['f-from', 'f-to', 'f-user', 'f-action', 'f-sensitive'].forEach((id) => {
+      $(id).addEventListener('change', reload);
+    });
+
+    let searchTimer = null;
+    $('f-q').addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(reload, 300);
+    });
+    $('filters').addEventListener('submit', (e) => { e.preventDefault(); reload(); });
+
+    $('reset').addEventListener('click', () => {
+      $('filters').reset();
+      $('f-sensitive').checked = false;
+      reload();
+    });
+
+    $('prev').addEventListener('click', () => { if (state.page > 1) { state.page -= 1; load(); } });
+    $('next').addEventListener('click', () => { state.page += 1; load(); });
+
+    $('csv').addEventListener('click', async () => {
+      $('csv').disabled = true;
+      $('msg').textContent = '';
+      try {
+        await api.download(`/api/audit/export?${params()}`, 'jounal-odit.csv');
+        if (state.total > EXPORT_LIMIT) {
+          $('msg').textContent = t('CSV la gen sèlman {n} premye liy yo. Chwazi dat pou jwenn rès la.', { n: EXPORT_LIMIT });
+        }
+        // Telechajman an li menm antre nan jounal la.
+        await loadFilters();
+        await load();
+      } catch (err) {
+        $('msg').textContent = errorMessage(err);
+      } finally {
+        $('csv').disabled = false;
+      }
+    });
+
+    await loadFilters();
+    await load();
+  })();
+  </script>
+</body>
+</html>
