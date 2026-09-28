@@ -633,6 +633,10 @@ class TimeEntryOut(BaseModel):
     overtime_minutes: int
     status: AttendanceStatus
     adjustment_reason: Optional[str] = None
+    # Zòn otorize (routers/geofence.py)
+    clock_in_distance_m: Optional[int] = None
+    clock_out_distance_m: Optional[int] = None
+    outside_zone: bool = False
 
 
 class TimeEntryAdjust(BaseModel):

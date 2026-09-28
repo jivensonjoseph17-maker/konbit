@@ -183,6 +183,12 @@ class Organization(Base, TimestampMixin):
     clock_mode = Column(String(10), default="phone", nullable=False, server_default="phone")
     # Chak konbyen tan biznis la peye: "weekly", "biweekly", "semimonthly", "monthly".
     pay_frequency = Column(String(12), default="monthly", nullable=False, server_default="monthly")
+    # Zòn otorize pou pwentaj sou telefòn (routers/geofence.py):
+    # "off" (pa verifye), "flag" (make l pou HR), "block" (refize klòk in).
+    geofence_mode = Column(String(10), default="off", nullable=False, server_default="off")
+    geofence_lat = Column(Numeric(10, 7))
+    geofence_lng = Column(Numeric(10, 7))
+    geofence_radius_m = Column(Integer)
     is_active = Column(Boolean, default=True, nullable=False)
 
     users = relationship("User", back_populates="organization")
@@ -476,6 +482,12 @@ class TimeEntry(Base, TimestampMixin):
     clock_out_lng = Column(Numeric(10, 7))
     clock_in_ip = Column(String(45))
     device_info = Column(String(255))           # "kiosk:<id> <non>" si se tablèt la
+
+    # Zòn otorize (routers/geofence.py): distans ak pozisyon biznis la, an mèt.
+    # outside_zone: twò lwen, oswa moun nan pa t pataje pozisyon l (pou HR).
+    clock_in_distance_m = Column(Integer)
+    clock_out_distance_m = Column(Integer)
+    outside_zone = Column(Boolean, default=False, nullable=False, server_default=false())
 
     # Koreksyon HR
     adjusted_by_id = Column(Integer, ForeignKey("users.id"))

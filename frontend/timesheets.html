@@ -79,6 +79,12 @@
       return h('span', { class: `badge ${cls}` }, key ? t(key) : status);
     }
 
+    /** Distans GPS yo (mèt) pou badj "Andeyò zòn nan". */
+    function zoneTitle(e) {
+      const d = (m) => (m == null ? t('pa gen pozisyon') : `${m} m`);
+      return t('Antre: {a} · Sòti: {b}', { a: d(e.clock_in_distance_m), b: d(e.clock_out_distance_m) });
+    }
+
     function stat(label, value) {
       return h('div', { class: 'stat' }, h('div', { class: 'n' }, String(value)), h('div', { class: 't' }, label));
     }
@@ -115,6 +121,11 @@
               h('td', { class: 'num-col' }, e.overtime_minutes ? fmt.duration(e.overtime_minutes) : '—'),
               h('td', {},
                 badge(ENTRY_STATUS, e.status),
+                e.outside_zone
+                  ? h('span', {
+                    class: 'badge badge-cancelled', style: 'margin-inline-start: 6px;', title: zoneTitle(e),
+                  }, t('Andeyò zòn nan'))
+                  : null,
                 // Rezon an ekri pa HR, jan li ekri l la.
                 e.adjustment_reason ? h('div', { class: 'sub', style: 'font-size: 12px;' }, e.adjustment_reason) : null),
             ))),

@@ -194,7 +194,7 @@
     }
 
     /** Pozisyon GPS pou klòk in. Si moun nan refize, nou kontinye san li. */
-    function getPosition(timeoutMs = 6000) {
+    function getPosition(timeoutMs = 10000) {
       return new Promise((resolve) => {
         if (!navigator.geolocation) return resolve({});
         navigator.geolocation.getCurrentPosition(
@@ -203,7 +203,8 @@
             longitude: Number(pos.coords.longitude.toFixed(7)),
           }),
           () => resolve({}),
-          { timeout: timeoutMs, maximumAge: 60000 },
+          // Pi presi pou zòn otorize a; pozisyon ki gen plis pase 30 s pa konte.
+          { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 30000 },
         );
       });
     }
@@ -356,7 +357,9 @@
         try {
           let finished = null;
           if (clockedIn) {
+            const outPos = await getPosition();
             finished = await api.post('/api/attendance/clock-out', {
+              ...outPos,
               break_minutes: Number(breakSelect.value),
             });
           } else {

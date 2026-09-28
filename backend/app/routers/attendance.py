@@ -62,6 +62,7 @@ from .timesheets import timesheet_locked
 logger = logging.getLogger("konbit")
 
 from ..clock_mode import ensure_phone_clock_allowed
+from .geofence import check_clock_location
 
 router = APIRouter()
 
@@ -213,6 +214,9 @@ def clock_in(
             ),
         )
 
+    # Zòn otorize: mòd "block" ka refize isit la (403).
+    zone = check_clock_location(db, org_id, payload.latitude, payload.longitude, enforce=True)
+
     now = _now()
     tz = _org_tz(db, org_id)
     entry = TimeEntry(
@@ -223,6 +227,8 @@ def clock_in(
         status=AttendanceStatus.OPEN,
         clock_in_lat=payload.latitude,
         clock_in_lng=payload.longitude,
+        clock_in_distance_m=zone.distance_m,
+        outside_zone=zone.outside,
         clock_in_ip=request.client.host if request.client else None,
         device_info=(payload.device_info or request.headers.get("user-agent", ""))[:255],
     )
@@ -277,6 +283,10 @@ def clock_out(
     entry.break_minutes = payload.break_minutes
     entry.clock_out_lat = payload.latitude
     entry.clock_out_lng = payload.longitude
+    # Klòk out pa janm bloke (jounen an ta rete louvri): nou make l sèlman.
+    zone = check_clock_location(db, org_id, payload.latitude, payload.longitude, enforce=False)
+    entry.clock_out_distance_m = zone.distance_m
+    entry.outside_zone = bool(entry.outside_zone) or zone.outside
 
     worked, overtime = _compute_minutes(entry)
     entry.worked_minutes = worked

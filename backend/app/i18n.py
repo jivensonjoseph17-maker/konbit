@@ -627,6 +627,16 @@ _ROWS: list[tuple[str, str, str]] = [
     ("Imaj la twò piti. Li dwe gen omwen 16 piksèl chak bò.",
      "L'image est trop petite. Elle doit faire au moins 16 pixels de chaque côté.",
      "The image is too small. It must be at least 16 pixels on each side."),
+    # --- Zòn otorize (geofence.py) ---
+    ("Pataje pozisyon telefòn ou pou w ka pwente: biznis la mande sa.",
+     "Partagez la position de votre téléphone pour pointer : l'entreprise l'exige.",
+     "Share your phone's location to clock in: your business requires it."),
+    ("Ou twò lwen biznis la pou w pwente. Rapwoche w, oswa pale ak manadjè w.",
+     "Vous êtes trop loin de l'entreprise pour pointer. Rapprochez-vous ou parlez à votre responsable.",
+     "You are too far from the business to clock in. Move closer or talk to your manager."),
+    ("Mete pozisyon biznis la ak yon distans anvan ou aktive zòn nan.",
+     "Indiquez la position de l'entreprise et une distance avant d'activer la zone.",
+     "Set the business location and a distance before turning on the zone."),
 ]
 
 MESSAGES: dict[str, dict[str, str]] = {ht: {"fr": fr, "en": en} for ht, fr, en in _ROWS}

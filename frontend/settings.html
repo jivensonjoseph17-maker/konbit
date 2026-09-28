@@ -32,6 +32,11 @@
     .mode-option .t { font-weight: 700; }
     .mode-option .d { color: var(--muted); font-size: 14px; display: block; margin-top: 2px; }
     .mode-option:has(input:checked) { border-color: var(--accent, #2563eb); }
+    .geo { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); display: grid; gap: 12px; }
+    .geo-title { font-size: 15.5px; margin: 0; }
+    .geo .hint { display: block; margin: 0; }
+    .geo-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    #geo-status.is-error { color: #e5484d; }
     .save-bar {
       position: sticky; bottom: 0; z-index: 5; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
       padding: 14px 18px; border: 1px solid var(--line); border-radius: 14px;
@@ -176,6 +181,40 @@
                 <span><span class="t" data-i18n>Toulède</span>
                   <span class="d" data-i18n>Anplwaye yo ka pwente sou telefòn yo oswa sou tablèt la.</span></span>
               </label>
+            </div>
+
+            <div class="geo">
+              <h3 class="geo-title" data-i18n>Zòn otorize pou telefòn</h3>
+              <p class="hint" data-i18n>Lè yon anplwaye pwente sou telefòn li, nou konpare pozisyon GPS li ak pozisyon biznis la. Tablèt la pa konsène.</p>
+              <div class="grid-2">
+                <div class="field">
+                  <label for="f-geo-mode" data-i18n>Si moun nan twò lwen</label>
+                  <select class="select" id="f-geo-mode">
+                    <option value="off" data-i18n>Pa verifye</option>
+                    <option value="flag" data-i18n>Aksepte, men make l pou HR</option>
+                    <option value="block" data-i18n>Refize pwentaj la</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="f-geo-radius" data-i18n>Distans maksimòm (mèt)</label>
+                  <input class="input" id="f-geo-radius" type="number" min="50" max="5000" step="10" inputmode="numeric" placeholder="150">
+                  <span class="hint" data-i18n>Omwen 50 m. GPS telefòn nan ka rate 20 a 50 m anndan yon bilding.</span>
+                </div>
+                <div class="field">
+                  <label for="f-geo-lat" data-i18n>Latitid</label>
+                  <input class="input" id="f-geo-lat" type="number" step="any" min="-90" max="90" inputmode="decimal" placeholder="18.5392">
+                </div>
+                <div class="field">
+                  <label for="f-geo-lng" data-i18n>Lonjitid</label>
+                  <input class="input" id="f-geo-lng" type="number" step="any" min="-180" max="180" inputmode="decimal" placeholder="-72.3350">
+                </div>
+              </div>
+              <div class="geo-actions">
+                <button class="btn btn-ghost btn-sm" type="button" id="geo-here" data-i18n>Sèvi ak pozisyon mwen kounye a</button>
+                <a class="plain-link" id="geo-map" target="_blank" rel="noopener noreferrer" hidden data-i18n>Wè l sou kat la</a>
+                <span class="hint" id="geo-status" role="status"></span>
+              </div>
+              <p class="hint" data-i18n>Klòk out pa janm bloke: moun nan ka toujou fini jounen li. Yon telefòn ka bay yon fo pozisyon: pou yon prèv, sèvi ak tablèt la.</p>
             </div>
           </section>
 
@@ -373,6 +412,94 @@
 
     loadLogoFile();
 
+    // ---------------------------------------------------------------------
+    // ZÒN OTORIZE (GPS) — anrejistre ak bouton "Anrejistre chanjman yo"
+    // ---------------------------------------------------------------------
+
+    let originalGeo = null;
+    const GEO_KEYS = ['mode', 'latitude', 'longitude', 'radius_m'];
+
+    function geoStatus(text, isError) {
+      $('geo-status').textContent = text;
+      $('geo-status').classList.toggle('is-error', Boolean(isError));
+    }
+
+    function geoNumber(id) {
+      const raw = $(id).value.trim();
+      if (raw === '') return null;
+      const n = Number(raw);
+      return Number.isFinite(n) ? n : NaN;
+    }
+
+    /** Lyen OpenStreetMap pou verifye pozisyon an (chif sèlman, pa tèks moun tape). */
+    function updateMapLink() {
+      const lat = geoNumber('f-geo-lat');
+      const lng = geoNumber('f-geo-lng');
+      const ok = lat !== null && lng !== null && Number.isFinite(lat) && Number.isFinite(lng)
+        && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+      $('geo-map').hidden = !ok;
+      if (ok) $('geo-map').href = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=18/${lat}/${lng}`;
+    }
+
+    function fillGeo(g) {
+      originalGeo = g;
+      $('f-geo-mode').value = g.mode;
+      $('f-geo-lat').value = g.latitude ?? '';
+      $('f-geo-lng').value = g.longitude ?? '';
+      $('f-geo-radius').value = g.radius_m ?? '';
+      updateMapLink();
+    }
+
+    /** { body, changed } oswa { error } si mòd la aktive san pozisyon/distans. */
+    function readGeofence() {
+      const body = {
+        mode: $('f-geo-mode').value,
+        latitude: geoNumber('f-geo-lat'),
+        longitude: geoNumber('f-geo-lng'),
+        radius_m: geoNumber('f-geo-radius'),
+      };
+      if (Number.isFinite(body.radius_m)) body.radius_m = Math.round(body.radius_m);
+      const missing = [body.latitude, body.longitude, body.radius_m].some((v) => v === null || Number.isNaN(v));
+      if (body.mode !== 'off' && missing) {
+        return { error: t('Mete pozisyon biznis la ak yon distans anvan ou aktive zòn nan.') };
+      }
+      const changed = !originalGeo || GEO_KEYS.some((k) => body[k] !== originalGeo[k]);
+      return { body, changed };
+    }
+
+    async function loadGeofence() {
+      try {
+        fillGeo(await api.get('/api/organization/geofence'));
+      } catch (err) {
+        geoStatus(errorMessage(err), true);
+      }
+    }
+
+    ['f-geo-lat', 'f-geo-lng'].forEach((id) => $(id).addEventListener('input', updateMapLink));
+
+    $('geo-here').addEventListener('click', () => {
+      if (!navigator.geolocation) { geoStatus(t('Navigatè sa a pa ka bay pozisyon.'), true); return; }
+      $('geo-here').disabled = true;
+      geoStatus(t('Ap chèche pozisyon an…'));
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          $('f-geo-lat').value = pos.coords.latitude.toFixed(6);
+          $('f-geo-lng').value = pos.coords.longitude.toFixed(6);
+          if (!$('f-geo-radius').value) $('f-geo-radius').value = '150';
+          updateMapLink();
+          geoStatus(t('Pozisyon an pran (presizyon: {m} m). Peze Anrejistre.', { m: Math.round(pos.coords.accuracy) }));
+          $('geo-here').disabled = false;
+        },
+        () => {
+          geoStatus(t('Nou pa ka jwenn pozisyon an. Otorize navigatè a, oswa tape l.'), true);
+          $('geo-here').disabled = false;
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+      );
+    });
+
+    loadGeofence();
+
     $('form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const msg = $('msg');
@@ -404,6 +531,14 @@
       if ($('f-freq').value !== original.pay_frequency) patch.pay_frequency = $('f-freq').value;
       const mode = (document.querySelector('input[name="mode"]:checked') || {}).value;
 
+      const geo = readGeofence();
+      if (geo.error) {
+        msg.className = 'msg field-error';
+        msg.textContent = geo.error;
+        $('f-geo-mode').focus();
+        return;
+      }
+
       $('save').disabled = true;
       try {
         let saved = original;
@@ -412,12 +547,13 @@
           await api.put('/api/kiosk/settings', { clock_mode: mode });
           saved = { ...saved, clock_mode: mode };
         }
+        if (geo.changed) fillGeo(await api.put('/api/organization/geofence', geo.body));
         fill(saved);
         msg.className = 'msg alert alert-ok';
         msg.textContent = t('Chanjman an anrejistre.');
         // Non biznis la nan ba anlè a
         const org = document.querySelector('.topbar-org');
-        if (org && patch.name) org.textContent = saved.name;
+        if (org && patch.name) org.replaceChildren(...org.querySelectorAll('.topbar-logo'), saved.name);
       } catch (err) {
         msg.className = 'msg field-error';
         msg.textContent = errorMessage(err);
