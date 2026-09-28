@@ -764,6 +764,26 @@ class AuditLog(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
+from sqlalchemy import LargeBinary  # noqa: E402 — pou logo biznis la
+
+
+class OrganizationLogo(Base):
+    """
+    Logo biznis la kòm fichye (routers/org_logo.py). Yon liy pa biznis.
+    `data` se yon PNG NOU MENM te kreye apre netwayaj (maks 512 px).
+    """
+    __tablename__ = "organization_logos"
+
+    organization_id = Column(Integer, ForeignKey("organizations.id"), primary_key=True)
+    data = Column(LargeBinary, nullable=False)
+    content_type = Column(String(30), nullable=False)
+    sha256 = Column(String(64), nullable=False)
+    width = Column(Integer, nullable=False)
+    height = Column(Integer, nullable=False)
+    updated_by_id = Column(Integer, ForeignKey("users.id"))
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
 class Notification(Base, TimestampMixin):
     __tablename__ = "notifications"
 

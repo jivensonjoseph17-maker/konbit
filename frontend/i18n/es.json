@@ -1198,5 +1198,17 @@
  "Fich peye|odit": "Recibo de pago",
  "Tablèt|odit": "Tableta",
  "Chanje dat peman|odit": "Fecha de pago cambiada",
- "Telechaje fich PDF": "Recibo descargado (PDF)"
+ "Telechaje fich PDF": "Recibo descargado (PDF)",
+ "Chwazi yon fichye": "Elegir un archivo",
+ "Retire logo a": "Quitar el logotipo",
+ "PNG, JPG oswa WEBP, maksimòm 2 Mo. Li parèt sou fich peye yo, paj karyè a ak ba anlè aplikasyon an.": "PNG, JPG o WEBP, máximo 2 MB. Aparece en los recibos, la página de empleo y la barra superior.",
+ "Oswa mete yon lyen https:// (fichye a pase devan lyen an).": "O indique un enlace https:// (el archivo tiene prioridad sobre el enlace).",
+ "Nou pa ka li imaj sa a. Eseye yon lòt fichye.": "No se pudo leer esta imagen. Pruebe con otro archivo.",
+ "Fichye: {w} × {h} piksèl": "Archivo: {w} × {h} píxeles",
+ "Chwazi yon imaj PNG, JPG oswa WEBP.": "Elija una imagen PNG, JPG o WEBP.",
+ "Imaj la twò gwo. Maksimòm 2 Mo.": "La imagen es demasiado grande. Máximo 2 MB.",
+ "Logo a anrejistre.": "Logotipo guardado.",
+ "Retire logo a? Fich peye yo ak paj karyè a ap retounen san logo.": "¿Quitar el logotipo? Los recibos y la página de empleo quedarán sin logotipo.",
+ "Logo a retire.": "Logotipo quitado.",
+ "Logo biznis|odit": "Logotipo de la empresa"
 }

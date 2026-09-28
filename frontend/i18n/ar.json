@@ -1198,5 +1198,17 @@
  "Fich peye|odit": "قسيمة الراتب",
  "Tablèt|odit": "جهاز لوحي",
  "Chanje dat peman|odit": "تغيير تاريخ الدفع",
- "Telechaje fich PDF": "تنزيل قسيمة الراتب (PDF)"
+ "Telechaje fich PDF": "تنزيل قسيمة الراتب (PDF)",
+ "Chwazi yon fichye": "اختر ملفًا",
+ "Retire logo a": "إزالة الشعار",
+ "PNG, JPG oswa WEBP, maksimòm 2 Mo. Li parèt sou fich peye yo, paj karyè a ak ba anlè aplikasyon an.": "PNG أو JPG أو WEBP، بحد أقصى 2 ميغابايت. يظهر على قسائم الرواتب وصفحة الوظائف والشريط العلوي.",
+ "Oswa mete yon lyen https:// (fichye a pase devan lyen an).": "أو أدخل رابط https:// (الملف له الأولوية على الرابط).",
+ "Nou pa ka li imaj sa a. Eseye yon lòt fichye.": "تعذّرت قراءة هذه الصورة. جرّب ملفًا آخر.",
+ "Fichye: {w} × {h} piksèl": "الملف: {w} × {h} بكسل",
+ "Chwazi yon imaj PNG, JPG oswa WEBP.": "اختر صورة PNG أو JPG أو WEBP.",
+ "Imaj la twò gwo. Maksimòm 2 Mo.": "الصورة كبيرة جدًا. الحد الأقصى 2 ميغابايت.",
+ "Logo a anrejistre.": "تم حفظ الشعار.",
+ "Retire logo a? Fich peye yo ak paj karyè a ap retounen san logo.": "إزالة الشعار؟ لن تظهر قسائم الرواتب وصفحة الوظائف بشعار بعد الآن.",
+ "Logo a retire.": "تمت إزالة الشعار.",
+ "Logo biznis|odit": "شعار المنشأة"
 }

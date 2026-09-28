@@ -138,7 +138,8 @@
     if (!url) return null;
     let src = null;
     try {
-      const u = new URL(url);
+      // "/api/logos/…" (fichye a) → adrès API a devan; yon lyen https rete jan l ye.
+      const u = new URL(url, Konbit.API_URL);
       if (u.protocol === 'https:' || u.protocol === 'http:') src = u.href;
     } catch {
       return null;

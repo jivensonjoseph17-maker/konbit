@@ -611,6 +611,22 @@ _ROWS: list[tuple[str, str, str]] = [
     ("Apwouve pewòl la anvan ou telechaje rapò yo.",
      "Approuvez la paie avant de télécharger les rapports.",
      "Approve the payroll before downloading the reports."),
+    # --- Logo biznis la (org_logo.py) ---
+    ("Imaj la twò gwo. Maksimòm 2 Mo.",
+     "L'image est trop lourde. Maximum 2 Mo.",
+     "The image is too large. Maximum 2 MB."),
+    ("Chwazi yon imaj PNG, JPG oswa WEBP.",
+     "Choisissez une image PNG, JPG ou WEBP.",
+     "Choose a PNG, JPG or WEBP image."),
+    ("Nou pa ka li imaj sa a. Eseye yon lòt fichye.",
+     "Impossible de lire cette image. Essayez un autre fichier.",
+     "We could not read this image. Try another file."),
+    ("Imaj la twò gwo an piksèl. Maksimòm 6000 × 6000.",
+     "L'image est trop grande en pixels. Maximum 6000 × 6000.",
+     "The image is too large in pixels. Maximum 6000 × 6000."),
+    ("Imaj la twò piti. Li dwe gen omwen 16 piksèl chak bò.",
+     "L'image est trop petite. Elle doit faire au moins 16 pixels de chaque côté.",
+     "The image is too small. It must be at least 16 pixels on each side."),
 ]
 
 MESSAGES: dict[str, dict[str, str]] = {ht: {"fr": fr, "en": en} for ht, fr, en in _ROWS}

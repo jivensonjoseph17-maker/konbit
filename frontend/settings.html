@@ -22,6 +22,9 @@
     }
     .logo-preview img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
     .logo-row .field { flex: 1; min-width: 240px; margin: 0; }
+    .logo-upload { display: grid; gap: 8px; min-width: 200px; max-width: 280px; }
+    .logo-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    #logo-status.is-error { color: #e5484d; }
     .mode-options { display: grid; gap: 10px; }
     .mode-option { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px;
       border: 1px solid var(--line); border-radius: var(--radius-sm, 10px); cursor: pointer; }
@@ -101,6 +104,14 @@
             <div class="panel-head"><h2 id="s-logo" data-i18n>Logo</h2></div>
             <div class="logo-row">
               <div class="logo-preview" id="logo-preview" aria-hidden="true"></div>
+              <div class="logo-upload">
+                <input type="file" id="f-logo-file" accept="image/png,image/jpeg,image/webp" hidden>
+                <div class="logo-actions">
+                  <button class="btn btn-primary btn-sm" type="button" id="logo-pick" data-i18n>Chwazi yon fichye</button>
+                  <button class="btn btn-quiet btn-sm" type="button" id="logo-remove" hidden data-i18n>Retire logo a</button>
+                </div>
+                <span class="hint" id="logo-status" role="status" data-i18n>PNG, JPG oswa WEBP, maksimòm 2 Mo. Li parèt sou fich peye yo, paj karyè a ak ba anlè aplikasyon an.</span>
+              </div>
               <div class="field">
                 <label for="f-logo" data-i18n>Lyen logo a</label>
                 <input class="input" id="f-logo" type="url" maxlength="500" placeholder="https://…">
@@ -227,11 +238,19 @@
         .map((p) => p[0].toUpperCase()).join('');
     }
 
-    /** Apèsi logo a: imaj la si lyen an bon, sinon inisyal biznis la. */
+    // Fichye logo a (GET /api/organization/logo). Li pase devan lyen an.
+    let uploadedLogo = null;
+
+    /** Apèsi logo a: fichye a, sinon lyen an si l bon, sinon inisyal biznis la. */
     function renderLogo() {
       const box = $('logo-preview');
-      const url = $('f-logo').value.trim();
-      if (/^https?:\/\//i.test(url)) {
+      const link = $('f-logo').value.trim();
+      const hasFile = Boolean(uploadedLogo && uploadedLogo.has_file);
+      $('logo-remove').hidden = !hasFile;
+      const url = hasFile
+        ? new URL(uploadedLogo.url, Konbit.API_URL).href
+        : (/^https?:\/\//i.test(link) ? link : '');
+      if (url) {
         const img = h('img', { src: url, alt: '' });
         img.addEventListener('error', () => box.replaceChildren(initials($('f-name').value)));
         box.replaceChildren(img);
@@ -262,6 +281,81 @@
 
     $('f-logo').addEventListener('input', renderLogo);
     $('f-name').addEventListener('input', renderLogo);
+
+    // ---------------------------------------------------------------------
+    // FICHYE LOGO A — li anrejistre touswit, san bouton "Anrejistre"
+    // ---------------------------------------------------------------------
+
+    const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+    const LOGO_MAX = 2 * 1024 * 1024;
+
+    // Ansyen tèks anba chan lyen an te di fichye ap vini "apre deplwaman".
+    const linkHint = $('f-logo').closest('.field').querySelector('.hint');
+    if (linkHint) linkHint.textContent = t('Oswa mete yon lyen https:// (fichye a pase devan lyen an).');
+
+    function logoStatus(text, isError) {
+      $('logo-status').textContent = text;
+      $('logo-status').classList.toggle('is-error', Boolean(isError));
+    }
+
+    function readBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+        reader.onerror = () => reject(new Error(t('Nou pa ka li imaj sa a. Eseye yon lòt fichye.')));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function loadLogoFile() {
+      try {
+        uploadedLogo = await api.get('/api/organization/logo');
+      } catch {
+        uploadedLogo = null;
+      }
+      if (uploadedLogo && uploadedLogo.has_file) {
+        logoStatus(t('Fichye: {w} × {h} piksèl', { w: uploadedLogo.width, h: uploadedLogo.height }));
+      }
+      renderLogo();
+    }
+
+    $('logo-pick').addEventListener('click', () => $('f-logo-file').click());
+
+    $('f-logo-file').addEventListener('change', async () => {
+      const file = $('f-logo-file').files[0];
+      $('f-logo-file').value = '';
+      if (!file) return;
+      if (!LOGO_TYPES.includes(file.type)) { logoStatus(t('Chwazi yon imaj PNG, JPG oswa WEBP.'), true); return; }
+      if (file.size > LOGO_MAX) { logoStatus(t('Imaj la twò gwo. Maksimòm 2 Mo.'), true); return; }
+
+      $('logo-pick').disabled = true;
+      logoStatus(t('Ap voye…'));
+      try {
+        uploadedLogo = await api.put('/api/organization/logo', { data_base64: await readBase64(file) });
+        logoStatus(t('Logo a anrejistre.'));
+        renderLogo();
+      } catch (err) {
+        logoStatus(errorMessage(err), true);
+      } finally {
+        $('logo-pick').disabled = false;
+      }
+    });
+
+    $('logo-remove').addEventListener('click', async () => {
+      if (!confirm(t('Retire logo a? Fich peye yo ak paj karyè a ap retounen san logo.'))) return;
+      $('logo-remove').disabled = true;
+      try {
+        uploadedLogo = await api.del('/api/organization/logo');
+        logoStatus(t('Logo a retire.'));
+        renderLogo();
+      } catch (err) {
+        logoStatus(errorMessage(err), true);
+      } finally {
+        $('logo-remove').disabled = false;
+      }
+    });
+
+    loadLogoFile();
 
     $('form').addEventListener('submit', async (e) => {
       e.preventDefault();

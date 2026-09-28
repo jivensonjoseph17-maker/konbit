@@ -38,6 +38,7 @@ from ..schemas import (
     UserOut,
 )
 from .positions import seed_default_positions
+from .org_logo import logo_url_for
 from ..security import (
     REFRESH_TOKEN,
     create_access_token,
@@ -372,7 +373,7 @@ def read_identity(user: CurrentUser, db: DbSession):
     return Identity(
         user=UserOut.model_validate(user),
         organization_name=org.name if org else None,
-        organization_logo_url=org.logo_url if org else None,
+        organization_logo_url=logo_url_for(db, org) if org else None,
         employee_id=emp.id if emp else None,
         employee_number=emp.employee_number if emp else None,
         department_id=emp.department_id if emp else None,

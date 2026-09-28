@@ -48,6 +48,7 @@ from ..models import (
     Organization,
     Position,
 )
+from .org_logo import logo_url_for
 from ..schemas import (
     JobPostingCreate,
     JobPostingOut,
@@ -205,11 +206,12 @@ def public_jobs(
 
     jobs = [j for j in query.order_by(JobPosting.published_at.desc()).all() if _is_open(j)]
 
+    logo = logo_url_for(db, org)
     return PublicJobList(
         company_name=org.name,
-        company_logo=org.logo_url,
+        company_logo=logo,
         total=len(jobs),
-        items=[_to_public(j, org.name, org.logo_url) for j in jobs],
+        items=[_to_public(j, org.name, logo) for j in jobs],
     )
 
 
@@ -234,7 +236,7 @@ def public_job_detail(org_slug: str, job_slug: str, db: DbSession):
     job.view_count = (job.view_count or 0) + 1
     db.commit()
 
-    return _to_public(job, org.name, org.logo_url)
+    return _to_public(job, org.name, logo_url_for(db, org))
 
 
 # ---------------------------------------------------------------------------

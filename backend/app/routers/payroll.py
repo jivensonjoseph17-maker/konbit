@@ -93,6 +93,7 @@ from ..i18n import SUPPORTED, resolve_language
 from ..payslip_pdf import PayslipDoc, render_payslip_pdf
 from ..timezone_utils import get_local_today, get_org_timezone
 from .timesheets import approved_employee_ids, has_time_entries
+from .org_logo import logo_png_for
 
 logger = logging.getLogger("konbit")
 
@@ -1175,6 +1176,7 @@ def payslip_pdf(
         bank_name=slip.bank_name,
         account_last4=slip.account_last4,
         transaction_ref=slip.transaction_ref,
+        logo_png=logo_png_for(db, org_id),
     )
     pdf = render_payslip_pdf(doc)
 

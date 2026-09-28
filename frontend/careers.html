@@ -220,7 +220,14 @@
 
     /** Lyen logo a si li http(s), sinon null (pa janm "javascript:" ni "data:"). */
     function safeLogo(url) {
-      return url && isHttpUrl(url) ? new URL(url).href : null;
+      if (!url) return null;
+      try {
+        // "/api/logos/…" (fichye a) → adrès API a devan; yon lyen https rete jan l ye.
+        const u = new URL(url, Konbit.API_URL);
+        return u.protocol === 'https:' || u.protocol === 'http:' ? u.href : null;
+      } catch {
+        return null;
+      }
     }
 
     /**

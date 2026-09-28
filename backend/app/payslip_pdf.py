@@ -188,6 +188,8 @@ class PayslipDoc:
     bank_name: Optional[str]
     account_last4: Optional[str]
     transaction_ref: Optional[str]
+    # Logo biznis la: PNG netwaye (routers/org_logo.py), oswa None
+    logo_png: Optional[bytes] = None
 
 
 def _money(cents: int, lang: str) -> str:
@@ -231,6 +233,28 @@ def _payment_text(doc: PayslipDoc, L: dict[str, str]) -> str:
     return m
 
 
+# Logo biznis la nan tèt fich la: yon kare 18 mm, imaj la kenbe pwopòsyon l.
+LOGO_BOX = 18 * mm
+
+
+def _logo_flowable(png: Optional[bytes]):
+    """PNG ki deja netwaye (routers/org_logo.py) → imaj reportlab, oswa None."""
+    if not png:
+        return None
+    from io import BytesIO
+
+    from reportlab.lib.utils import ImageReader
+    from reportlab.platypus import Image as RLImage
+    try:
+        iw, ih = ImageReader(BytesIO(png)).getSize()
+    except Exception:
+        return None
+    if not iw or not ih:
+        return None
+    scale = min(LOGO_BOX / iw, LOGO_BOX / ih)
+    return RLImage(BytesIO(png), width=iw * scale, height=ih * scale, mask="auto")
+
+
 def render_payslip_pdf(doc: PayslipDoc, *, compress: bool = True) -> bytes:
     L = LABELS.get(doc.lang) or LABELS["en"]
     lang = doc.lang if doc.lang in LABELS else "en"
@@ -255,8 +279,22 @@ def render_payslip_pdf(doc: PayslipDoc, *, compress: bool = True) -> bytes:
         org_lines.append(P(doc.org_address, s_small))
     if doc.org_tax_id:
         org_lines.append(P(f"{L['nif']}: {doc.org_tax_id}", s_small))
+    org_cell = org_lines
+    logo = _logo_flowable(doc.logo_png)
+    if logo is not None:
+        org_cell = Table(
+            [[logo, org_lines]],
+            colWidths=[LOGO_BOX + 4 * mm, width * 0.6 - LOGO_BOX - 4 * mm],
+            style=[
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+            ],
+        )
     head = Table(
-        [[org_lines, [P(L["title"], s_title), P(L["ref"].format(id=doc.slip_id), s_right)]]],
+        [[org_cell, [P(L["title"], s_title), P(L["ref"].format(id=doc.slip_id), s_right)]]],
         colWidths=[width * 0.6, width * 0.4],
     )
     head.setStyle(TableStyle([
