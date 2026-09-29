@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="logo.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n>Chanjman peman — KONMBIT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="app.css">
+  <style>
+    .pc-list { display: grid; gap: 12px; }
+    .pc-card { padding: 16px; border: 1px solid var(--line); border-radius: var(--radius-sm, 10px);
+      background: var(--surface); display: grid; gap: 10px; }
+    .pc-top { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .pc-change { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; font-size: 14.5px; }
+    .pc-change .arrow { color: var(--muted); }
+    .pc-change .new { font-weight: 700; }
+    .pc-meta { color: var(--muted); font-size: 13px; }
+    .pc-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .pc-actions .input { flex: 1; min-width: 200px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside id="sidebar"></aside>
+
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+
+      <main class="page">
+        <div class="page-head-row">
+          <div class="page-head">
+            <h1 data-i18n>Chanjman peman</h1>
+            <p data-i18n>Anplwaye yo mande chanje kont labank oswa MonCash yo. Chanjman an aplike sèlman lè w apwouve l.</p>
+          </div>
+          <div class="field" style="min-width: 200px;">
+            <label for="f-status" data-i18n>Estati</label>
+            <select class="select" id="f-status">
+              <option value="pending" data-i18n>Ap tann</option>
+              <option value="approved" data-i18n>Apwouve</option>
+              <option value="rejected" data-i18n="Refize|estati">Refize</option>
+              <option value="cancelled" data-i18n="Anile|estati">Anile</option>
+              <option value="all" data-i18n>Tout</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="alert alert-warn" style="margin-bottom: 16px;" data-i18n>Anvan w apwouve, rele anplwaye a oswa pale avè l an pèsòn pou w konfime se li ki fè demann lan. Yon moun ki vòlè yon kont ta ka eseye detounen salè a.</div>
+
+        <div id="list" class="pc-list"><p class="loading" data-i18n>Ap chaje…</p></div>
+      </main>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script src="shell.js"></script>
+  <script>
+  (async function () {
+    'use strict';
+    const { api, fmt, h, ApiError, shell, t } = Konbit;
+
+    const identity = await shell.mount('payment-changes', shell.ADMIN);
+    if (!identity) return;
+
+    const $ = (id) => document.getElementById(id);
+
+    const METHOD_LABELS = {
+      check: () => t('Chèk'),
+      direct_deposit: () => t('Depo dirèk'),
+      cash: () => t('Kach'),
+      moncash: () => 'MonCash',
+      natcash: () => 'NatCash',
+    };
+    const methodLabel = (m) => (METHOD_LABELS[m] ? METHOD_LABELS[m]() : m);
+
+    /** "MonCash · …3456" — bank lan ekri pa anplwaye a, jan li ekri l. */
+    function paymentText(method, bank, last4) {
+      return [methodLabel(method), bank, last4 ? `…${last4}` : null].filter(Boolean).join(' · ');
+    }
+
+    function errorMessage(err) {
+      let msg = err instanceof ApiError ? err.message : t('Yon bagay pa mache.');
+      if (err && err.fields && err.fields.length) {
+        msg += ' ' + err.fields.map((f) => `${f.field}: ${f.message}`).join('; ');
+      }
+      return msg;
+    }
+
+    function card(r) {
+      const msg = h('p', { class: 'field-error', role: 'status', style: 'margin: 0;' });
+      const parts = [
+        h('div', { class: 'pc-top' },
+          h('strong', {}, `${r.employee_name} · ${r.employee_number}`),
+          h('span', { class: `badge badge-${r.status}` }, fmt.requestStatus(r.status)),
+        ),
+        h('div', { class: 'pc-change' },
+          h('span', {}, paymentText(r.current_method, r.current_bank_name, r.current_last4)),
+          h('span', { class: 'arrow', 'aria-hidden': 'true' }, '→'),
+          h('span', { class: 'new' }, paymentText(r.method, r.bank_name, r.account_last4)),
+        ),
+        h('div', { class: 'pc-meta' }, t('Mande {date}', { date: fmt.dateTime(r.created_at) })),
+      ];
+
+      if (r.status === 'pending') {
+        const note = h('input', {
+          class: 'input', type: 'text', maxlength: '500',
+          placeholder: t('Nòt (opsyonèl)'), 'aria-label': t('Nòt pou {name}', { name: r.employee_name }),
+        });
+        const yes = h('button', { class: 'btn btn-primary btn-sm', type: 'button' }, t('Apwouve|aksyon'));
+        const no = h('button', { class: 'btn btn-danger btn-sm', type: 'button' }, t('Refize|aksyon'));
+
+        async function decide(approve) {
+          if (approve && !confirm(t('Apwouve chanjman an? Pwochen salè {name} ap peye jan li mande a.', { name: r.employee_name }))) return;
+          yes.disabled = true;
+          no.disabled = true;
+          msg.textContent = '';
+          try {
+            await api.post(`/api/payment-changes/${r.id}/decide`, { approve, note: note.value.trim() || null });
+            await load();
+          } catch (err) {
+            msg.textContent = errorMessage(err);
+            yes.disabled = false;
+            no.disabled = false;
+          }
+        }
+        yes.addEventListener('click', () => decide(true));
+        no.addEventListener('click', () => decide(false));
+        parts.push(h('div', { class: 'pc-actions' }, note, yes, no), msg);
+      } else if (r.decided_at) {
+        parts.push(h('div', { class: 'pc-meta' },
+          r.decided_by
+            ? t('{status} pa {who} · {when}', { status: fmt.requestStatus(r.status), who: r.decided_by, when: fmt.dateTime(r.decided_at) })
+            : fmt.dateTime(r.decided_at),
+          // Nòt la ekri pa HR, jan li ekri l.
+          r.decision_note ? h('div', { style: 'color: var(--text); white-space: pre-wrap;' }, `« ${r.decision_note} »`) : null));
+      }
+      return h('div', { class: 'pc-card' }, ...parts);
+    }
+
+    async function load() {
+      const list = $('list');
+      try {
+        const data = await api.get(`/api/payment-changes?status=${encodeURIComponent($('f-status').value)}`);
+        list.replaceChildren(...(data.items.length
+          ? data.items.map(card)
+          : [h('p', { class: 'empty' }, t('Pa gen demann pou filtè sa a.'))]));
+      } catch (err) {
+        list.replaceChildren(h('p', { class: 'field-error' }, errorMessage(err)));
+      }
+    }
+
+    $('f-status').addEventListener('change', load);
+    load();
+  })();
+  </script>
+</body>
+</html>

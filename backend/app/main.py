@@ -24,7 +24,7 @@ from .routers import (
     payroll, training, feedback,
     jobs, applications, offers, application_questions, timesheets,
     calculator, schedules, positions, portal, kiosk, team, admin, organization,
-    payroll_exports, audit, org_logo, geofence,
+    payroll_exports, audit, org_logo, geofence, payment_changes, my_profile,
 )
 
 # --- Router ki poko pare ---
@@ -231,6 +231,9 @@ app.include_router(audit.router,        prefix="/api/audit",        tags=["Jouna
 app.include_router(org_logo.router, tags=["Logo biznis"])
 # Zòn otorize pou pwentaj sou telefòn (GPS)
 app.include_router(geofence.router, tags=["Pwentaj"])
+# Pòtay anplwaye: Dosye mwen, kòlèg mwen; demann chanjman peman (HR apwouve)
+app.include_router(my_profile.router,      prefix="/api/profile",         tags=["Pòtay anplwaye"])
+app.include_router(payment_changes.router, prefix="/api/payment-changes", tags=["Pewòl"])
 app.include_router(
     application_questions.router,
     prefix="/api/application-questions",

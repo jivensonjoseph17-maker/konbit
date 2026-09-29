@@ -1002,6 +1002,32 @@ class KioskDevice(Base, TimestampMixin):
     revoked_at = Column(DateTime(timezone=True))
 
 
+# ---------------------------------------------------------------------------
+# DEMANN CHANJMAN PEMAN (routers/payment_changes.py)
+#
+# Yon anplwaye pa chanje kont labank / MonCash li dirèkteman: li voye yon
+# demann (ak modpas li), epi yon LÒT moun HR apwouve l. Metòd ak estati yo se
+# String (pa Enum PostgreSQL) pou migrasyon an rete senp.
+# ---------------------------------------------------------------------------
+
+class PaymentChangeRequest(Base, TimestampMixin):
+    __tablename__ = "payment_change_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), index=True, nullable=False)
+    employee_id = Column(Integer, ForeignKey("employees.id"), index=True, nullable=False)
+    requested_by_id = Column(Integer, ForeignKey("users.id"))
+
+    method = Column(String(20), nullable=False)          # check, direct_deposit, cash, moncash, natcash
+    bank_name = Column(String(150))
+    account_number = Column(String(80))                  # kont labank OSWA telefòn MonCash/NatCash
+    status = Column(String(12), default="pending", nullable=False, server_default="pending")
+
+    decided_by_id = Column(Integer, ForeignKey("users.id"))
+    decided_at = Column(DateTime(timezone=True))
+    decision_note = Column(Text)
+
+
 class KioskPairing(Base, TimestampMixin):
     """
     Kòd kout pou aktive yon tablèt: 6 karaktè ("K7P-4QX"), 10 minit, yon sèl fwa.

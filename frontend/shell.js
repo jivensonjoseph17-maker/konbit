@@ -37,6 +37,7 @@
       { id: 'positions', label: 'Pozisyon', href: 'positions.html' },
       { id: 'payroll', label: 'Pewòl', href: 'payroll.html' },
       { id: 'leave-admin', label: 'Balans konje', href: 'leave-balances.html' },
+      { id: 'payment-changes', label: 'Chanjman peman', href: 'payment-changes.html' },
       { id: 'hiring', label: 'Rekritman', href: 'jobs.html' },
       { id: 'training', label: 'Fòmasyon', href: 'training.html' },
       // Sèlman administratè biznis la (backend: require_admin).

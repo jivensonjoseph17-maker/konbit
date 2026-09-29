@@ -823,7 +823,7 @@
           ),
           d.present.length ? h('ul', { class: 'list' }, ...d.present.slice(0, 8).map((p) =>
             h('li', {},
-              h('span', {}, p.full_name),
+              h('span', {}, `${p.full_name} · ${p.employee_number}`),
               h('span', { class: 'sub' },
                 p.clocked_out
                   ? `${fmt.time(p.clock_in_at)} — ${fmt.duration(p.worked_minutes)}`
@@ -915,6 +915,247 @@
     // BA BOUTON YO — yon seksyon alafwa; chwa a rete nan #hash la
     // -----------------------------------------------------------------------
 
+    // -----------------------------------------------------------------------
+    // DOSYE MWEN — travay, kontak, ak fason m resevwa salè m
+    // -----------------------------------------------------------------------
+
+    const METHOD_LABELS = {
+      check: () => t('Chèk'),
+      direct_deposit: () => t('Depo dirèk'),
+      cash: () => t('Kach'),
+      moncash: () => 'MonCash',
+      natcash: () => 'NatCash',
+    };
+    const methodLabel = (m) => (METHOD_LABELS[m] ? METHOD_LABELS[m]() : m);
+
+    /** "MonCash · …3456" — non bank lan ekri pa anplwaye a, jan li ekri l. */
+    function paymentText(method, bank, last4) {
+      return [methodLabel(method), bank, last4 ? `…${last4}` : null].filter(Boolean).join(' · ');
+    }
+
+    function profileSection() {
+      const wrap = h('div', { class: 'tab-panel' });
+      const work = panel(t('Travay mwen'));
+      const contact = panel(t('Kontak ou'));
+      const pay = panel(t('Kijan ou resevwa salè w'));
+      wrap.append(work.el, contact.el, pay.el);
+
+      const row = (label, value) => h('div', { class: 'row' },
+        h('span', { class: 'k' }, label), h('span', {}, value || '—'));
+
+      function renderWork(p) {
+        fill(work.body,
+          h('div', { class: 'rows' },
+            row(t('Nimewo anplwaye'), p.employee_number),
+            row(t('Pozisyon'), p.position_title),
+            row(t('Depatman'), p.department_name),
+            row(t('Manadjè'), p.manager_name),
+            row(t('Dat anbochaj'), p.hire_date ? fmt.date(p.hire_date) : null),
+            row(t('Imel koneksyon'), p.login_email),
+          ),
+          h('p', { class: 'hint', style: 'display: block; margin-top: 10px;' },
+            t('Pou chanje enfòmasyon sa yo, pale ak HR.')),
+        );
+      }
+
+      function renderContact(p) {
+        const FIELDS = [
+          ['phone', t('Telefòn'), 'tel', 50],
+          ['personal_email', t('Imel pèsonèl'), 'email', 255],
+          ['address', t('Adrès'), 'text', 500],
+          ['city', t('Vil'), 'text', 100],
+          ['emergency_contact_name', t('Moun pou rele an ijans'), 'text', 200],
+          ['emergency_contact_phone', t('Telefòn moun sa a'), 'tel', 50],
+        ];
+        const inputs = {};
+        const msg = h('p', { role: 'status' });
+        const save = h('button', { class: 'btn btn-primary', type: 'submit' }, t('Anrejistre'));
+        const form = h('form', { novalidate: true },
+          h('div', { style: 'display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));' },
+            ...FIELDS.map(([key, label, type, max]) => {
+              inputs[key] = h('input', { class: 'input', id: `me-${key}`, type, maxlength: String(max) });
+              inputs[key].value = p[key] || '';
+              return h('div', { class: 'field' }, h('label', { for: `me-${key}` }, label), inputs[key]);
+            })),
+          h('div', { class: 'form-actions', style: 'margin-top: 12px;' }, save),
+          msg,
+        );
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          msg.className = '';
+          msg.textContent = '';
+          const patch = {};
+          for (const [key] of FIELDS) {
+            const value = inputs[key].value.trim();
+            if (value !== (p[key] || '')) patch[key] = value;
+          }
+          if (!Object.keys(patch).length) return;
+          save.disabled = true;
+          try {
+            const saved = await api.patch('/api/profile/me', patch);
+            Object.assign(p, saved);
+            msg.className = 'alert alert-ok';
+            msg.textContent = t('Kontak ou anrejistre.');
+          } catch (err) {
+            msg.className = 'field-error';
+            msg.textContent = errorText(err);
+          } finally {
+            save.disabled = false;
+          }
+        });
+        fill(contact.body, form);
+      }
+
+      async function renderPayment(p) {
+        const current = h('p', { class: 'pay-method', style: 'margin-top: 0;' },
+          paymentText(p.payment.method, p.payment.bank_name, p.payment.account_last4));
+        const history = h('div', {});
+        const msg = h('p', { role: 'status' });
+        const toggle = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, t('Mande yon chanjman'));
+
+        const method = h('select', { class: 'select', id: 'pc-method' },
+          ...['direct_deposit', 'moncash', 'natcash', 'check', 'cash']
+            .map((m) => h('option', { value: m }, methodLabel(m))));
+        const bank = h('input', { class: 'input', id: 'pc-bank', maxlength: '150', autocomplete: 'off' });
+        const account = h('input', { class: 'input', id: 'pc-account', maxlength: '80', autocomplete: 'off', inputmode: 'numeric' });
+        const password = h('input', { class: 'input', id: 'pc-password', type: 'password', autocomplete: 'current-password', maxlength: '200' });
+        const accountLabel = h('label', { for: 'pc-account' });
+        const bankField = h('div', { class: 'field' }, h('label', { for: 'pc-bank' }, t('Non bank lan')), bank);
+        const accountField = h('div', { class: 'field' }, accountLabel, account);
+        const submit = h('button', { class: 'btn btn-primary', type: 'submit' }, t('Voye demann lan'));
+
+        function syncMethod() {
+          const m = method.value;
+          bankField.hidden = m !== 'direct_deposit';
+          accountField.hidden = !['direct_deposit', 'moncash', 'natcash'].includes(m);
+          accountLabel.textContent = m === 'direct_deposit'
+            ? t('Nimewo kont lan') : t('Nimewo telefòn MonCash oswa NatCash');
+        }
+        method.addEventListener('change', syncMethod);
+        syncMethod();
+
+        const form = h('form', { novalidate: true, hidden: true, style: 'margin-top: 14px; display: grid; gap: 12px;' },
+          h('div', { class: 'field' }, h('label', { for: 'pc-method' }, t('Nouvo fason')), method),
+          bankField,
+          accountField,
+          h('div', { class: 'field' },
+            h('label', { for: 'pc-password' }, t('Modpas ou (pou konfime se ou)')), password),
+          h('p', { class: 'hint', style: 'display: block; margin: 0;' },
+            t('HR ap verifye demann lan avè w anvan li aplike l. Fich peye ki deja kalkile yo pa chanje.')),
+          h('div', {}, submit),
+        );
+
+        toggle.addEventListener('click', () => {
+          form.hidden = !form.hidden;
+          toggle.textContent = form.hidden ? t('Mande yon chanjman') : t('Kache fòm lan');
+          if (!form.hidden) method.focus();
+        });
+
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          msg.className = '';
+          msg.textContent = '';
+          submit.disabled = true;
+          try {
+            await api.post('/api/payment-changes/me', {
+              method: method.value,
+              bank_name: bank.value.trim() || null,
+              account_number: account.value.trim() || null,
+              password: password.value,
+            });
+            form.reset();
+            form.hidden = true;
+            syncMethod();
+            msg.className = 'alert alert-ok';
+            msg.textContent = t('Demann lan voye. HR ap kontakte w pou konfime l.');
+            await loadHistory();
+          } catch (err) {
+            msg.className = 'field-error';
+            msg.textContent = errorText(err);
+          } finally {
+            password.value = '';
+            submit.disabled = false;
+          }
+        });
+
+        async function loadHistory() {
+          try {
+            const data = await api.get('/api/payment-changes/me');
+            const pending = data.items.some((r) => r.status === 'pending');
+            toggle.hidden = pending;
+            if (pending) form.hidden = true;
+            fill(history, data.items.length ? h('ul', { class: 'list', style: 'margin-top: 14px;' },
+              ...data.items.map((r) => {
+                const cancel = r.status === 'pending'
+                  ? h('button', { class: 'btn btn-quiet btn-sm', type: 'button' }, t('Anile demann lan'))
+                  : null;
+                if (cancel) {
+                  cancel.addEventListener('click', async () => {
+                    cancel.disabled = true;
+                    try {
+                      await api.post(`/api/payment-changes/me/${r.id}/cancel`, {});
+                      await loadHistory();
+                    } catch (err) {
+                      msg.className = 'field-error';
+                      msg.textContent = errorText(err);
+                      cancel.disabled = false;
+                    }
+                  });
+                }
+                return h('li', {},
+                  h('div', {},
+                    h('div', {}, paymentText(r.method, r.bank_name, r.account_last4)),
+                    h('div', { class: 'sub' }, fmt.shortDate(r.created_at)),
+                    // Nòt la ekri pa HR, jan li ekri l.
+                    r.decision_note ? h('div', { class: 'sub' }, `« ${r.decision_note} »`) : null,
+                  ),
+                  h('div', { style: 'display: flex; align-items: center; gap: 8px;' },
+                    h('span', { class: `badge badge-${r.status}` }, fmt.requestStatus(r.status)),
+                    cancel),
+                );
+              })) : null);
+          } catch (err) {
+            fill(history, h('p', { class: 'empty' }, errorText(err)));
+          }
+        }
+
+        fill(pay.body, current, toggle, form, msg, history);
+        loadHistory();
+      }
+
+      api.get('/api/profile/me').then((p) => {
+        renderWork(p);
+        renderContact(p);
+        renderPayment(p);
+      }).catch((err) => {
+        fill(work.body, h('p', { class: 'empty' }, errorText(err)));
+        fill(contact.body);
+        fill(pay.body);
+      });
+      return wrap;
+    }
+
+    // -----------------------------------------------------------------------
+    // KÒLÈG OU YO — moun ki gen menm manadjè avè w (non ak pozisyon sèlman)
+    // -----------------------------------------------------------------------
+
+    function colleaguesSection() {
+      const { el, body } = panel(t('Kòlèg ou yo'));
+      api.get('/api/profile/team').then((d) => {
+        if (!d.colleagues.length) {
+          fill(body, h('p', { class: 'empty' }, t('Pa gen lòt moun anba menm manadjè avè w.')));
+          return;
+        }
+        fill(body, h('ul', { class: 'list' }, ...d.colleagues.map((c) => h('li', {},
+          h('span', { class: 'avatar', 'aria-hidden': 'true' }, initials(c.name)),
+          h('div', { style: 'flex: 1;' },
+            h('div', {}, c.name),
+            h('div', { class: 'sub' }, [c.employee_number, c.position_title].filter(Boolean).join(' · '))),
+        ))));
+      }).catch((err) => fill(body, h('p', { class: 'empty' }, errorText(err))));
+      return el;
+    }
+
     const ICONS = {
       calendar: ['M4 6h16v14H4z', 'M4 10h16', 'M8 3v4', 'M16 3v4'],
       receipt: ['M6 3h12v18l-3-2-3 2-3-2-3 2z', 'M9 8h6', 'M9 12h6'],
@@ -922,6 +1163,7 @@
       sun: ['M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z', 'M12 2v2', 'M12 20v2', 'M4.9 4.9l1.4 1.4',
         'M17.7 17.7l1.4 1.4', 'M2 12h2', 'M20 12h2', 'M4.9 19.1l1.4-1.4', 'M17.7 6.3l1.4-1.4'],
       chart: ['M4 20V10', 'M10 20V4', 'M16 20v-7', 'M22 20H2'],
+      user: ['M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', 'M4 21a8 8 0 0 1 16 0'],
     };
 
     function icon(name) {
@@ -1011,10 +1253,11 @@
             render: () => timeSection(kioskOnly, kpis.refreshHours) },
           { id: 'konje', label: t('Konje'), icon: 'sun', render: () => leaveSection(kpis.refreshLeave) },
           { id: 'total-ane', label: t('Total ane a'), icon: 'chart', render: ytdSection },
+          { id: 'dosye', label: t('Dosye mwen'), icon: 'user', render: profileSection },
         ]));
 
         if (isManager(role)) colSide.append(approvalsSection(), todaySection());
-        colSide.append(chainSection(), trainingSection());
+        colSide.append(chainSection(), colleaguesSection(), trainingSection());
         return;
       }
 

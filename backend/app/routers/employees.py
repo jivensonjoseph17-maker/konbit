@@ -418,7 +418,9 @@ def update_employee(
         allowed = {
             "phone", "personal_email", "address", "city", "photo_url",
             "emergency_contact_name", "emergency_contact_phone",
-            "mobile_money_number",
+            # PA mobile_money_number: yon chanjman peman se yon DEMANN yon lòt moun
+            # HR konfime (routers/payment_changes.py). Sinon yon moun ki vòlè sesyon
+            # an ta ka mete pwòp nimewo MonCash li epi pran salè a.
         }
         forbidden = set(data) - allowed
         if forbidden:

@@ -44,6 +44,8 @@ SENSITIVE_ACTIONS = frozenset({
     "kiosk_device_lock",
     "activate",            # tablèt aktive
     "revoke",              # tablèt dezaktive
+    "payment_change_request",   # anplwaye a mande chanje kont labank / MonCash
+    "payment_change_approve",   # HR apwouve l: pwochen salè a ale sou nouvo kont lan
 })
 BANK_EXPORT_PREFIX = "Rapò bank"   # payroll_exports: changes=f"Rapò {kind}: …"
 

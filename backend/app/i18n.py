@@ -637,6 +637,28 @@ _ROWS: list[tuple[str, str, str]] = [
     ("Mete pozisyon biznis la ak yon distans anvan ou aktive zòn nan.",
      "Indiquez la position de l'entreprise et une distance avant d'activer la zone.",
      "Set the business location and a distance before turning on the zone."),
+    # --- Demann chanjman peman (payment_changes.py) ---
+    ("Mete non bank lan ak nimewo kont lan.",
+     "Indiquez le nom de la banque et le numéro de compte.",
+     "Enter the bank name and the account number."),
+    ("Mete yon nimewo telefòn valab pou MonCash oswa NatCash.",
+     "Indiquez un numéro de téléphone valide pour MonCash ou NatCash.",
+     "Enter a valid phone number for MonCash or NatCash."),
+    ("Se deja konsa ou resevwa salè w.",
+     "C'est déjà ainsi que vous recevez votre salaire.",
+     "This is already how you receive your pay."),
+    ("Ou gen yon demann k ap tann deja. Anile l anvan ou voye yon lòt.",
+     "Vous avez déjà une demande en attente. Annulez-la avant d'en envoyer une autre.",
+     "You already have a pending request. Cancel it before sending another."),
+    ("Demann chanjman an pa jwenn.",
+     "Demande de changement introuvable.",
+     "Change request not found."),
+    ("Demann sa a deja trete.",
+     "Cette demande a déjà été traitée.",
+     "This request has already been handled."),
+    ("Yon lòt moun dwe apwouve pwòp demann ou.",
+     "Une autre personne doit approuver votre propre demande.",
+     "Someone else must approve your own request."),
 ]
 
 MESSAGES: dict[str, dict[str, str]] = {ht: {"fr": fr, "en": en} for ht, fr, en in _ROWS}
