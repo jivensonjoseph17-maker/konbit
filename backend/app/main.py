@@ -25,6 +25,7 @@ from .routers import (
     jobs, applications, offers, application_questions, timesheets,
     calculator, schedules, positions, portal, kiosk, team, admin, organization,
     payroll_exports, audit, org_logo, geofence, payment_changes, my_profile,
+    notifications, employee_import,
 )
 
 # --- Router ki poko pare ---
@@ -234,6 +235,9 @@ app.include_router(geofence.router, tags=["Pwentaj"])
 # Pòtay anplwaye: Dosye mwen, kòlèg mwen; demann chanjman peman (HR apwouve)
 app.include_router(my_profile.router,      prefix="/api/profile",         tags=["Pòtay anplwaye"])
 app.include_router(payment_changes.router, prefix="/api/payment-changes", tags=["Pewòl"])
+# Klòch notifikasyon (chak moun wè pa l sèlman) ak enpòtasyon anplwaye CSV (HR)
+app.include_router(notifications.router,   prefix="/api/notifications",   tags=["Notifikasyon"])
+app.include_router(employee_import.router, prefix="/api/employee-import", tags=["Anplwaye"])
 app.include_router(
     application_questions.router,
     prefix="/api/application-questions",

@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="logo.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n>Enpòte anplwaye — KONMBIT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="app.css">
+  <style>
+    .imp { display: grid; gap: 18px; max-width: 1000px; }
+    .imp-steps { margin: 0; padding-inline-start: 20px; display: grid; gap: 6px; color: var(--muted); }
+    .imp-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .imp-summary { font-weight: 600; margin: 0 0 12px; }
+    tr.has-error > td:first-child { box-shadow: inset 3px 0 0 #e5484d; }
+    .imp-errors li { margin: 4px 0; }
+    .imp-pass { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside id="sidebar"></aside>
+
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+
+      <main class="page">
+        <div class="page-head">
+          <h1 data-i18n>Enpòte anplwaye</h1>
+          <p data-i18n>Ajoute plizyè anplwaye an menm tan ak yon fichye CSV (Excel).</p>
+        </div>
+
+        <div class="imp">
+          <section class="panel" aria-labelledby="s1">
+            <div class="panel-head"><h2 id="s1" data-i18n>1. Prepare fichye a</h2></div>
+            <ol class="imp-steps">
+              <li data-i18n>Telechaje modèl la, louvri l nan Excel, epi ranpli yon liy pou chak anplwaye.</li>
+              <li data-i18n>Kolòn obligatwa yo: Prenon, Non, Dat anbochaj. Lòt yo opsyonèl.</li>
+              <li data-i18n>Nan Excel: Fichye → Anrejistre kòm → CSV.</li>
+            </ol>
+            <div class="imp-row" style="margin-top: 14px;">
+              <button class="btn btn-ghost btn-sm" type="button" id="template" data-i18n>Telechaje modèl CSV la</button>
+            </div>
+          </section>
+
+          <section class="panel" aria-labelledby="s2">
+            <div class="panel-head"><h2 id="s2" data-i18n>2. Chwazi fichye a</h2></div>
+            <div class="imp-row">
+              <input class="input" type="file" id="file" accept=".csv,text/csv" style="max-width: 360px;">
+              <label class="check">
+                <input type="checkbox" id="logins">
+                <span data-i18n>Kreye yon kont koneksyon pou chak moun (imel obligatwa)</span>
+              </label>
+              <button class="btn btn-primary" type="button" id="check" data-i18n>Tcheke fichye a</button>
+            </div>
+            <p class="field-error" id="msg" role="alert"></p>
+          </section>
+
+          <section class="panel" id="result" hidden aria-labelledby="s3">
+            <div class="panel-head"><h2 id="s3" data-i18n>3. Verifye epi enpòte</h2></div>
+            <div id="result-body"></div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script src="shell.js"></script>
+  <script>
+  (async function () {
+    'use strict';
+    const { api, fmt, h, ApiError, shell, t } = Konbit;
+
+    const identity = await shell.mount('employee-import', shell.ADMIN);
+    if (!identity) return;
+
+    const $ = (id) => document.getElementById(id);
+    const MAX_BYTES = 1400000;
+    let csvText = null;
+
+    // Kolòn modèl la: non yo rete an kreyòl (backend la konprann tou non angle yo).
+    const TEMPLATE = [
+      'sep=;',
+      'Prenon;Non;Dat anbochaj;Imel;Telefòn;Nimewo;Salè;Metòd peman;Bank;Kont;MonCash;Manadjè;Vil',
+      'Mari;Jozèf;2025-01-15;mari@example.com;+509 3700 0000;;45000;MonCash;;;37000000;;Pòtoprens',
+      'Jak;Pyè;01/02/2025;jak@example.com;;;30000,50;Depo dirèk;Unibank;1234567890;;;Okap',
+    ].join('\r\n');
+
+    const FIELDS = {
+      first_name: () => t('Prenon'),
+      last_name: () => t('Non|moun'),
+      hire_date: () => t('Dat anbochaj'),
+      personal_email: () => t('Imel'),
+      phone: () => t('Telefòn'),
+      employee_number: () => t('Nimewo'),
+      base_salary: () => t('Salè'),
+      hourly_rate: () => t('To pa lè'),
+      currency: () => t('Lajan'),
+      payment_method: () => t('Metòd peman'),
+      bank_name: () => t('Bank'),
+      bank_account_number: () => t('Kont labank'),
+      mobile_money_number: () => 'MonCash / NatCash',
+      national_id: () => t('NIF / CIN'),
+      address: () => t('Adrès'),
+      city: () => t('Vil'),
+      employment_type: () => t('Kalite kontra'),
+      manager_number: () => t('Manadjè'),
+      file: () => t('Fichye a'),
+    };
+    const ERRORS = {
+      required: () => t('Chan sa a obligatwa.'),
+      missing_column: () => t('Kolòn sa a manke nan premye liy lan.'),
+      empty: () => t('Fichye a vid.'),
+      too_many_rows: () => t('Twòp liy: maksimòm 500.'),
+      too_many_logins: () => t('Twòp kont koneksyon an yon sèl fwa: maksimòm 100.'),
+      too_long: () => t('Tèks la twò long.'),
+      invalid_date: () => t('Dat la pa bon. Sèvi ak 2025-01-31 oswa 31/01/2025.'),
+      invalid_email: () => t('Imel la pa valab.'),
+      required_for_login: () => t('Imel obligatwa pou kreye yon kont koneksyon.'),
+      duplicate_email: () => t('Imel sa a deja gen yon kont.'),
+      duplicate_number: () => t('Nimewo sa a deja pran.'),
+      invalid_number: () => t('Montan an pa bon. Egz: 45000 oswa 45 000,50.'),
+      invalid_currency: () => t('Lajan an dwe HTG oswa USD.'),
+      invalid_method: () => t('Metòd peman an pa bon: chèk, depo, kach, MonCash oswa NatCash.'),
+      missing_account: () => t('Metòd sa a mande yon nimewo kont oswa telefòn.'),
+      invalid_type: () => t('Kalite kontra a pa bon.'),
+      unknown_manager: () => t('Nimewo manadjè sa a pa egziste.'),
+      self_manager: () => t('Yon moun pa ka manadjè tèt li.'),
+    };
+    const METHODS = {
+      check: () => t('Chèk'),
+      direct_deposit: () => t('Depo dirèk'),
+      cash: () => t('Kach'),
+      moncash: () => 'MonCash',
+      natcash: () => 'NatCash',
+    };
+    const label = (map, key) => (map[key] ? map[key]() : key);
+
+    function errorMessage(err) {
+      let msg = err instanceof ApiError ? err.message : t('Yon bagay pa mache.');
+      if (err && err.fields && err.fields.length) {
+        msg += ' ' + err.fields.map((f) => `${f.field}: ${f.message}`).join('; ');
+      }
+      return msg;
+    }
+
+    function downloadCsv(name, text) {
+      const url = URL.createObjectURL(new Blob(['\ufeff' + text], { type: 'text/csv;charset=utf-8' }));
+      const a = h('a', { href: url, download: name });
+      document.body.append(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
+
+    /** UTF-8 si posib; sinon Windows-1252 (Excel sou Windows) pou aksan yo pa kase. */
+    async function readText(file) {
+      const bytes = await file.arrayBuffer();
+      try {
+        return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+      } catch {
+        return new TextDecoder('windows-1252').decode(bytes);
+      }
+    }
+
+    function errorList(errors) {
+      return h('ul', { class: 'imp-errors field-error' }, ...errors.map((e) => h('li', {},
+        e.row > 1
+          ? t('Liy {row} · {field}: {problem}', { row: e.row, field: label(FIELDS, e.field), problem: label(ERRORS, e.code) })
+          : `${label(FIELDS, e.field)}: ${label(ERRORS, e.code)}`)));
+    }
+
+    function rowsTable(rows, errors) {
+      const bad = new Set(errors.map((e) => e.row));
+      return h('div', { class: 'table-wrap' }, h('table', { class: 'table' },
+        h('thead', {}, h('tr', {},
+          h('th', { scope: 'col' }, t('Liy')),
+          h('th', { scope: 'col' }, t('Non|moun')),
+          h('th', { scope: 'col' }, t('Nimewo')),
+          h('th', { scope: 'col' }, t('Dat anbochaj')),
+          h('th', { scope: 'col', class: 'hide-sm' }, t('Metòd peman')),
+          h('th', { scope: 'col', class: 'hide-sm' }, t('Manadjè')),
+        )),
+        // Non yo soti nan fichye a, jan HR ekri yo.
+        h('tbody', {}, ...rows.map((r) => h('tr', bad.has(r.row) ? { class: 'has-error' } : {},
+          h('td', {}, String(r.row)),
+          h('td', {}, `${r.first_name} ${r.last_name}`),
+          h('td', {}, r.employee_number || t('otomatik')),
+          h('td', {}, r.hire_date ? fmt.date(r.hire_date) : '—'),
+          h('td', { class: 'hide-sm' }, label(METHODS, r.payment_method)),
+          h('td', { class: 'hide-sm' }, r.manager_number || '—'),
+        ))),
+      ));
+    }
+
+    function showCreated(out) {
+      const body = $('result-body');
+      const parts = [h('div', { class: 'alert alert-ok' }, t('{n} anplwaye kreye.', { n: out.created }))];
+      if (out.logins.length) {
+        const csv = ['Nimewo;Non;Imel;Modpas tanporè',
+          ...out.logins.map((l) => [l.employee_number, l.name, l.login_email, l.temporary_password]
+            .map((v) => `"${String(v).replace(/"/g, '""')}"`).join(';'))].join('\r\n');
+        const save = h('button', { class: 'btn btn-primary btn-sm', type: 'button' }, t('Telechaje modpas yo (CSV)'));
+        save.addEventListener('click', () => downloadCsv('modpas-tanpore.csv', 'sep=;\r\n' + csv));
+        parts.push(
+          h('div', { class: 'alert alert-warn', style: 'margin-top: 12px;' },
+            t('Modpas tanporè yo parèt YON SÈL FWA. Telechaje yo kounye a, bay chak moun pa l an prive, epi efase fichye a apre.')),
+          h('div', { class: 'imp-row', style: 'margin: 12px 0;' }, save),
+          h('div', { class: 'table-wrap' }, h('table', { class: 'table' },
+            h('thead', {}, h('tr', {},
+              h('th', { scope: 'col' }, t('Nimewo')), h('th', { scope: 'col' }, t('Non|moun')),
+              h('th', { scope: 'col' }, t('Imel')), h('th', { scope: 'col' }, t('Modpas tanporè')))),
+            h('tbody', {}, ...out.logins.map((l) => h('tr', {},
+              h('td', {}, l.employee_number), h('td', {}, l.name), h('td', {}, l.login_email),
+              h('td', { class: 'imp-pass' }, l.temporary_password)))))),
+        );
+      }
+      parts.push(h('p', { style: 'margin-top: 14px;' },
+        h('a', { class: 'plain-link', href: 'employees.html' }, t('Wè lis anplwaye yo'))));
+      body.replaceChildren(...parts);
+    }
+
+    async function commit(btn) {
+      if (!confirm(t('Enpòte anplwaye sa yo kounye a?'))) return;
+      btn.disabled = true;
+      $('msg').textContent = '';
+      try {
+        const out = await api.post('/api/employee-import/commit', {
+          csv_text: csvText, create_logins: $('logins').checked,
+        });
+        if (out.errors.length) {
+          $('result-body').replaceChildren(
+            h('p', { class: 'imp-summary field-error' }, t('Anyen pa enpòte. Korije erè yo epi eseye ankò.')),
+            errorList(out.errors));
+          return;
+        }
+        csvText = null;
+        $('file').value = '';
+        showCreated(out);
+      } catch (err) {
+        $('msg').textContent = errorMessage(err);
+        btn.disabled = false;
+      }
+    }
+
+    function showPreview(p) {
+      const body = $('result-body');
+      const n = p.rows.length;
+      const parts = [
+        h('p', { class: 'imp-summary' }, n === 1 ? t('1 anplwaye nan fichye a.') : t('{n} anplwaye nan fichye a.', { n })),
+      ];
+      // Non kolòn yo soti nan fichye a, jan HR ekri yo.
+      if (p.ignored_columns.length) {
+        parts.push(h('p', { class: 'hint', style: 'display: block;' },
+          t('Kolòn nou pa konnen (nou pa sèvi ak yo): {list}', { list: p.ignored_columns.join(', ') })));
+      }
+      if (p.errors.length) {
+        parts.push(h('p', { class: 'field-error', style: 'font-weight: 600;' },
+          t('Korije erè sa yo nan fichye a, epi tcheke l ankò. Anyen p ap enpòte toutotan gen erè.')),
+        errorList(p.errors));
+      }
+      if (n) parts.push(rowsTable(p.rows, p.errors));
+      if (!p.errors.length && n) {
+        const go = h('button', { class: 'btn btn-primary', type: 'button', style: 'margin-top: 14px;' },
+          n === 1 ? t('Enpòte 1 anplwaye') : t('Enpòte {n} anplwaye', { n }));
+        go.addEventListener('click', () => commit(go));
+        parts.push(go);
+      }
+      body.replaceChildren(...parts);
+      $('result').hidden = false;
+    }
+
+    $('template').addEventListener('click', () => downloadCsv('modèl-anplwaye.csv', TEMPLATE));
+
+    $('check').addEventListener('click', async () => {
+      $('msg').textContent = '';
+      const file = $('file').files[0];
+      if (!file) { $('msg').textContent = t('Chwazi yon fichye CSV anvan.'); return; }
+      if (file.size > MAX_BYTES) { $('msg').textContent = t('Fichye a twò gwo.'); return; }
+      $('check').disabled = true;
+      try {
+        csvText = await readText(file);
+        showPreview(await api.post('/api/employee-import/preview', {
+          csv_text: csvText, create_logins: $('logins').checked,
+        }));
+      } catch (err) {
+        $('msg').textContent = errorMessage(err);
+      } finally {
+        $('check').disabled = false;
+      }
+    });
+
+    // Chanje fichye a oswa kaz kont yo: fò w tcheke ankò anvan w enpòte.
+    ['file', 'logins'].forEach((id) => $(id).addEventListener('change', () => {
+      csvText = null;
+      $('result').hidden = true;
+    }));
+  })();
+  </script>
+</body>
+</html>

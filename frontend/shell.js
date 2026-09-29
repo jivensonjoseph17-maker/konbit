@@ -34,6 +34,7 @@
     { group: 'Jesyon', roles: ADMIN, items: [
       { id: 'admin', label: 'Tablo jesyon', href: 'admin.html' },
       { id: 'employees', label: 'Anplwaye|meni', href: 'employees.html' },
+      { id: 'employee-import', label: 'Enpòte anplwaye', href: 'employees-import.html' },
       { id: 'positions', label: 'Pozisyon', href: 'positions.html' },
       { id: 'payroll', label: 'Pewòl', href: 'payroll.html' },
       { id: 'leave-admin', label: 'Balans konje', href: 'leave-balances.html' },
@@ -156,6 +157,155 @@
     return img;
   }
 
+  // -------------------------------------------------------------------------
+  // KLÒCH NOTIFIKASYON — ti chif wouj + 20 dènye yo (routers/notifications.py)
+  // -------------------------------------------------------------------------
+
+  function ensureBellStyles() {
+    if (document.getElementById('konbit-bell-css')) return;
+    const style = document.createElement('style');
+    style.id = 'konbit-bell-css';
+    style.textContent = `
+      .bell { position: relative; }
+      .bell-btn { position: relative; display: inline-flex; align-items: center; justify-content: center; }
+      .bell-btn svg { width: 18px; height: 18px; }
+      .bell-count {
+        position: absolute; top: -4px; inset-inline-end: -4px; min-width: 18px; height: 18px; padding: 0 5px;
+        border-radius: 999px; background: #e5484d; color: #fff; font-size: 11px; font-weight: 700;
+        display: inline-flex; align-items: center; justify-content: center; line-height: 1;
+      }
+      .bell-count[hidden] { display: none; }
+      .bell-panel {
+        position: absolute; top: calc(100% + 8px); inset-inline-end: 0; z-index: 80;
+        width: min(380px, 92vw); max-height: 440px; overflow-y: auto;
+        background: var(--surface); color: var(--text); border: 1px solid var(--line-strong, var(--line));
+        border-radius: 14px; box-shadow: var(--shadow, 0 12px 32px rgba(15, 23, 42, 0.18));
+      }
+      .bell-panel[hidden] { display: none; }
+      .bell-head {
+        position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; gap: 8px;
+        padding: 12px 14px; border-bottom: 1px solid var(--line); background: var(--surface);
+      }
+      .bell-item {
+        display: block; padding: 12px 14px; border-bottom: 1px solid var(--line);
+        color: inherit; text-decoration: none; cursor: default;
+      }
+      a.bell-item { cursor: pointer; }
+      a.bell-item:hover, a.bell-item:focus-visible { background: var(--surface-2, rgba(148, 163, 184, 0.12)); }
+      .bell-item.is-unread { box-shadow: inset 3px 0 0 var(--accent, #2563eb); }
+      .bell-item.is-unread .bell-title { font-weight: 700; }
+      .bell-title { font-size: 14px; }
+      .bell-body { font-size: 13px; color: var(--muted); margin-top: 3px; }
+      .bell-time { font-size: 12px; color: var(--faint, var(--muted)); margin-top: 4px; }
+      .bell-empty { padding: 18px 14px; color: var(--muted); font-size: 14px; margin: 0; }
+    `;
+    document.head.append(style);
+  }
+
+  function bellIcon() {
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(NS, 'svg');
+    for (const [k, v] of Object.entries({
+      viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.8',
+      'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true',
+    })) svg.setAttribute(k, v);
+    for (const d of ['M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9', 'M10.3 21a1.94 1.94 0 0 0 3.4 0']) {
+      const path = document.createElementNS(NS, 'path');
+      path.setAttribute('d', d);
+      svg.append(path);
+    }
+    return svg;
+  }
+
+  /** Lyen yon notifikasyon: sèlman yon paj .html KONMBIT; sinon pa gen lyen. */
+  function safeNotifLink(link) {
+    const s = String(link || '').replace(/^\/+/, '');
+    if (/^[a-z0-9-]+\.html(#[a-z0-9-]+)?$/i.test(s)) return s;
+    if (/^payslips\/\d+$/.test(s)) return 'dashboard.html#fich-peye';
+    return null;
+  }
+
+  function notifBell() {
+    ensureBellStyles();
+    const count = h('span', { class: 'bell-count', hidden: true });
+    const btn = h('button', {
+      class: 'btn btn-ghost btn-sm bell-btn', type: 'button',
+      'aria-haspopup': 'true', 'aria-expanded': 'false', title: t('Notifikasyon'),
+    }, bellIcon(), count);
+    const list = h('div', {});
+    const readAll = h('button', { class: 'btn btn-quiet btn-sm', type: 'button' }, t('Make tout kòm li'));
+    const panel = h('div', { class: 'bell-panel', hidden: true, role: 'dialog', 'aria-label': t('Notifikasyon') },
+      h('div', { class: 'bell-head' }, h('strong', {}, t('Notifikasyon')), readAll), list);
+    const wrap = h('div', { class: 'bell' }, btn, panel);
+
+    function setCount(n) {
+      count.hidden = !n;
+      count.textContent = n > 99 ? '99+' : String(n);
+      btn.setAttribute('aria-label', n ? t('{n} notifikasyon ou poko li', { n }) : t('Notifikasyon'));
+      readAll.hidden = !n;
+    }
+
+    async function refreshCount() {
+      try {
+        setCount((await api.get('/api/notifications/count')).unread);
+      } catch {
+        // Pa grav: klòch la ap eseye ankò pita.
+      }
+    }
+
+    function item(n) {
+      const href = safeNotifLink(n.link_url);
+      // Tit ak tèks yo ekri an kreyòl pa sistèm nan: nou montre yo jan yo ye.
+      const el = h(href ? 'a' : 'div', { class: n.is_read ? 'bell-item' : 'bell-item is-unread', href },
+        h('div', { class: 'bell-title' }, n.title),
+        n.body ? h('div', { class: 'bell-body' }, n.body) : null,
+        h('div', { class: 'bell-time' }, fmt.dateTime(n.created_at)));
+      el.addEventListener('click', async (e) => {
+        if (n.is_read) return;
+        if (href) e.preventDefault();
+        try { await api.post(`/api/notifications/${n.id}/read`, {}); } catch { /* ale kanmenm */ }
+        if (href) location.href = href;
+        else { n.is_read = true; el.classList.remove('is-unread'); refreshCount(); }
+      });
+      return el;
+    }
+
+    async function loadList() {
+      list.replaceChildren(h('p', { class: 'bell-empty' }, t('Ap chaje…')));
+      try {
+        const data = await api.get('/api/notifications?limit=20');
+        setCount(data.unread);
+        list.replaceChildren(...(data.items.length
+          ? data.items.map(item)
+          : [h('p', { class: 'bell-empty' }, t('Ou pa gen notifikasyon.'))]));
+      } catch (err) {
+        list.replaceChildren(h('p', { class: 'bell-empty' }, err.message));
+      }
+    }
+
+    function open(show) {
+      panel.hidden = !show;
+      btn.setAttribute('aria-expanded', String(show));
+      if (show) loadList();
+    }
+
+    btn.addEventListener('click', (e) => { e.stopPropagation(); open(panel.hidden); });
+    readAll.addEventListener('click', async () => {
+      readAll.disabled = true;
+      try { await api.post('/api/notifications/read-all', {}); } catch { /* lis la ap montre verite a */ }
+      readAll.disabled = false;
+      loadList();
+    });
+    document.addEventListener('click', (e) => { if (!panel.hidden && !wrap.contains(e.target)) open(false); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !panel.hidden) { open(false); btn.focus(); } });
+    // Chak 2 minit, sèlman lè paj la vizib (pa gaspiye batri telefòn nan).
+    setInterval(() => { if (!document.hidden) refreshCount(); }, 120000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshCount(); });
+
+    refreshCount();
+    return wrap;
+  }
+
   function renderTopbar(identity) {
     const bar = document.getElementById('topbar');
     if (!bar) return;
@@ -201,6 +351,7 @@
           h('a', { class: 'role plain-link', href: 'password.html' }, t('Chanje modpas')),
         ),
         h('span', { class: 'avatar', 'aria-hidden': 'true' }, initials(user.full_name)),
+        notifBell(),
         theme.button(),
         langPicker,
         logout,
