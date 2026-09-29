@@ -184,6 +184,23 @@
             </div>
 
             <div class="geo">
+              <h3 class="geo-title" data-i18n>Sou tablèt la</h3>
+              <div class="mode-options" role="radiogroup" data-i18n-attr="aria-label" aria-label="Sou tablèt la">
+                <label class="mode-option">
+                  <input type="radio" name="pin-mode" value="number_pin">
+                  <span><span class="t" data-i18n>Nimewo + kòd</span>
+                    <span class="d" data-i18n>Anplwaye a tape nimewo li, epi kòd 6 chif li. Pi sekirize.</span></span>
+                </label>
+                <label class="mode-option">
+                  <input type="radio" name="pin-mode" value="pin_only">
+                  <span><span class="t" data-i18n>Kòd sèlman</span>
+                    <span class="d" data-i18n>Anplwaye a tape kòd 6 chif li sèlman. Pi rapid; foto l parèt pou konfime se li.</span></span>
+                </label>
+              </div>
+              <p class="alert alert-warn" id="pin-reset-note" hidden></p>
+            </div>
+
+            <div class="geo">
               <h3 class="geo-title" data-i18n>Zòn otorize pou telefòn</h3>
               <p class="hint" data-i18n>Lè yon anplwaye pwente sou telefòn li, nou konpare pozisyon GPS li ak pozisyon biznis la. Tablèt la pa konsène.</p>
               <div class="grid-2">
@@ -500,6 +517,26 @@
 
     loadGeofence();
 
+    // ---------------------------------------------------------------------
+    // MÒD KÒD SOU TABLÈT LA — anrejistre ak bouton "Anrejistre chanjman yo"
+    // ---------------------------------------------------------------------
+
+    let originalPinMode = null;
+
+    async function loadPinMode() {
+      try {
+        const s = await api.get('/api/kiosk/settings');
+        originalPinMode = s.pin_mode;
+        document.querySelectorAll('input[name="pin-mode"]').forEach((r) => { r.checked = r.value === s.pin_mode; });
+        $('pin-reset-note').hidden = !s.pins_need_reset;
+        $('pin-reset-note').textContent = t('{n} moun gen yon ansyen kòd ki poko mache an mòd «Kòd sèlman». Ba yo yon nouvo kòd nan paj Anplwaye, oswa kite yo pwente yon fwa ak nimewo + kòd anvan w chanje mòd la.', { n: s.pins_need_reset });
+      } catch {
+        // Seksyon an rete jan l ye.
+      }
+    }
+
+    loadPinMode();
+
     $('form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const msg = $('msg');
@@ -548,6 +585,11 @@
           saved = { ...saved, clock_mode: mode };
         }
         if (geo.changed) fillGeo(await api.put('/api/organization/geofence', geo.body));
+        const pinMode = (document.querySelector('input[name="pin-mode"]:checked') || {}).value;
+        if (pinMode && pinMode !== originalPinMode) {
+          await api.put('/api/kiosk/settings', { clock_mode: mode || saved.clock_mode, pin_mode: pinMode });
+          loadPinMode();
+        }
         fill(saved);
         msg.className = 'msg alert alert-ok';
         msg.textContent = t('Chanjman an anrejistre.');

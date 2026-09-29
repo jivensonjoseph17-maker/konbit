@@ -189,6 +189,8 @@ class Organization(Base, TimestampMixin):
     geofence_lat = Column(Numeric(10, 7))
     geofence_lng = Column(Numeric(10, 7))
     geofence_radius_m = Column(Integer)
+    # Tablèt pwentaj: "number_pin" (nimewo + kòd) oswa "pin_only" (kòd sèlman).
+    kiosk_pin_mode = Column(String(12), default="number_pin", nullable=False, server_default="number_pin")
     is_active = Column(Boolean, default=True, nullable=False)
 
     users = relationship("User", back_populates="organization")
@@ -324,6 +326,8 @@ class Employee(Base, TimestampMixin):
     kiosk_pin_set_at = Column(DateTime(timezone=True))
     kiosk_failed_count = Column(Integer, default=0, nullable=False, server_default="0")
     kiosk_locked_until = Column(DateTime(timezone=True))
+    # Mòd "kòd sèlman": HMAC(kle sekrè, "org:kòd") pou jwenn moun nan vit (routers/kiosk.py).
+    kiosk_pin_lookup = Column(String(64), index=True)
 
     is_active = Column(Boolean, default=True, nullable=False)
 
@@ -1026,6 +1030,24 @@ class PaymentChangeRequest(Base, TimestampMixin):
     decided_by_id = Column(Integer, ForeignKey("users.id"))
     decided_at = Column(DateTime(timezone=True))
     decision_note = Column(Text)
+
+
+# ---------------------------------------------------------------------------
+# FOTO PWOFIL ANPLWAYE (routers/employee_photos.py)
+# JPEG kare 256 px ke sèvè a te netwaye. `public_key` se kle aleyatwa ki nan
+# lyen piblik la; li chanje chak fwa foto a chanje.
+# ---------------------------------------------------------------------------
+
+class EmployeePhoto(Base):
+    __tablename__ = "employee_photos"
+
+    employee_id = Column(Integer, ForeignKey("employees.id"), primary_key=True)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), index=True, nullable=False)
+    data = Column(LargeBinary, nullable=False)
+    public_key = Column(String(40), unique=True, index=True, nullable=False)
+    sha256 = Column(String(64), nullable=False)
+    updated_by_id = Column(Integer, ForeignKey("users.id"))
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
 class KioskPairing(Base, TimestampMixin):

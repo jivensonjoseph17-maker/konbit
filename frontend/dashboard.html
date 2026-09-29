@@ -58,7 +58,8 @@
 
     /* --- Ba bouton seksyon yo --- */
     .dash-tabs {
-      display: flex; gap: 6px; padding: 6px; margin-bottom: 18px; overflow-x: auto;
+      /* Vlope sou 2 liy: yon onglet pa janm kache adwat. */
+      display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; margin-bottom: 18px;
       background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
       scrollbar-width: none;
     }
@@ -685,7 +686,7 @@
     function chainSection() {
       const { el, body } = panel(t('Ekip ou'));
 
-      api.get('/api/hierarchy/me/chain').then((data) => {
+      Promise.all([api.get('/api/hierarchy/me/chain'), shell.photoMap()]).then(([data, photos]) => {
         if (!data.chain.length) {
           fill(body, h('p', { class: 'empty' }, t('Pa gen pesonn sou tèt ou nan òganigram lan.')));
           return;
@@ -694,7 +695,7 @@
         const person = (p, isMe) => {
           const fullName = `${p.first_name} ${p.last_name}`;
           return h('li', { class: isMe ? 'me' : null },
-            h('span', { class: 'avatar', 'aria-hidden': 'true' }, initials(fullName)),
+            shell.avatar(photos[p.id], fullName),
             h('div', {},
               h('div', { class: 'who' }, isMe ? t('{name} (ou)', { name: fullName }) : fullName),
               h('div', { class: 'num' }, p.employee_number),
@@ -916,7 +917,7 @@
     // -----------------------------------------------------------------------
 
     // -----------------------------------------------------------------------
-    // DOSYE MWEN — travay, kontak, ak fason m resevwa salè m
+    // DOSYE MWEN — kat pwofil (foto + pwogrè), travay, sekirite, kontak, peman
     // -----------------------------------------------------------------------
 
     const METHOD_LABELS = {
@@ -933,69 +934,191 @@
       return [methodLabel(method), bank, last4 ? `…${last4}` : null].filter(Boolean).join(' · ');
     }
 
+    /** Sa ki manke nan dosye a. Chak eleman: [kle, etikèt, id chan pou fokis]. */
+    function missingItems(p, hasPhoto) {
+      return [
+        [!hasPhoto, t('Foto pwofil'), 'me-photo'],
+        [!p.phone, t('Telefòn'), 'me-phone'],
+        [!p.personal_email, t('Imel pèsonèl'), 'me-personal_email'],
+        [!(p.address && p.city), t('Adrès ak vil'), 'me-address'],
+        [!(p.emergency_contact_name && p.emergency_contact_phone), t('Moun pou rele an ijans'), 'me-emergency_contact_name'],
+      ].filter(([missing]) => missing);
+    }
+    const COMPLETION_TOTAL = 5;
+
+    /** Redui foto a nan navigatè a (maks 1024 px, JPEG): yon foto telefòn depase 2 Mo. */
+    async function shrinkImage(file) {
+      const bitmap = await createImageBitmap(file);
+      const scale = Math.min(1, 1024 / Math.max(bitmap.width, bitmap.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(bitmap.width * scale);
+      canvas.height = Math.round(bitmap.height * scale);
+      canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
+    }
+
     function profileSection() {
       const wrap = h('div', { class: 'tab-panel' });
+      const hero = h('section', { class: 'panel profile-hero' }, h('p', { class: 'loading' }, t('Ap chaje…')));
       const work = panel(t('Travay mwen'));
+      const security = panel(t('Koneksyon ak sekirite'));
       const contact = panel(t('Kontak ou'));
       const pay = panel(t('Kijan ou resevwa salè w'));
-      wrap.append(work.el, contact.el, pay.el);
+      wrap.append(hero, h('div', { class: 'profile-grid' }, work.el, security.el), contact.el, pay.el);
+
+      let profile = null;
+      let photoUrl = null;
 
       const row = (label, value) => h('div', { class: 'row' },
         h('span', { class: 'k' }, label), h('span', {}, value || '—'));
 
+      function focusField(id) {
+        const el = document.getElementById(id);
+        if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.focus(); }
+      }
+
+      // --- Kat pwofil la ------------------------------------------------------
+
+      function renderHero() {
+        const p = profile;
+        const missing = missingItems(p, Boolean(photoUrl));
+        const pct = Math.round(((COMPLETION_TOTAL - missing.length) / COMPLETION_TOTAL) * 100);
+        const msg = h('p', { class: 'field-error', role: 'status', style: 'margin: 0;' });
+        const file = h('input', { type: 'file', id: 'me-photo', accept: 'image/png,image/jpeg,image/webp', hidden: true });
+        const change = h('button', { class: 'btn btn-primary btn-sm', type: 'button' },
+          photoUrl ? t('Chanje foto') : t('Mete yon foto'));
+        const remove = photoUrl ? h('button', { class: 'btn btn-quiet btn-sm', type: 'button' }, t('Retire foto')) : null;
+
+        change.addEventListener('click', () => file.click());
+        file.addEventListener('change', async () => {
+          const f = file.files[0];
+          file.value = '';
+          if (!f) return;
+          change.disabled = true;
+          msg.textContent = t('Ap voye…');
+          try {
+            const out = await api.put('/api/profile/photo', { data_base64: await shrinkImage(f) });
+            photoUrl = out.url;
+            shell.photoMap(true);
+            renderHero();
+          } catch (err) {
+            msg.textContent = err instanceof ApiError ? err.message : t('Nou pa ka li imaj sa a. Eseye yon lòt fichye.');
+            change.disabled = false;
+          }
+        });
+        if (remove) {
+          remove.addEventListener('click', async () => {
+            if (!confirm(t('Retire foto pwofil ou?'))) return;
+            remove.disabled = true;
+            try {
+              await api.del('/api/profile/photo');
+              photoUrl = null;
+              shell.photoMap(true);
+              renderHero();
+            } catch (err) {
+              msg.textContent = errorText(err);
+              remove.disabled = false;
+            }
+          });
+        }
+
+        const bar = h('div', { class: pct === 100 ? 'bar done' : 'bar', role: 'progressbar',
+          'aria-valuenow': String(pct), 'aria-valuemin': '0', 'aria-valuemax': '100',
+          'aria-label': t('Dosye w konplè a {pct} %', { pct }) }, h('span', {}));
+        bar.firstChild.style.width = `${pct}%`;
+
+        hero.replaceChildren(
+          h('div', { class: 'profile-photo' }, shell.avatar(photoUrl, `${p.first_name} ${p.last_name}`, 'avatar-xl'), file),
+          h('div', { class: 'profile-main' },
+            h('h2', { class: 'profile-name' }, `${p.first_name} ${p.last_name}`),
+            h('p', { class: 'profile-sub' }, [p.position_title, p.employee_number].filter(Boolean).join(' · ')),
+            h('div', { class: 'completion' },
+              h('div', { class: 'completion-label' },
+                pct === 100 ? t('Dosye w konplè. Mèsi!') : t('Dosye w konplè a {pct} %', { pct })),
+              bar,
+              missing.length ? h('div', { class: 'chips' },
+                h('span', { class: 'sub' }, t('Sa ki manke:')),
+                ...missing.map(([, label, id]) => {
+                  const chip = h('button', { class: 'chip-btn', type: 'button' }, label);
+                  chip.addEventListener('click', () => (id === 'me-photo' ? file.click() : focusField(id)));
+                  return chip;
+                })) : null,
+            ),
+          ),
+          h('div', { class: 'profile-actions' }, change, remove, msg),
+        );
+      }
+
+      // --- Travay ak sekirite -------------------------------------------------
+
       function renderWork(p) {
         fill(work.body,
-          h('div', { class: 'rows' },
+          h('div', { class: 'rows', style: 'margin-top: 0;' },
             row(t('Nimewo anplwaye'), p.employee_number),
             row(t('Pozisyon'), p.position_title),
             row(t('Depatman'), p.department_name),
             row(t('Manadjè'), p.manager_name),
             row(t('Dat anbochaj'), p.hire_date ? fmt.date(p.hire_date) : null),
-            row(t('Imel koneksyon'), p.login_email),
           ),
-          h('p', { class: 'hint', style: 'display: block; margin-top: 10px;' },
+          h('p', { class: 'hint', style: 'display: block; margin-top: 12px;' },
             t('Pou chanje enfòmasyon sa yo, pale ak HR.')),
         );
       }
 
+      function renderSecurity(p) {
+        fill(security.body,
+          h('div', { class: 'rows', style: 'margin-top: 0;' }, row(t('Imel koneksyon'), p.login_email)),
+          h('p', { class: 'hint', style: 'display: block; margin: 12px 0;' },
+            t('Pa janm bay pèsonn modpas ou, menm HR.')),
+          h('a', { class: 'btn btn-ghost btn-sm', href: 'password.html' }, t('Chanje modpas')),
+        );
+      }
+
+      // --- Kontak ak moun pou rele an ijans -----------------------------------
+
       function renderContact(p) {
-        const FIELDS = [
-          ['phone', t('Telefòn'), 'tel', 50],
-          ['personal_email', t('Imel pèsonèl'), 'email', 255],
-          ['address', t('Adrès'), 'text', 500],
-          ['city', t('Vil'), 'text', 100],
-          ['emergency_contact_name', t('Moun pou rele an ijans'), 'text', 200],
-          ['emergency_contact_phone', t('Telefòn moun sa a'), 'tel', 50],
+        const SECTIONS = [
+          [t('Kontak'), [
+            ['phone', t('Telefòn'), 'tel', 50],
+            ['personal_email', t('Imel pèsonèl'), 'email', 255],
+            ['address', t('Adrès'), 'text', 500],
+            ['city', t('Vil'), 'text', 100],
+          ]],
+          [t('Moun pou rele an ijans'), [
+            ['emergency_contact_name', t('Non moun nan'), 'text', 200],
+            ['emergency_contact_phone', t('Telefòn moun sa a'), 'tel', 50],
+          ]],
         ];
         const inputs = {};
         const msg = h('p', { role: 'status' });
         const save = h('button', { class: 'btn btn-primary', type: 'submit' }, t('Anrejistre'));
-        const form = h('form', { novalidate: true },
-          h('div', { style: 'display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));' },
-            ...FIELDS.map(([key, label, type, max]) => {
-              inputs[key] = h('input', { class: 'input', id: `me-${key}`, type, maxlength: String(max) });
-              inputs[key].value = p[key] || '';
-              return h('div', { class: 'field' }, h('label', { for: `me-${key}` }, label), inputs[key]);
-            })),
-          h('div', { class: 'form-actions', style: 'margin-top: 12px;' }, save),
-          msg,
-        );
+        const grid = h('div', { class: 'form-grid' });
+        for (const [title, fields] of SECTIONS) {
+          grid.append(h('div', { class: 'form-section-title' }, title));
+          for (const [key, label, type, max] of fields) {
+            inputs[key] = h('input', { class: 'input', id: `me-${key}`, type, maxlength: String(max) });
+            inputs[key].value = p[key] || '';
+            grid.append(h('div', { class: key === 'address' ? 'field span-2' : 'field' },
+              h('label', { for: `me-${key}` }, label), inputs[key]));
+          }
+        }
+        const form = h('form', { novalidate: true }, grid, h('div', { class: 'form-actions' }, save), msg);
         form.addEventListener('submit', async (e) => {
           e.preventDefault();
           msg.className = '';
           msg.textContent = '';
           const patch = {};
-          for (const [key] of FIELDS) {
+          for (const key of Object.keys(inputs)) {
             const value = inputs[key].value.trim();
             if (value !== (p[key] || '')) patch[key] = value;
           }
           if (!Object.keys(patch).length) return;
           save.disabled = true;
           try {
-            const saved = await api.patch('/api/profile/me', patch);
-            Object.assign(p, saved);
+            Object.assign(p, await api.patch('/api/profile/me', patch));
             msg.className = 'alert alert-ok';
             msg.textContent = t('Kontak ou anrejistre.');
+            renderHero();
           } catch (err) {
             msg.className = 'field-error';
             msg.textContent = errorText(err);
@@ -1006,66 +1129,82 @@
         fill(contact.body, form);
       }
 
-      async function renderPayment(p) {
-        const current = h('p', { class: 'pay-method', style: 'margin-top: 0;' },
-          paymentText(p.payment.method, p.payment.bank_name, p.payment.account_last4));
+      // --- Peman: kat pou chwazi, epi yon demann HR verifye --------------------
+
+      function renderPayment(p) {
+        const OPTIONS = [
+          ['direct_deposit', '🏦', t('Depo labank'), t('Salè a ale sou kont labank ou.')],
+          ['moncash', '📱', 'MonCash', t('Salè a ale sou telefòn ou.')],
+          ['natcash', '📱', 'NatCash', t('Salè a ale sou telefòn ou.')],
+          ['check', '🧾', t('Chèk'), t('Ou resevwa yon chèk.')],
+          ['cash', '💵', t('Kach'), t('Ou resevwa lajan an nan men.')],
+        ];
+        const current = h('div', { class: 'pay-current' },
+          h('span', { class: 'sub' }, t('Kounye a:')),
+          h('span', { class: 'pay-method', style: 'margin-top: 0;' },
+            paymentText(p.payment.method, p.payment.bank_name, p.payment.account_last4)));
+        const status = h('div', {});
         const history = h('div', {});
         const msg = h('p', { role: 'status' });
-        const toggle = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, t('Mande yon chanjman'));
+        const toggle = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, t('Chanje fason m resevwa salè m'));
 
-        const method = h('select', { class: 'select', id: 'pc-method' },
-          ...['direct_deposit', 'moncash', 'natcash', 'check', 'cash']
-            .map((m) => h('option', { value: m }, methodLabel(m))));
+        let chosen = null;
+        const cards = OPTIONS.map(([value, icon, label, desc]) => {
+          const radio = h('input', { type: 'radio', name: 'pc-method', value });
+          radio.addEventListener('change', () => { chosen = value; syncMethod(); });
+          return h('label', { class: 'method-card' }, radio,
+            h('span', { class: 'mc-icon', 'aria-hidden': 'true' }, icon),
+            h('span', {}, h('span', { class: 'mc-title' }, label), h('span', { class: 'mc-desc' }, desc)));
+        });
         const bank = h('input', { class: 'input', id: 'pc-bank', maxlength: '150', autocomplete: 'off' });
         const account = h('input', { class: 'input', id: 'pc-account', maxlength: '80', autocomplete: 'off', inputmode: 'numeric' });
         const password = h('input', { class: 'input', id: 'pc-password', type: 'password', autocomplete: 'current-password', maxlength: '200' });
         const accountLabel = h('label', { for: 'pc-account' });
         const bankField = h('div', { class: 'field' }, h('label', { for: 'pc-bank' }, t('Non bank lan')), bank);
         const accountField = h('div', { class: 'field' }, accountLabel, account);
+        const confirmField = h('div', { class: 'field' },
+          h('label', { for: 'pc-password' }, t('Modpas ou (pou konfime se ou)')), password);
         const submit = h('button', { class: 'btn btn-primary', type: 'submit' }, t('Voye demann lan'));
 
         function syncMethod() {
-          const m = method.value;
-          bankField.hidden = m !== 'direct_deposit';
-          accountField.hidden = !['direct_deposit', 'moncash', 'natcash'].includes(m);
-          accountLabel.textContent = m === 'direct_deposit'
+          bankField.hidden = chosen !== 'direct_deposit';
+          accountField.hidden = !['direct_deposit', 'moncash', 'natcash'].includes(chosen);
+          confirmField.hidden = !chosen;
+          submit.disabled = !chosen;
+          accountLabel.textContent = chosen === 'direct_deposit'
             ? t('Nimewo kont lan') : t('Nimewo telefòn MonCash oswa NatCash');
         }
-        method.addEventListener('change', syncMethod);
-        syncMethod();
 
-        const form = h('form', { novalidate: true, hidden: true, style: 'margin-top: 14px; display: grid; gap: 12px;' },
-          h('div', { class: 'field' }, h('label', { for: 'pc-method' }, t('Nouvo fason')), method),
-          bankField,
-          accountField,
-          h('div', { class: 'field' },
-            h('label', { for: 'pc-password' }, t('Modpas ou (pou konfime se ou)')), password),
+        const form = h('form', { class: 'pay-form', novalidate: true, hidden: true },
+          h('div', { class: 'method-cards', role: 'radiogroup', 'aria-label': t('Nouvo fason') }, ...cards),
+          h('div', { class: 'form-grid' }, bankField, accountField, confirmField),
           h('p', { class: 'hint', style: 'display: block; margin: 0;' },
             t('HR ap verifye demann lan avè w anvan li aplike l. Fich peye ki deja kalkile yo pa chanje.')),
           h('div', {}, submit),
         );
+        syncMethod();
 
         toggle.addEventListener('click', () => {
           form.hidden = !form.hidden;
-          toggle.textContent = form.hidden ? t('Mande yon chanjman') : t('Kache fòm lan');
-          if (!form.hidden) method.focus();
+          toggle.textContent = form.hidden ? t('Chanje fason m resevwa salè m') : t('Kache fòm lan');
         });
 
         form.addEventListener('submit', async (e) => {
           e.preventDefault();
+          if (!chosen) return;
           msg.className = '';
           msg.textContent = '';
           submit.disabled = true;
           try {
             await api.post('/api/payment-changes/me', {
-              method: method.value,
+              method: chosen,
               bank_name: bank.value.trim() || null,
               account_number: account.value.trim() || null,
               password: password.value,
             });
             form.reset();
+            chosen = null;
             form.hidden = true;
-            syncMethod();
             msg.className = 'alert alert-ok';
             msg.textContent = t('Demann lan voye. HR ap kontakte w pou konfime l.');
             await loadHistory();
@@ -1074,18 +1213,34 @@
             msg.textContent = errorText(err);
           } finally {
             password.value = '';
-            submit.disabled = false;
+            syncMethod();
           }
         });
+
+        /** Voye → HR ap verifye → Aktif (klas .stepper app.css la). */
+        function pendingSteps(r) {
+          const step = (n, label, cls) => h('li', { class: cls }, h('span', { class: 'step-n' }, String(n)), label);
+          return h('div', { class: 'pay-pending' },
+            h('p', { style: 'margin: 0 0 10px; font-weight: 600;' },
+              t('Demann ou: {what}', { what: paymentText(r.method, r.bank_name, r.account_last4) })),
+            h('ol', { class: 'stepper' },
+              step(1, t('Voye'), 'done'),
+              step(2, t('HR ap verifye'), 'current'),
+              step(3, t('Aktif'), '')),
+          );
+        }
 
         async function loadHistory() {
           try {
             const data = await api.get('/api/payment-changes/me');
-            const pending = data.items.some((r) => r.status === 'pending');
-            toggle.hidden = pending;
+            const pending = data.items.find((r) => r.status === 'pending');
+            toggle.hidden = Boolean(pending);
             if (pending) form.hidden = true;
-            fill(history, data.items.length ? h('ul', { class: 'list', style: 'margin-top: 14px;' },
-              ...data.items.map((r) => {
+            fill(status, pending ? pendingSteps(pending) : null);
+            const older = data.items.filter((r) => r !== pending);
+            fill(history, data.items.length ? h('details', { class: 'breakdown' },
+              h('summary', {}, t('Istwa demann yo')),
+              h('ul', { class: 'list', style: 'margin-top: 10px;' }, ...data.items.map((r) => {
                 const cancel = r.status === 'pending'
                   ? h('button', { class: 'btn btn-quiet btn-sm', type: 'button' }, t('Anile demann lan'))
                   : null;
@@ -1107,32 +1262,49 @@
                     h('div', {}, paymentText(r.method, r.bank_name, r.account_last4)),
                     h('div', { class: 'sub' }, fmt.shortDate(r.created_at)),
                     // Nòt la ekri pa HR, jan li ekri l.
-                    r.decision_note ? h('div', { class: 'sub' }, `« ${r.decision_note} »`) : null,
-                  ),
+                    r.decision_note ? h('div', { class: 'sub' }, `« ${r.decision_note} »`) : null),
                   h('div', { style: 'display: flex; align-items: center; gap: 8px;' },
-                    h('span', { class: `badge badge-${r.status}` }, fmt.requestStatus(r.status)),
-                    cancel),
-                );
-              })) : null);
+                    h('span', { class: `badge badge-${r.status}` }, fmt.requestStatus(r.status)), cancel));
+              }))) : null);
+            if (!older.length && !pending) fill(history);
           } catch (err) {
             fill(history, h('p', { class: 'empty' }, errorText(err)));
           }
         }
 
-        fill(pay.body, current, toggle, form, msg, history);
+        fill(pay.body, h('div', { class: 'pay-top' }, current, toggle), status, form, msg, history);
         loadHistory();
       }
 
-      api.get('/api/profile/me').then((p) => {
+      Promise.all([api.get('/api/profile/me'), shell.photoMap()]).then(([p, photos]) => {
+        profile = p;
+        photoUrl = photos[p.employee_id] || null;
+        renderHero();
         renderWork(p);
+        renderSecurity(p);
         renderContact(p);
         renderPayment(p);
       }).catch((err) => {
-        fill(work.body, h('p', { class: 'empty' }, errorText(err)));
-        fill(contact.body);
-        fill(pay.body);
+        hero.replaceChildren(h('p', { class: 'empty' }, errorText(err)));
+        [work, security, contact, pay].forEach((s) => fill(s.body));
       });
       return wrap;
+    }
+
+    /** Ti bandwòl sou paj akèy la si dosye a pa konplè. */
+    async function profileNudge() {
+      try {
+        const [p, photos] = await Promise.all([api.get('/api/profile/me'), shell.photoMap()]);
+        const missing = missingItems(p, Boolean(photos[p.employee_id]));
+        if (!missing.length) return null;
+        const pct = Math.round(((COMPLETION_TOTAL - missing.length) / COMPLETION_TOTAL) * 100);
+        const go = h('a', { class: 'plain-link', href: '#dosye', style: 'font-weight: 600;' }, t('Konplete dosye w →'));
+        return h('p', { class: 'dash-note' },
+          t('Dosye w konplè a {pct} %', { pct }), ' · ',
+          missing.map(([, label]) => label).join(', '), ' · ', go);
+      } catch {
+        return null;
+      }
     }
 
     // -----------------------------------------------------------------------
@@ -1141,13 +1313,13 @@
 
     function colleaguesSection() {
       const { el, body } = panel(t('Kòlèg ou yo'));
-      api.get('/api/profile/team').then((d) => {
+      Promise.all([api.get('/api/profile/team'), shell.photoMap()]).then(([d, photos]) => {
         if (!d.colleagues.length) {
           fill(body, h('p', { class: 'empty' }, t('Pa gen lòt moun anba menm manadjè avè w.')));
           return;
         }
-        fill(body, h('ul', { class: 'list' }, ...d.colleagues.map((c) => h('li', {},
-          h('span', { class: 'avatar', 'aria-hidden': 'true' }, initials(c.name)),
+        fill(body, h('ul', { class: 'list' }, ...d.colleagues.map((c) => h('li', { style: 'justify-content: flex-start;' },
+          shell.avatar(photos[c.employee_id], c.name),
           h('div', { style: 'flex: 1;' },
             h('div', {}, c.name),
             h('div', { class: 'sub' }, [c.employee_number, c.position_title].filter(Boolean).join(' · '))),
@@ -1245,6 +1417,7 @@
 
         const kpis = kpiSection();
         top.append(kpis.el);
+        profileNudge().then((note) => { if (note) top.append(note); });
 
         colMain.append(tabsSection([
           { id: 'ore', label: t('Orè'), icon: 'calendar', render: scheduleSection },

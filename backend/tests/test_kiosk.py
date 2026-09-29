@@ -98,9 +98,7 @@ def test_digits_only_number_works(client, org_admin, make_employee):
 
 def test_phone_mode_refuses_kiosk(client, org_admin, make_employee):
     _, _, kh, emp, pin = _setup(client, org_admin, make_employee, mode=None)
-    assert client.get("/api/kiosk/settings", headers=org_admin["headers"]).json() == {
-        "clock_mode": "phone",
-    }
+    assert client.get("/api/kiosk/settings", headers=org_admin["headers"]).json()["clock_mode"] == "phone"
     assert _punch(client, kh, emp["employee_number"], pin).status_code == 409
 
 

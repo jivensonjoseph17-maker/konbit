@@ -306,6 +306,42 @@
     return wrap;
   }
 
+  // -------------------------------------------------------------------------
+  // FOTO PWOFIL (routers/employee_photos.py)
+  // -------------------------------------------------------------------------
+
+  /** Avatar: foto a si genyen youn (lyen relatif ak API a), sinon inisyal yo. */
+  function avatar(url, name, extraClass) {
+    const el = h('span', { class: extraClass ? `avatar ${extraClass}` : 'avatar', 'aria-hidden': 'true' },
+      initials(name));
+    if (url) {
+      let src = null;
+      try {
+        const u = new URL(url, Konbit.API_URL);
+        if (u.protocol === 'https:' || u.protocol === 'http:') src = u.href;
+      } catch {
+        src = null;
+      }
+      if (src) {
+        const img = h('img', { src, decoding: 'async' });
+        img.alt = '';
+        img.referrerPolicy = 'no-referrer';
+        img.addEventListener('load', () => el.replaceChildren(img));
+      }
+    }
+    return el;
+  }
+
+  let photoMapPromise = null;
+
+  /** {employee_id: lyen foto} pou tout biznis la; yon sèl rekèt pa paj. */
+  function photoMap(force) {
+    if (!photoMapPromise || force) {
+      photoMapPromise = api.get('/api/photos/map').then((d) => d.photos).catch(() => ({}));
+    }
+    return photoMapPromise;
+  }
+
   function renderTopbar(identity) {
     const bar = document.getElementById('topbar');
     if (!bar) return;
@@ -350,7 +386,7 @@
           h('div', { class: 'role' }, fmt.role(user.role)),
           h('a', { class: 'role plain-link', href: 'password.html' }, t('Chanje modpas')),
         ),
-        h('span', { class: 'avatar', 'aria-hidden': 'true' }, initials(user.full_name)),
+        avatar(identity.photo_url, user.full_name),
         notifBell(),
         theme.button(),
         langPicker,
@@ -627,6 +663,6 @@
 
   Konbit.shell = {
     mount, initials, ADMIN, OWNERS, MANAGERS, employeePicker, employeeNames, cachedName,
-    refreshInboxBadge, orgLogo,
+    refreshInboxBadge, orgLogo, avatar, photoMap,
   };
 })();

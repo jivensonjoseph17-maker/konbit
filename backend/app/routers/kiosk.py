@@ -1,10 +1,10 @@
 """
-Konbit — Router Kiyòsk (pwentaj sou tablèt biznis la ak kòd pèsonèl)
+Konbit — Router Kiyòsk (pwentaj sou tablèt / òdinatè biznis la ak kòd pèsonèl)
 Chemen: backend/app/routers/kiosk.py
 
 Administrasyon (kont konekte):
-    GET    /api/kiosk/settings                 Mòd pwentaj biznis la (tout anplwaye)
-    PUT    /api/kiosk/settings                 Chanje mòd la (admin)
+    GET    /api/kiosk/settings                 Mòd pwentaj + mòd kòd (tout anplwaye)
+    PUT    /api/kiosk/settings                 Chanje yo (admin)
     GET    /api/kiosk/devices                  Tablèt yo (admin)
     POST   /api/kiosk/devices                  Aktive yon tablèt → token long (yon sèl fwa)
     POST   /api/kiosk/pairings                 Kòd kout 6 karaktè pou aktive yon tablèt (admin)
@@ -15,17 +15,27 @@ Tablèt la, san koneksyon:
     POST   /api/kiosk/pair                     Kòd kout la → token tablèt la
 
 Tablèt la (header X-Kiosk-Token, PA token itilizatè):
-    GET    /api/kiosk/device                   Non tablèt la, biznis la, kiyès ki aktive l
+    GET    /api/kiosk/device                   Non tablèt la, biznis la (logo, adrès), mòd kòd la
     POST   /api/kiosk/device/deactivate        Dekonekte tablèt la (token an pa mache ankò)
-    POST   /api/kiosk/punch                    Antre / sòti ak nimewo + kòd
+    POST   /api/kiosk/identify                 Etap 1: kòd (± nimewo) → prenon, foto, antre/sòti
+    POST   /api/kiosk/punch                    Etap 2: Antre / Sòti
+
+MÒD KÒD (organizations.kiosk_pin_mode):
+  - "number_pin": nimewo anplwaye + kòd (pa defo, pi sekirize).
+  - "pin_only":   kòd 6 chif sèlman (tankou Legion). Pou jwenn moun nan san
+    teste chak kòd PBKDF2 (twò lan), chak kòd gen yon kle rechèch HMAC
+    (employees.kiosk_pin_lookup) ki kalkile ak kle sekrè sèvè a. Chak kòd
+    INIK nan biznis la. Yon ansyen kòd san kle rechèch jwenn li otomatikman
+    premye fwa moun nan pwente ak nimewo + kòd.
 
 SEKIRITE:
-  - Token tablèt la ak kòd yo pa janm estoke an klè (sha256 / PBKDF2).
+  - Token tablèt la ak kòd yo pa janm estoke an klè (sha256 / PBKDF2 / HMAC).
     Kòd la parèt YON SÈL FWA, lè admin/manadjè a jenere l.
   - Token tablèt la pa ka fè anyen lòt pase pwentaj: se pa yon kont itilizatè.
   - 5 move kòd pou yon anplwaye → kòd li bloke 15 minit.
-    20 move esè sou yon tablèt → tablèt la bloke 10 minit.
+    20 move esè sou yon tablèt → tablèt la bloke 10 minit. /identify konte tou.
   - Menm mesaj erè pou "nimewo sa a pa egziste" ak "move kòd".
+  - Etap 2 a montre FOTO moun nan: manadjè a wè si se pa li ki devan tablèt la.
   - Kòd kout aktivasyon: 6 karaktè, 10 minit, yon sèl fwa. 10 move esè
     pou yon adrès IP → bloke 10 minit.
   - Kòd, tablèt, mòd, blokaj: tout ale nan jounal odit la.
@@ -40,9 +50,11 @@ from typing import Annotated, Literal, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..clock_mode import PHONE, get_clock_mode
+from ..config import settings
 from ..deps import (
     FORBIDDEN_ERROR,
     CurrentUser,
@@ -71,6 +83,8 @@ from .attendance import (
     _open_entry_for,
     _org_tz,
 )
+from .employee_photos import photo_url_for
+from .org_logo import logo_url_for
 
 router = APIRouter()
 
@@ -82,6 +96,9 @@ PIN_LOCK = timedelta(minutes=15)
 MAX_DEVICE_FAILURES = 20
 DEVICE_LOCK = timedelta(minutes=10)
 _PBKDF2_ITERATIONS = 120_000
+
+NUMBER_PIN = "number_pin"
+PIN_ONLY = "pin_only"
 
 _WEAK_PINS = {d * PIN_LENGTH for d in "0123456789"} | {
     "123456", "654321", "012345", "123123", "121212", "112233",
@@ -127,11 +144,25 @@ def verify_pin(pin: str, stored: Optional[str]) -> bool:
     return hmac.compare_digest(digest.hex(), digest_hex)
 
 
+def pin_lookup(org_id: int, pin: str) -> str:
+    """Kle rechèch pou mòd "kòd sèlman": HMAC ak kle sekrè sèvè a, pa biznis."""
+    return hmac.new(settings.secret_key.encode(), f"{org_id}:{pin}".encode(),
+                    hashlib.sha256).hexdigest()
+
+
 def _new_pin() -> str:
     while True:
         pin = f"{secrets.randbelow(10 ** PIN_LENGTH):0{PIN_LENGTH}d}"
         if pin not in _WEAK_PINS:
             return pin
+
+
+def _lookup_taken(db: Session, org_id: int, lookup: str, except_id: int) -> bool:
+    return db.query(Employee.id).filter(
+        Employee.organization_id == org_id,
+        Employee.kiosk_pin_lookup == lookup,
+        Employee.id != except_id,
+    ).first() is not None
 
 
 def _token_hash(token: str) -> str:
@@ -180,6 +211,33 @@ def _find_employee(db: Session, org_id: int, number: str) -> Optional[Employee]:
     return matches[0] if len(matches) == 1 else None
 
 
+def _find_by_pin(db: Session, org_id: int, pin: str) -> Optional[Employee]:
+    """Mòd "kòd sèlman": kle rechèch la; yon sèl moun, sinon None."""
+    matches = db.query(Employee).filter(
+        Employee.organization_id == org_id,
+        Employee.is_active.is_(True),
+        Employee.kiosk_pin_hash.isnot(None),
+        Employee.kiosk_pin_lookup == pin_lookup(org_id, pin),
+    ).all()
+    return matches[0] if len(matches) == 1 else None
+
+
+def get_pin_mode(db: Session, org_id: int) -> str:
+    org = db.get(Organization, org_id)
+    mode = getattr(org, "kiosk_pin_mode", None) or NUMBER_PIN
+    return mode if mode in (NUMBER_PIN, PIN_ONLY) else NUMBER_PIN
+
+
+def _pins_need_reset(db: Session, org_id: int) -> int:
+    """Moun ki gen yon kòd men ki poko ka pwente an mòd "kòd sèlman"."""
+    return db.query(func.count(Employee.id)).filter(
+        Employee.organization_id == org_id,
+        Employee.is_active.is_(True),
+        Employee.kiosk_pin_hash.isnot(None),
+        Employee.kiosk_pin_lookup.is_(None),
+    ).scalar() or 0
+
+
 # ---------------------------------------------------------------------------
 # TABLÈT LA (header X-Kiosk-Token)
 # ---------------------------------------------------------------------------
@@ -206,29 +264,47 @@ KioskDeviceDep = Annotated[KioskDevice, Depends(get_kiosk_device)]
 
 
 # ---------------------------------------------------------------------------
-# MÒD PWENTAJ
+# MÒD PWENTAJ AK MÒD KÒD
 # ---------------------------------------------------------------------------
 
 class ClockSettings(BaseModel):
     clock_mode: Literal["phone", "kiosk", "both"]
+    pin_mode: Optional[Literal["number_pin", "pin_only"]] = None
 
 
-@router.get("/settings", response_model=ClockSettings)
+class ClockSettingsOut(BaseModel):
+    clock_mode: Literal["phone", "kiosk", "both"]
+    pin_mode: Literal["number_pin", "pin_only"]
+    pins_need_reset: int = 0        # kòd ki poko mache an mòd "kòd sèlman"
+
+
+def _settings_out(db: Session, org_id: int) -> ClockSettingsOut:
+    return ClockSettingsOut(clock_mode=get_clock_mode(db, org_id),
+                            pin_mode=get_pin_mode(db, org_id),
+                            pins_need_reset=_pins_need_reset(db, org_id))
+
+
+@router.get("/settings", response_model=ClockSettingsOut)
 def read_settings(org_id: TenantId, db: DbSession):
     """Tout anplwaye ka li l: tablo de bò a kache bouton Klòk in lan si mòd la se 'kiosk'."""
-    return ClockSettings(clock_mode=get_clock_mode(db, org_id))
+    return _settings_out(db, org_id)
 
 
-@router.put("/settings", response_model=ClockSettings, dependencies=[Depends(require_admin)])
+@router.put("/settings", response_model=ClockSettingsOut, dependencies=[Depends(require_admin)])
 def update_settings(payload: ClockSettings, user: CurrentUser, org_id: TenantId,
                     request: Request, db: DbSession):
     org = db.get(Organization, org_id)
     before = get_clock_mode(db, org_id)
+    before_pin = get_pin_mode(db, org_id)
     org.clock_mode = payload.clock_mode
+    if payload.pin_mode is not None:
+        org.kiosk_pin_mode = payload.pin_mode
     db.commit()
-    _audit(db, request, org_id, user.id, "update", "organization", org_id,
-           f"clock_mode: {before} -> {payload.clock_mode}")
-    return payload
+    changes = f"clock_mode: {before} -> {payload.clock_mode}"
+    if payload.pin_mode is not None and payload.pin_mode != before_pin:
+        changes += f"; kiosk_pin_mode: {before_pin} -> {payload.pin_mode}"
+    _audit(db, request, org_id, user.id, "update", "organization", org_id, changes)
+    return _settings_out(db, org_id)
 
 
 # ---------------------------------------------------------------------------
@@ -460,6 +536,7 @@ def issue_pin(employee_id: int, user: CurrentUser, org_id: TenantId,
     HR/admin: pou nenpòt moun nan biznis la.
     Manadjè: pou tèt li ak moun ki anba l nan òganigram lan.
     Yon nouvo kòd ranplase ansyen an epi debloke kòd la si l te bloke.
+    Kòd la INIK nan biznis la (mòd "kòd sèlman" bezwen sa).
     """
     target = db.query(Employee).filter(
         Employee.id == employee_id,
@@ -478,9 +555,17 @@ def issue_pin(employee_id: int, user: CurrentUser, org_id: TenantId,
         ):
             raise FORBIDDEN_ERROR
 
-    pin = _new_pin()
+    for _ in range(50):
+        pin = _new_pin()
+        lookup = pin_lookup(org_id, pin)
+        if not _lookup_taken(db, org_id, lookup, target.id):
+            break
+    else:                                   # 50 fwa menm kòd: pa ka rive an pratik
+        raise HTTPException(status_code=500, detail="Yon erè entèn rive.")
+
     now = datetime.now(timezone.utc)
     target.kiosk_pin_hash = hash_pin(pin)
+    target.kiosk_pin_lookup = lookup
     target.kiosk_pin_set_at = now
     target.kiosk_failed_count = 0
     target.kiosk_locked_until = None
@@ -495,13 +580,16 @@ def issue_pin(employee_id: int, user: CurrentUser, org_id: TenantId,
 
 
 # ---------------------------------------------------------------------------
-# PWENTAJ SOU TABLÈT LA
+# TABLÈT LA: ENFÒMASYON
 # ---------------------------------------------------------------------------
 
 class DeviceInfo(BaseModel):
     device_name: str
     organization_name: str
+    organization_logo_url: Optional[str] = None
+    organization_address: Optional[str] = None
     clock_mode: str
+    pin_mode: str = NUMBER_PIN
     activated_by: Optional[str] = None     # non administratè ki aktive tablèt la
 
 
@@ -511,8 +599,12 @@ def device_info(device: KioskDeviceDep, db: DbSession):
     creator = db.get(User, device.created_by_id) if device.created_by_id else None
     device.last_seen_at = _now()
     db.commit()
+    address = ", ".join(p for p in (org.address, org.city) if p) or None
     return DeviceInfo(device_name=device.name, organization_name=org.name,
+                      organization_logo_url=logo_url_for(db, org),
+                      organization_address=address,
                       clock_mode=get_clock_mode(db, device.organization_id),
+                      pin_mode=get_pin_mode(db, device.organization_id),
                       activated_by=creator.full_name if creator else None)
 
 
@@ -532,19 +624,9 @@ def deactivate_this_device(device: KioskDeviceDep, request: Request, db: DbSessi
     return DeviceOut.model_validate(device)
 
 
-class PunchRequest(BaseModel):
-    employee_number: str = Field(min_length=1, max_length=50)
-    pin: str = Field(min_length=4, max_length=12)
-    action: Literal["in", "out"]
-    break_minutes: int = Field(default=0, ge=0, le=240)
-
-
-class PunchResult(BaseModel):
-    action: Literal["in", "out"]
-    first_name: str                 # prenon sèlman: tablèt la nan yon kote piblik
-    at: datetime
-    worked_minutes: Optional[int] = None
-
+# ---------------------------------------------------------------------------
+# IDANTIFIKASYON (etap 1) AK PWENTAJ (etap 2)
+# ---------------------------------------------------------------------------
 
 def _record_failure(db: Session, request: Request, device: KioskDevice,
                     emp: Optional[Employee], now: datetime) -> None:
@@ -571,10 +653,10 @@ def _record_failure(db: Session, request: Request, device: KioskDevice,
                "employee", emp.id, f"{MAX_PIN_FAILURES} move kòd sou tablèt {device.name}.")
 
 
-@router.post("/punch", response_model=PunchResult)
-def punch(payload: PunchRequest, device: KioskDeviceDep, request: Request, db: DbSession):
+def _authenticate(db: Session, request: Request, device: KioskDevice,
+                  number: Optional[str], pin: str, now: datetime) -> Employee:
+    """Menm verifikasyon pou /identify ak /punch. Voye HTTPException si l pa bon."""
     org_id = device.organization_id
-    now = _now()
     device.last_seen_at = now
 
     if get_clock_mode(db, org_id) == PHONE:
@@ -587,7 +669,13 @@ def punch(payload: PunchRequest, device: KioskDeviceDep, request: Request, db: D
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                             detail="Twòp move esè sou tablèt sa a. Tann kèk minit.")
 
-    emp = _find_employee(db, org_id, payload.employee_number)
+    pin_mode = get_pin_mode(db, org_id)
+    if number and number.strip():
+        emp = _find_employee(db, org_id, number)       # nimewo toujou aksepte
+    elif pin_mode == PIN_ONLY:
+        emp = _find_by_pin(db, org_id, pin)
+    else:
+        emp = None
 
     if emp is not None and emp.kiosk_locked_until and _as_aware(emp.kiosk_locked_until) > now:
         db.commit()
@@ -596,7 +684,7 @@ def punch(payload: PunchRequest, device: KioskDeviceDep, request: Request, db: D
             detail="Twòp move kòd. Tann kèk minit, oswa mande manadjè w yon nouvo kòd.",
         )
 
-    if emp is None or not verify_pin(payload.pin, emp.kiosk_pin_hash):
+    if emp is None or not verify_pin(pin, emp.kiosk_pin_hash):
         _record_failure(db, request, device, emp, now)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=BAD_CREDENTIALS)
 
@@ -605,10 +693,69 @@ def punch(payload: PunchRequest, device: KioskDeviceDep, request: Request, db: D
     device.failed_count = 0
     device.locked_until = None
 
+    # Ansyen kòd (anvan mòd "kòd sèlman"): li jwenn kle rechèch li kounye a,
+    # sèlman si pèsonn lòt nan biznis la pa gen menm kòd la.
+    if not emp.kiosk_pin_lookup:
+        lookup = pin_lookup(org_id, pin)
+        if not _lookup_taken(db, org_id, lookup, emp.id):
+            emp.kiosk_pin_lookup = lookup
+
     if emp.status != EmploymentStatus.ACTIVE:
         db.commit()
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail="Ou pa ka klòk in: estati w se pa aktif.")
+    return emp
+
+
+class IdentifyRequest(BaseModel):
+    employee_number: Optional[str] = Field(default=None, min_length=1, max_length=50)
+    pin: str = Field(min_length=4, max_length=12)
+
+
+class IdentifyResult(BaseModel):
+    first_name: str                 # prenon sèlman: tablèt la nan yon kote piblik
+    photo_url: Optional[str] = None
+    clocked_in: bool
+    since: Optional[datetime] = None
+    elapsed_minutes: Optional[int] = None
+
+
+@router.post("/identify", response_model=IdentifyResult)
+def identify(payload: IdentifyRequest, device: KioskDeviceDep, request: Request, db: DbSession):
+    """Etap 1: kiyès sa ye, e èske l antre deja? Pa anrejistre okenn pwentaj."""
+    now = _now()
+    emp = _authenticate(db, request, device, payload.employee_number, payload.pin, now)
+    open_entry = _open_entry_for(db, device.organization_id, emp.id)
+    db.commit()
+    since = _as_aware(open_entry.clock_in_at) if open_entry else None
+    return IdentifyResult(
+        first_name=emp.first_name, photo_url=photo_url_for(db, emp.id),
+        clocked_in=open_entry is not None, since=since,
+        elapsed_minutes=int((now - since).total_seconds() // 60) if since else None,
+    )
+
+
+class PunchRequest(BaseModel):
+    employee_number: Optional[str] = Field(default=None, min_length=1, max_length=50)
+    pin: str = Field(min_length=4, max_length=12)
+    action: Literal["in", "out"]
+    break_minutes: int = Field(default=0, ge=0, le=240)
+
+
+class PunchResult(BaseModel):
+    action: Literal["in", "out"]
+    first_name: str                 # prenon sèlman: tablèt la nan yon kote piblik
+    at: datetime
+    worked_minutes: Optional[int] = None
+    photo_url: Optional[str] = None
+
+
+@router.post("/punch", response_model=PunchResult)
+def punch(payload: PunchRequest, device: KioskDeviceDep, request: Request, db: DbSession):
+    org_id = device.organization_id
+    now = _now()
+    emp = _authenticate(db, request, device, payload.employee_number, payload.pin, now)
+    photo = photo_url_for(db, emp.id)
 
     open_entry = _open_entry_for(db, org_id, emp.id)
 
@@ -629,7 +776,7 @@ def punch(payload: PunchRequest, device: KioskDeviceDep, request: Request, db: D
             device_info=f"kiosk:{device.id} {device.name}"[:255],
         ))
         db.commit()
-        return PunchResult(action="in", first_name=emp.first_name, at=now)
+        return PunchResult(action="in", first_name=emp.first_name, at=now, photo_url=photo)
 
     # --- SÒTI ---
     if open_entry is None:
@@ -661,4 +808,5 @@ def punch(payload: PunchRequest, device: KioskDeviceDep, request: Request, db: D
     open_entry.overtime_minutes = overtime
     open_entry.status = AttendanceStatus.CLOSED
     db.commit()
-    return PunchResult(action="out", first_name=emp.first_name, at=now, worked_minutes=worked)
+    return PunchResult(action="out", first_name=emp.first_name, at=now,
+                       worked_minutes=worked, photo_url=photo)

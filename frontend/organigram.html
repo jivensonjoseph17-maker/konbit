@@ -103,6 +103,9 @@
     // HR ak admin ka louvri dosye moun yo; lòt moun wè non ak tit sèlman.
     const canOpen = shell.ADMIN.includes(identity.user.role);
 
+    // Foto pwofil yo (employee_id -> lyen); vid si rekèt la echwe.
+    const photos = await shell.photoMap();
+
     function name(node) {
       return canOpen
         ? h('a', { class: 'who plain-link', href: `employee.html?id=${node.id}` }, node.full_name)
@@ -115,7 +118,7 @@
 
     function leaderCard(node) {
       return h('div', { class: 'leader' },
-        h('span', { class: 'avatar', 'aria-hidden': 'true' }, shell.initials(node.full_name)),
+        shell.avatar(photos[node.id], node.full_name),
         h('div', {},
           name(node),
           h('div', { class: 'what' }, subtitle(node) || node.employee_number),
@@ -131,7 +134,7 @@
       const total = countAll(node);
       return h('li', {},
         h('div', { class: node.is_leadership ? 'node is-leader' : 'node' },
-          h('span', { class: 'avatar', 'aria-hidden': 'true' }, shell.initials(node.full_name)),
+          shell.avatar(photos[node.id], node.full_name),
           h('div', {},
             h('div', {},
               name(node),

@@ -39,6 +39,7 @@ from ..schemas import (
 )
 from .positions import seed_default_positions
 from .org_logo import logo_url_for
+from .employee_photos import photo_url_for
 from ..security import (
     REFRESH_TOKEN,
     create_access_token,
@@ -353,6 +354,7 @@ class Identity(BaseModel):
     user: UserOut
     organization_name: Optional[str] = None
     organization_logo_url: Optional[str] = None
+    photo_url: Optional[str] = None
     employee_id: Optional[int] = None
     employee_number: Optional[str] = None
     department_id: Optional[int] = None
@@ -374,6 +376,7 @@ def read_identity(user: CurrentUser, db: DbSession):
         user=UserOut.model_validate(user),
         organization_name=org.name if org else None,
         organization_logo_url=logo_url_for(db, org) if org else None,
+        photo_url=photo_url_for(db, emp.id if emp else None),
         employee_id=emp.id if emp else None,
         employee_number=emp.employee_number if emp else None,
         department_id=emp.department_id if emp else None,

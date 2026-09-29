@@ -11,88 +11,121 @@
   <script src="theme.js"></script>
   <link rel="stylesheet" href="app.css">
   <style>
-    /* Paj tablèt la: gwo bouton, pa gen meni. Koulè yo soti nan app.css. */
+    /* Tablèt ak òdinatè: menm paj. Gwo bouton pou dwèt, klavye pou òdinatè. */
     body.kiosk { min-height: 100vh; margin: 0; display: flex; flex-direction: column;
       background: var(--bg); color: var(--text); }
-    /* Ba anlè: menm ble nwit ak rès aplikasyon an (.topbar nan app.css). */
+
+    /* --- Ba anlè a (ble nwit, tankou rès aplikasyon an) --- */
     .k-top { display: flex; justify-content: space-between; align-items: center; gap: 12px;
-      padding: 12px 22px; background: #0b1224; color: #f3f4f6; border-bottom: 0; }
-    .k-top .k-org { color: #fff; }
-    .k-brand { display: flex; align-items: center; gap: 10px; }
-    .k-org { font-weight: 800; font-size: 18px; }
-    .k-main { flex: 1; display: grid; place-items: center; padding: 22px; }
-    .k-card { width: min(520px, 100%); display: grid; gap: 16px; }
-    .k-clock { text-align: center; font-size: clamp(52px, 11vw, 88px); font-weight: 800;
-      line-height: 1; font-variant-numeric: tabular-nums; }
-    .k-date { text-align: center; color: var(--muted); font-size: 18px; margin: 0; }
-    .k-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .k-fields label { display: block; font-weight: 600; margin-bottom: 6px; }
-    .k-fields .input { height: 58px; font-size: 26px; text-align: center; letter-spacing: 0.08em; }
-    .k-fields .input.is-target { outline: 3px solid var(--accent, #2563eb); outline-offset: 1px; }
-    .k-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-    .k-pad button { height: 64px; font: inherit; font-size: 26px; font-weight: 700; cursor: pointer;
-      border-radius: 14px; border: 1px solid var(--line); background: var(--surface); color: var(--text); }
-    .k-pad button:active { transform: scale(0.97); }
-    .k-break { display: flex; align-items: center; gap: 10px; justify-content: center; }
-    .k-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .k-actions .btn { height: 66px; font-size: 22px; }
-    .k-result { text-align: center; padding: 26px 18px; border-radius: 18px; font-size: 24px;
-      font-weight: 700; line-height: 1.35; }
-    .k-result.ok { background: rgba(22, 163, 74, 0.14); color: #15803d; }
-    .k-result.err { background: rgba(220, 38, 38, 0.12); color: #b91c1c; }
-    [data-theme="dark"] .k-result.ok { color: #4ade80; }
-    [data-theme="dark"] .k-result.err { color: #f87171; }
-    .k-right { display: flex; align-items: center; gap: 12px; }
-    .k-menu { position: relative; }
-    .k-menu-btn {
-      display: flex; align-items: center; gap: 10px; padding: 6px 12px 6px 6px; border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.18); background: transparent; color: #f3f4f6;
-      font: inherit; cursor: pointer; text-align: start;
-    }
-    .k-menu-btn:hover, .k-menu-btn[aria-expanded="true"] { background: rgba(255, 255, 255, 0.08); }
-    .k-menu-btn .av {
-      width: 34px; height: 34px; border-radius: 50%; flex: none; display: grid; place-items: center;
-      background: #1d4ed8; color: #fff; font-size: 13px; font-weight: 800;
-    }
-    .k-menu-btn .d { font-weight: 700; font-size: 14px; line-height: 1.2; }
-    .k-menu-btn .a { color: #9ca3af; font-size: 12.5px; line-height: 1.2; }
-    .k-menu-btn .chev { width: 16px; height: 16px; flex: none; opacity: 0.8; }
-    .k-menu-list {
-      position: absolute; inset-inline-end: 0; top: calc(100% + 8px); min-width: 250px; z-index: 50;
-      padding: 6px; display: grid; gap: 2px; border-radius: 12px;
-      background: var(--surface, #fff); color: var(--text, #111827);
-      border: 1px solid var(--line-strong, #d1d5db); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
-    }
-    .k-menu-list[hidden] { display: none; }
-    .k-menu-item {
-      display: block; width: 100%; padding: 10px 12px; border: 0; border-radius: 8px; background: none;
-      color: inherit; font: inherit; font-size: 14.5px; text-align: start; text-decoration: none; cursor: pointer;
-    }
-    .k-menu-item:hover, .k-menu-item:focus-visible { background: var(--surface-2, rgba(148, 163, 184, 0.14)); }
-    .k-menu-item.danger { color: #dc2626; }
-    .k-menu-sep { height: 1px; background: var(--line); margin: 4px 6px; }
-    @media (max-width: 640px) { .k-menu-btn .txt { display: none; } .k-menu-btn { padding: 4px; } }
-    /* Bouton lang lan sou fon ble nwit la */
+      padding: 10px 20px; background: #0b1224; color: #f3f4f6; }
+    .k-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .k-brand .k-logo { width: 34px; height: 34px; border-radius: 9px; background: #fff; padding: 3px; object-fit: contain; }
+    .k-org { font-weight: 800; font-size: 17px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .k-right { display: flex; align-items: center; gap: 10px; }
+    .k-icon-btn { width: 38px; height: 38px; border-radius: 999px; display: grid; place-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.18); background: transparent; color: #f3f4f6; cursor: pointer; }
+    .k-icon-btn:hover { background: rgba(255, 255, 255, 0.08); }
+    .k-icon-btn svg { width: 18px; height: 18px; }
     .k-top .lang-picker-btn { color: #f3f4f6; border-color: rgba(255, 255, 255, 0.18); }
-    .k-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px;
-      padding: 10px 22px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); }
-    .k-foot button { font-size: 13px; }
+
+    .k-menu { position: relative; }
+    .k-menu-btn { display: flex; align-items: center; gap: 10px; padding: 5px 12px 5px 5px; border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.18); background: transparent; color: #f3f4f6;
+      font: inherit; cursor: pointer; text-align: start; }
+    .k-menu-btn:hover, .k-menu-btn[aria-expanded="true"] { background: rgba(255, 255, 255, 0.08); }
+    .k-menu-btn .av { width: 30px; height: 30px; border-radius: 50%; flex: none; display: grid; place-items: center;
+      background: #1d4ed8; color: #fff; font-size: 12px; font-weight: 800; }
+    .k-menu-btn .d { font-weight: 700; font-size: 13.5px; line-height: 1.2; display: block; }
+    .k-menu-btn .a { color: #9ca3af; font-size: 12px; line-height: 1.2; display: block; }
+    .k-menu-list { position: absolute; inset-inline-end: 0; top: calc(100% + 8px); min-width: 250px; z-index: 50;
+      padding: 6px; display: grid; gap: 2px; border-radius: 12px; background: var(--surface); color: var(--text);
+      border: 1px solid var(--line-strong); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25); }
+    .k-menu-item { display: block; width: 100%; padding: 10px 12px; border: 0; border-radius: 8px; background: none;
+      color: inherit; font: inherit; font-size: 14.5px; text-align: start; text-decoration: none; cursor: pointer; }
+    .k-menu-item:hover, .k-menu-item:focus-visible { background: var(--surface-2); }
+    .k-menu-item.danger { color: var(--red); }
+    .k-menu-sep { height: 1px; background: var(--line); margin: 4px 6px; }
+    @media (max-width: 700px) { .k-menu-btn .txt { display: none; } .k-menu-btn { padding: 4px; } }
+
+    /* --- Kò a: revèy agoch, klavye adwat (tankou Legion) --- */
+    .k-main { flex: 1; display: grid; grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.2fr); min-height: 0; }
+    .k-side { padding: 36px 32px; border-inline-end: 1px solid var(--line); background: var(--surface);
+      display: flex; flex-direction: column; gap: 24px; }
+    .k-clock { font-size: clamp(54px, 7vw, 92px); font-weight: 800; line-height: 1; letter-spacing: -0.03em;
+      font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; }
+    .k-date { color: var(--muted); font-size: 18px; margin-top: 8px; }
+    .k-place { margin-top: auto; display: grid; gap: 4px; color: var(--muted); font-size: 14px; }
+    .k-place strong { color: var(--text); font-size: 16px; }
+    .k-help { color: var(--faint); font-size: 13px; }
+
+    .k-stage { display: grid; place-items: center; padding: 28px 22px; }
+    .k-card { width: min(460px, 100%); display: grid; gap: 18px; justify-items: stretch; }
+    .k-title { text-align: center; font-size: 22px; font-weight: 700; }
+
+    .k-number .input { height: 56px; font-size: 24px; text-align: center; letter-spacing: 0.06em; }
+    .k-number .input.is-target { outline: 3px solid var(--blue); outline-offset: 1px; }
+    .k-boxes { display: flex; justify-content: center; gap: 10px; cursor: pointer; }
+    .k-box { width: 50px; height: 58px; border-radius: 12px; border: 2px solid var(--line-strong);
+      background: var(--surface); display: grid; place-items: center; font-size: 28px; font-weight: 800; }
+    .k-boxes.is-target .k-box.next { border-color: var(--blue); }
+    .k-boxes.shake { animation: shake 0.35s; }
+    @keyframes shake { 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+
+    .k-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .k-pad button { height: 68px; font: inherit; font-size: 28px; font-weight: 700; cursor: pointer;
+      border-radius: 16px; border: 1px solid var(--line); background: var(--surface); color: var(--text); }
+    .k-pad button:hover { background: var(--surface-2); }
+    .k-pad button:active { transform: scale(0.97); }
+    .k-pad .k-ok { background: var(--blue); color: #fff; border-color: var(--blue); font-size: 22px; }
+
+    .k-msg { min-height: 1.4em; text-align: center; color: var(--red); font-weight: 600; margin: 0; }
+    .k-note { text-align: center; }
+
+    /* Etap 2: foto + non + yon sèl gwo bouton */
+    .k-who { display: grid; justify-items: center; gap: 10px; text-align: center; }
+    .k-who .avatar { width: 132px; height: 132px; font-size: 42px; border-width: 3px; }
+    .k-hello { font-size: 30px; font-weight: 800; }
+    .k-state { color: var(--muted); font-size: 17px; }
+    .k-go { height: 76px; font-size: 26px; border-radius: 18px; }
+    .k-go.in { background: #16a34a; color: #fff; }
+    .k-go.out { background: #b45309; color: #fff; }
+    .k-break { display: flex; align-items: center; gap: 10px; justify-content: center; }
+    .k-countdown { text-align: center; color: var(--faint); font-size: 13px; }
+
+    /* Rezilta */
+    .k-done { display: grid; justify-items: center; gap: 12px; text-align: center; }
+    .k-done .avatar { width: 116px; height: 116px; font-size: 38px; }
+    .k-check { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center;
+      background: #16a34a; color: #fff; font-size: 36px; font-weight: 800; }
+    .k-done.out .k-check { background: #b45309; }
+    .k-done-text { font-size: 26px; font-weight: 800; line-height: 1.3; }
+
+    @media (max-width: 860px) {
+      .k-main { grid-template-columns: 1fr; }
+      .k-side { padding: 18px 20px; flex-direction: row; align-items: center; justify-content: space-between;
+        border-inline-end: 0; border-bottom: 1px solid var(--line); }
+      .k-clock { font-size: 44px; }
+      .k-place { margin-top: 0; text-align: end; }
+      .k-help { display: none; }
+    }
   </style>
 </head>
 <body class="kiosk">
   <header class="k-top">
-    <span class="k-brand"><span class="brand-mark" aria-hidden="true">K</span><span class="k-org" id="org-name">KONMBIT</span></span>
+    <span class="k-brand">
+      <span class="brand-mark" id="brand-k" aria-hidden="true">K</span>
+      <span class="k-org" id="org-name">KONMBIT</span>
+    </span>
     <div class="k-right">
-      <div class="k-menu" id="who" hidden>
+      <button class="k-icon-btn" type="button" id="fullscreen" data-i18n-attr="title" title="Plen ekran">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+      </button>
+      <div class="k-menu" id="who-menu" hidden>
         <button class="k-menu-btn" type="button" id="menu-btn" aria-haspopup="true" aria-expanded="false"
                 aria-controls="menu-list" data-i18n-attr="aria-label" aria-label="Meni tablèt la">
           <span class="av" id="menu-initials" aria-hidden="true">K</span>
-          <span class="txt">
-            <span class="d" id="device-name" style="display: block;"></span>
-            <span class="a" id="activated-by" style="display: block;"></span>
-          </span>
-          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-               stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+          <span class="txt"><span class="d" id="device-name"></span><span class="a" id="activated-by"></span></span>
         </button>
         <div class="k-menu-list" id="menu-list" role="menu" hidden>
           <a class="k-menu-item" role="menuitem" href="login.html?next=kiosk-settings.html" data-i18n>Konekte kòm administratè</a>
@@ -105,47 +138,55 @@
   </header>
 
   <main class="k-main">
-    <!-- Tablèt la poko aktive -->
-    <section class="k-card" id="activate" hidden>
-      <h1 data-i18n>Aktive tablèt sa a</h1>
-      <p data-i18n>Administratè a jenere yon kòd 6 karaktè nan paj «Pwentaj ak tablèt». Tape l isit la. Li ekspire apre 10 minit.</p>
-      <div class="field">
-        <label for="a-token" data-i18n>Kòd aktivasyon</label>
-        <input class="input" id="a-token" autocomplete="off" spellcheck="false" autocapitalize="characters"
-               maxlength="80" style="font-size: 26px; text-align: center; letter-spacing: 0.12em; text-transform: uppercase;"
-               data-i18n-attr="placeholder" placeholder="Egz: K7P-4QX">
-      </div>
-      <p class="field-error" id="a-error" role="alert"></p>
-      <button class="btn btn-primary" type="button" id="a-submit" data-i18n>Aktive</button>
-      <a class="plain-link" href="login.html?next=kiosk-settings.html" style="text-align: center;" data-i18n>Se ou ki administratè a? Konekte pou aktive tablèt sa a.</a>
-    </section>
-
-    <!-- Pwentaj -->
-    <section class="k-card" id="punch" hidden>
+    <aside class="k-side">
       <div>
-        <p class="k-clock" id="clock" aria-live="off">--:--</p>
-        <p class="k-date" id="date"></p>
+        <div class="k-clock" id="clock" aria-live="off">--:--</div>
+        <div class="k-date" id="date"></div>
+      </div>
+      <div class="k-place">
+        <strong id="place-name"></strong>
+        <span id="place-address"></span>
+        <span class="k-help" id="kbd-help" data-i18n>Sou òdinatè: tape chif yo, Enter pou kontinye, Esc pou kòmanse ankò.</span>
+      </div>
+    </aside>
+
+    <section class="k-stage">
+      <!-- Tablèt la poko aktive -->
+      <div class="k-card" id="activate" hidden>
+        <h1 class="k-title" data-i18n>Aktive tablèt sa a</h1>
+        <p data-i18n>Administratè a jenere yon kòd 6 karaktè nan paj «Pwentaj ak tablèt». Tape l isit la. Li ekspire apre 10 minit.</p>
+        <div class="field">
+          <label for="a-token" data-i18n>Kòd aktivasyon</label>
+          <input class="input" id="a-token" autocomplete="off" spellcheck="false" autocapitalize="characters"
+                 maxlength="80" style="font-size: 26px; text-align: center; letter-spacing: 0.12em; text-transform: uppercase;"
+                 data-i18n-attr="placeholder" placeholder="Egz: K7P-4QX">
+        </div>
+        <p class="field-error" id="a-error" role="alert"></p>
+        <button class="btn btn-primary" type="button" id="a-submit" data-i18n>Aktive</button>
+        <a class="plain-link" href="login.html?next=kiosk-settings.html" style="text-align: center;" data-i18n>Se ou ki administratè a? Konekte pou aktive tablèt sa a.</a>
       </div>
 
-      <p class="alert alert-error" id="mode-note" hidden data-i18n>Administratè a poko chwazi pwentaj sou tablèt. Tablèt la ap mache lè li chanje sa nan «Pwentaj ak tablèt».</p>
-
-      <div id="result" class="k-result" hidden role="status"></div>
-
-      <div id="form-area">
-        <div class="k-fields">
-          <div>
-            <label for="p-number" data-i18n>Nimewo anplwaye</label>
-            <input class="input" id="p-number" inputmode="none" autocomplete="off" maxlength="50">
-          </div>
-          <div>
-            <label for="p-pin" data-i18n>Kòd pèsonèl</label>
-            <input class="input" id="p-pin" type="password" inputmode="none" autocomplete="off" maxlength="12">
-          </div>
+      <!-- Etap 1: nimewo (si biznis la mande l) + kòd -->
+      <div class="k-card" id="step-code" hidden>
+        <p class="alert alert-error k-note" id="mode-note" hidden data-i18n>Administratè a poko chwazi pwentaj sou tablèt. Tablèt la ap mache lè li chanje sa nan «Pwentaj ak tablèt».</p>
+        <h1 class="k-title" id="code-title" data-i18n>Tape kòd ou</h1>
+        <div class="k-number field" id="number-field" hidden>
+          <label for="p-number" data-i18n>Nimewo anplwaye</label>
+          <input class="input" id="p-number" inputmode="none" autocomplete="off" maxlength="50">
         </div>
+        <div class="k-boxes" id="boxes" role="group" data-i18n-attr="aria-label" aria-label="Kòd pèsonèl"></div>
+        <p class="k-msg" id="msg" role="alert"></p>
+        <div class="k-pad" id="pad"></div>
+      </div>
 
-        <div class="k-pad" id="pad" style="margin-top: 14px;"></div>
-
-        <div class="k-break" style="margin-top: 14px;">
+      <!-- Etap 2: foto, non, yon sèl gwo bouton -->
+      <div class="k-card" id="step-confirm" hidden>
+        <div class="k-who">
+          <span id="who-photo"></span>
+          <div class="k-hello" id="who-hello"></div>
+          <div class="k-state" id="who-state"></div>
+        </div>
+        <div class="k-break" id="break-row" hidden>
           <label for="p-break" data-i18n>Tan repo</label>
           <select class="select" id="p-break" style="max-width: 200px;">
             <option value="0" data-i18n>Pa gen repo</option>
@@ -153,15 +194,22 @@
             <option value="60" data-i18n>1 èdtan repo</option>
           </select>
         </div>
+        <button class="btn k-go" type="button" id="go"></button>
+        <button class="btn btn-ghost" type="button" id="not-me" data-i18n>Se pa mwen</button>
+        <p class="k-msg" id="confirm-msg" role="alert"></p>
+        <p class="k-countdown" id="countdown"></p>
+      </div>
 
-        <div class="k-actions" style="margin-top: 14px;">
-          <button class="btn btn-primary" type="button" id="p-in" data-i18n="Antre|pwentaj">Antre</button>
-          <button class="btn btn-ghost" type="button" id="p-out" data-i18n="Sòti|pwentaj">Sòti</button>
+      <!-- Rezilta -->
+      <div class="k-card" id="step-done" hidden>
+        <div class="k-done" id="done-box">
+          <span id="done-photo"></span>
+          <div class="k-check" aria-hidden="true">✓</div>
+          <div class="k-done-text" id="done-text" role="status"></div>
         </div>
       </div>
     </section>
   </main>
-
 
   <script src="api.js"></script>
   <script>
@@ -170,17 +218,28 @@
     const { API_URL, ApiError, fmt, h, i18n, t } = Konbit;
     await i18n.ready;
     document.getElementById('lang-slot').append(i18n.switcher());
+    i18n.apply(document);
 
     const $ = (id) => document.getElementById(id);
     const TOKEN_KEY = 'konbit.kiosk_token';
-    const RESULT_MS = 6000;
-    const IDLE_MS = 30000;
+    const PIN_LENGTH = 6;
+    const CONFIRM_SECONDS = 20;       // etap 2 a anile tèt li apre 20 s
+    const DONE_MS = 4000;             // mesaj "Bonjou" a rete 4 s
+    const IDLE_MS = 30000;            // etap 1: efase sa ki tape apre 30 s
 
     const store = {
       get() { try { return localStorage.getItem(TOKEN_KEY); } catch { return null; } },
       set(v) { try { localStorage.setItem(TOKEN_KEY, v); } catch { /* navigasyon prive */ } },
       clear() { try { localStorage.removeItem(TOKEN_KEY); } catch { /* anyen */ } },
     };
+
+    let pinMode = 'number_pin';
+    let pin = '';                     // kòd la rete an memwa sèlman pandan 2 etap yo
+    let who = null;
+    let target = 'pin';               // 'number' oswa 'pin'
+    let idleTimer = null;
+    let countdownTimer = null;
+    let doneTimer = null;
 
     // -----------------------------------------------------------------
     // REKÈT — token TABLÈT la (X-Kiosk-Token), pa token yon itilizatè
@@ -194,12 +253,9 @@
       const token = store.get();
       if (token) headers['X-Kiosk-Token'] = token;
       if (body !== undefined) headers['Content-Type'] = 'application/json';
-
       let res;
       try {
-        res = await fetch(API_URL + path, {
-          method, headers, body: body !== undefined ? JSON.stringify(body) : undefined,
-        });
+        res = await fetch(API_URL + path, { method, headers, body: body !== undefined ? JSON.stringify(body) : undefined });
       } catch {
         throw new ApiError(0, t('Nou pa ka rive jwenn sèvè a. Verifye koneksyon entènèt ou.'));
       }
@@ -214,31 +270,90 @@
       return data;
     }
 
+    function absolute(url) {
+      if (!url) return null;
+      try {
+        const u = new URL(url, API_URL);
+        return u.protocol === 'https:' || u.protocol === 'http:' ? u.href : null;
+      } catch { return null; }
+    }
+
+    function initialsOf(name) {
+      return (name || 'K').split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0].toUpperCase()).join('');
+    }
+
+    /** Avatar: foto a si genyen youn, sinon inisyal yo. */
+    function avatar(url, name) {
+      const el = h('span', { class: 'avatar', 'aria-hidden': 'true' }, initialsOf(name));
+      const src = absolute(url);
+      if (src) {
+        const img = h('img', { src, decoding: 'async' });
+        img.alt = '';
+        img.referrerPolicy = 'no-referrer';
+        img.addEventListener('load', () => el.replaceChildren(img));
+      }
+      return el;
+    }
+
     // -----------------------------------------------------------------
-    // AKTIVASYON
+    // EKRAN YO
     // -----------------------------------------------------------------
 
+    function show(id) {
+      ['activate', 'step-code', 'step-confirm', 'step-done'].forEach((s) => { $(s).hidden = s !== id; });
+    }
+
+    function resetCode(message) {
+      clearTimeout(idleTimer);
+      clearInterval(countdownTimer);
+      clearTimeout(doneTimer);
+      pin = '';
+      who = null;
+      $('p-number').value = '';
+      $('p-break').value = '0';
+      $('msg').textContent = message || '';
+      setTarget(pinMode === 'pin_only' ? 'pin' : 'number');
+      drawBoxes();
+      show('step-code');
+    }
+
     function showActivate(message) {
-      $('punch').hidden = true;
-      $('who').hidden = true;
+      $('who-menu').hidden = true;
       closeMenu();
-      $('activate').hidden = false;
+      show('activate');
       $('org-name').textContent = 'KONMBIT';
       $('a-error').textContent = message || '';
       $('a-token').focus();
     }
 
+    // -----------------------------------------------------------------
+    // TABLÈT LA
+    // -----------------------------------------------------------------
+
     async function loadDevice() {
       try {
         const d = await call('GET', '/api/kiosk/device');
+        pinMode = d.pin_mode || 'number_pin';
         $('org-name').textContent = d.organization_name;
+        $('place-name').textContent = d.organization_name;
+        $('place-address').textContent = d.organization_address || '';
         $('device-name').textContent = d.device_name;
         $('activated-by').textContent = d.activated_by ? t('Aktive pa {name}', { name: d.activated_by }) : '';
         $('menu-initials').textContent = initialsOf(d.activated_by || d.device_name);
         $('mode-note').hidden = d.clock_mode !== 'phone';
-        $('activate').hidden = true;
-        $('punch').hidden = false;
-        $('who').hidden = false;
+        $('number-field').hidden = pinMode === 'pin_only';
+        $('code-title').textContent = pinMode === 'pin_only'
+          ? t('Tape kòd ou') : t('Tape nimewo w, epi kòd ou');
+        const logo = absolute(d.organization_logo_url);
+        if (logo) {
+          const img = h('img', { class: 'k-logo', src: logo });
+          img.alt = '';
+          img.referrerPolicy = 'no-referrer';
+          img.addEventListener('load', () => $('brand-k').replaceWith(img));
+        }
+        $('who-menu').hidden = false;
+        // Premye chajman (oswa apre aktivasyon): ekran kòd la. Pa jwenn moun k ap tape.
+        if ($('step-code').hidden && $('step-confirm').hidden && $('step-done').hidden) resetCode('');
         return true;
       } catch (err) {
         if (err.status === 401) {
@@ -246,15 +361,12 @@
           showActivate(err.message);
           return false;
         }
-        // Pa gen entènèt: nou kite paj pwentaj la, rekèt pwentaj la ap montre erè a.
-        if (!$('punch').hidden) return true;
+        if (!$('step-code').hidden) return true;       // pa gen entènèt: kite ekran an
         showActivate(err.message);
         return false;
       }
     }
 
-    // Kòd kout (K7P-4QX) → /api/kiosk/pair bay tablèt la pwòp token pa l.
-    // Yon token long "kk_…" (ansyen fason an) toujou mache tou.
     async function activate() {
       const value = $('a-token').value.trim();
       if (!value) return;
@@ -264,7 +376,6 @@
         if (value.startsWith('kk_')) {
           store.set(value);
         } else if (value.replace(/[^a-z0-9]/gi, '').length !== 6) {
-          // Egz: yon imel oswa yon kòd pwentaj 6 chif kole nan move kote.
           $('a-error').textContent = t('Kòd aktivasyon an gen 6 karaktè, egz: K7P-4QX. Administratè a jwenn li nan «Pwentaj ak tablèt».');
           return;
         } else {
@@ -284,46 +395,32 @@
     $('a-token').addEventListener('keydown', (e) => { if (e.key === 'Enter') activate(); });
 
     // -----------------------------------------------------------------
-    // MENI ANLÈ ADWAT: konekte kòm administratè, dekonekte tablèt la
+    // MENI AK PLEN EKRAN
     // -----------------------------------------------------------------
-
-    function initialsOf(name) {
-      return (name || 'K').split(/\s+/).filter(Boolean).slice(0, 2)
-        .map((p) => p[0].toUpperCase()).join('');
-    }
 
     function closeMenu() {
       $('menu-list').hidden = true;
       $('menu-btn').setAttribute('aria-expanded', 'false');
     }
-
     $('menu-btn').addEventListener('click', (e) => {
       e.stopPropagation();
       const open = $('menu-list').hidden;
       $('menu-list').hidden = !open;
       $('menu-btn').setAttribute('aria-expanded', String(open));
-      if (open) $('menu-list').querySelector('.k-menu-item').focus();
     });
-    document.addEventListener('click', (e) => {
-      if (!$('who').contains(e.target)) closeMenu();
-    });
-    $('who').addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') { closeMenu(); $('menu-btn').focus(); }
-    });
+    document.addEventListener('click', (e) => { if (!$('who-menu').contains(e.target)) closeMenu(); });
 
-    // Dekonekte: tablèt la dezaktive sou sèvè a tou — token an pa mache ankò.
     $('deactivate').addEventListener('click', async () => {
       closeMenu();
       if (!confirm(t('Dekonekte tablèt sa a? W ap bezwen yon nouvo kòd aktivasyon pou itilize l ankò.'))) return;
-      $('deactivate').disabled = true;
-      try {
-        await call('POST', '/api/kiosk/device/deactivate');
-      } catch {
-        // Deja dezaktive oswa pa gen entènèt: nou retire l sou aparèy la kanmenm.
-      }
+      try { await call('POST', '/api/kiosk/device/deactivate'); } catch { /* retire l sou aparèy la kanmenm */ }
       store.clear();
-      $('deactivate').disabled = false;
       showActivate('');
+    });
+
+    $('fullscreen').addEventListener('click', () => {
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+      else document.documentElement.requestFullscreen().catch(() => {});
     });
 
     // -----------------------------------------------------------------
@@ -339,117 +436,171 @@
     setInterval(tick, 1000);
 
     // -----------------------------------------------------------------
-    // KLAVYE SOU EKRAN AN
+    // ETAP 1: KÒD LA (klavye sou ekran an + klavye òdinatè)
     // -----------------------------------------------------------------
 
-    const numberInput = $('p-number');
-    const pinInput = $('p-pin');
-    let target = numberInput;
-
-    function setTarget(input) {
-      target = input;
-      numberInput.classList.toggle('is-target', input === numberInput);
-      pinInput.classList.toggle('is-target', input === pinInput);
+    function drawBoxes() {
+      const boxes = Array.from({ length: PIN_LENGTH }, (_, i) =>
+        h('span', { class: i === pin.length ? 'k-box next' : 'k-box' }, i < pin.length ? '•' : ''));
+      $('boxes').replaceChildren(...boxes);
+      $('boxes').classList.toggle('is-target', target === 'pin');
     }
-    numberInput.addEventListener('focus', () => setTarget(numberInput));
-    pinInput.addEventListener('focus', () => setTarget(pinInput));
-    setTarget(numberInput);
 
-    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'];
-    $('pad').append(...keys.map((k) => {
-      const label = k === 'C' ? t('Efase tout') : k === '⌫' ? t('Efase yon chif') : k;
-      const btn = h('button', { type: 'button', 'aria-label': label }, k);
-      // mousedown: kenbe fokis la nan chan an (pa gen klavye telefòn ki louvri).
-      btn.addEventListener('mousedown', (e) => e.preventDefault());
-      btn.addEventListener('click', () => {
-        bump();
-        if (k === 'C') target.value = '';
-        else if (k === '⌫') target.value = target.value.slice(0, -1);
-        else if (target.value.length < Number(target.maxLength || 12)) target.value += k;
-      });
+    function setTarget(which) {
+      target = pinMode === 'pin_only' ? 'pin' : which;
+      $('p-number').classList.toggle('is-target', target === 'number');
+      drawBoxes();
+    }
+    $('p-number').addEventListener('focus', () => setTarget('number'));
+    $('boxes').addEventListener('click', () => { $('p-number').blur(); setTarget('pin'); });
+
+    function bump() {
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => resetCode(''), IDLE_MS);
+    }
+
+    function press(key) {
+      if ($('step-code').hidden) return;
+      bump();
+      $('msg').textContent = '';
+      if (key === 'ok') { next(); return; }
+      if (target === 'number') {
+        const input = $('p-number');
+        if (key === 'del') input.value = input.value.slice(0, -1);
+        else if (/^\d$/.test(key) && input.value.length < 50) input.value += key;
+        return;
+      }
+      if (key === 'del') pin = pin.slice(0, -1);
+      else if (/^\d$/.test(key) && pin.length < PIN_LENGTH) pin += key;
+      drawBoxes();
+      if (pin.length === PIN_LENGTH) next();
+    }
+
+    const PAD = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'del', '0', 'ok'];
+    $('pad').append(...PAD.map((k) => {
+      const label = k === 'del' ? t('Efase yon chif') : k === 'ok' ? t('Kontinye') : k;
+      const btn = h('button', { type: 'button', 'aria-label': label, class: k === 'ok' ? 'k-ok' : '' },
+        k === 'del' ? '⌫' : k === 'ok' ? '→' : k);
+      btn.addEventListener('mousedown', (e) => e.preventDefault());   // pa louvri klavye telefòn nan
+      btn.addEventListener('click', () => press(k));
       return btn;
     }));
 
-    // Si pèsonn pa touche tablèt la pandan 30 s, nou efase chan yo.
-    let idleTimer = null;
-    function bump() {
-      clearTimeout(idleTimer);
-      idleTimer = setTimeout(clearForm, IDLE_MS);
-    }
-    [numberInput, pinInput].forEach((i) => i.addEventListener('input', bump));
-
-    function clearForm() {
-      numberInput.value = '';
-      pinInput.value = '';
-      $('p-break').value = '0';
-      setTarget(numberInput);
-    }
-
-    // -----------------------------------------------------------------
-    // PWENTAJ
-    // -----------------------------------------------------------------
-
-    let resultTimer = null;
-    function showResult(kind, text) {
-      clearTimeout(resultTimer);
-      const box = $('result');
-      box.className = `k-result ${kind}`;
-      box.textContent = text;
-      box.hidden = false;
-      resultTimer = setTimeout(() => { box.hidden = true; }, kind === 'ok' ? RESULT_MS : RESULT_MS - 2000);
-    }
-
-    async function punch(action) {
-      const number = numberInput.value.trim();
-      const pin = pinInput.value.trim();
-      if (!number || !pin) {
-        showResult('err', t('Tape nimewo w ak kòd ou.'));
-        setTarget(number ? pinInput : numberInput);
+    document.addEventListener('keydown', (e) => {
+      if (!$('activate').hidden || e.target.closest('select, #menu-list')) return;
+      if (e.key === 'Escape') { resetCode(''); return; }
+      if (!$('step-confirm').hidden) {
+        if (e.key === 'Enter') { e.preventDefault(); $('go').click(); }
         return;
       }
+      if ($('step-code').hidden) return;
+      if (/^\d$/.test(e.key)) { e.preventDefault(); press(e.key); }
+      else if (e.key === 'Backspace') { e.preventDefault(); press('del'); }
+      else if (e.key === 'Enter') { e.preventDefault(); press('ok'); }
+      else if (e.key === 'Tab' && pinMode !== 'pin_only') { e.preventDefault(); setTarget(target === 'number' ? 'pin' : 'number'); }
+    });
 
-      const buttons = [$('p-in'), $('p-out')];
-      buttons.forEach((b) => { b.disabled = true; });
+    function numberValue() {
+      return pinMode === 'pin_only' ? null : ($('p-number').value.trim() || null);
+    }
+
+    async function next() {
+      if (pinMode !== 'pin_only' && !numberValue()) {
+        $('msg').textContent = t('Tape nimewo w anvan.');
+        setTarget('number');
+        return;
+      }
+      if (target === 'number') { setTarget('pin'); return; }
+      if (pin.length < 4) {
+        $('msg').textContent = t('Tape kòd ou.');
+        return;
+      }
       try {
-        const r = await call('POST', '/api/kiosk/punch', {
-          employee_number: number,
-          pin,
-          action,
-          break_minutes: action === 'out' ? Number($('p-break').value) : 0,
-        });
-        const time = fmt.time(r.at);
-        showResult('ok', r.action === 'in'
-          ? t('Bonjou, {name}! Ou antre a {time}.', { name: r.first_name, time })
-          : t('Orevwa, {name}! Ou soti a {time}. Jounen an: {duration}.', {
-              name: r.first_name, time, duration: fmt.duration(r.worked_minutes),
-            }));
-        clearForm();
+        who = await call('POST', '/api/kiosk/identify', { employee_number: numberValue(), pin });
+        showConfirm();
       } catch (err) {
-        showResult('err', err.message);
-        pinInput.value = '';            // kòd la pa janm rete sou ekran an
-        if (err.status === 401) {
-          // Move kòd, OSWA tablèt la dezaktive: nou verifye tablèt la.
-          await loadDevice();
-        }
-        setTarget(pinInput);
-      } finally {
-        buttons.forEach((b) => { b.disabled = false; });
+        pin = '';
+        drawBoxes();
+        $('msg').textContent = err.message;
+        $('boxes').classList.remove('shake');
+        void $('boxes').offsetWidth;          // rekòmanse animasyon an
+        $('boxes').classList.add('shake');
+        // Move kòd, OSWA tablèt la dezaktive: nou verifye tablèt la (mesaj la rete).
+        if (err.status === 401) loadDevice();
       }
     }
 
-    $('p-in').addEventListener('click', () => punch('in'));
-    $('p-out').addEventListener('click', () => punch('out'));
+    // -----------------------------------------------------------------
+    // ETAP 2: SE OU MENM? — foto + yon sèl gwo bouton
+    // -----------------------------------------------------------------
+
+    function showConfirm() {
+      clearTimeout(idleTimer);
+      const inNow = who.clocked_in;
+      $('who-photo').replaceChildren(avatar(who.photo_url, who.first_name));
+      $('who-hello').textContent = inNow
+        ? t('Orevwa, {name}?', { name: who.first_name })
+        : t('Bonjou, {name}!', { name: who.first_name });
+      $('who-state').textContent = inNow
+        ? t('Ou antre a {time} · {duration}', { time: fmt.time(who.since), duration: fmt.duration(who.elapsed_minutes) })
+        : t('Ou poko antre jodi a.');
+      $('go').className = `btn k-go ${inNow ? 'out' : 'in'}`;
+      $('go').textContent = inNow ? t('Sòti|pwentaj') : t('Antre|pwentaj');
+      $('go').disabled = false;
+      $('break-row').hidden = !inNow;
+      $('confirm-msg').textContent = '';
+      show('step-confirm');
+
+      let left = CONFIRM_SECONDS;
+      const draw = () => { $('countdown').textContent = t('Ekran an ap retounen nan {n} s.', { n: left }); };
+      draw();
+      clearInterval(countdownTimer);
+      countdownTimer = setInterval(() => {
+        left -= 1;
+        if (left <= 0) resetCode('');
+        else draw();
+      }, 1000);
+    }
+
+    $('not-me').addEventListener('click', () => resetCode(''));
+
+    $('go').addEventListener('click', async () => {
+      if (!who) return;
+      $('go').disabled = true;
+      clearInterval(countdownTimer);
+      const action = who.clocked_in ? 'out' : 'in';
+      try {
+        const r = await call('POST', '/api/kiosk/punch', {
+          employee_number: numberValue(), pin, action,
+          break_minutes: action === 'out' ? Number($('p-break').value) : 0,
+        });
+        pin = '';
+        showDone(r);
+      } catch (err) {
+        $('confirm-msg').textContent = err.message;
+        $('go').disabled = false;
+      }
+    });
+
+    function showDone(r) {
+      const time = fmt.time(r.at);
+      $('done-photo').replaceChildren(avatar(r.photo_url, r.first_name));
+      $('done-box').className = `k-done ${r.action}`;
+      $('done-text').textContent = r.action === 'in'
+        ? t('Bonjou, {name}! Ou antre a {time}.', { name: r.first_name, time })
+        : t('Orevwa, {name}! Ou soti a {time}. Jounen an: {duration}.', {
+            name: r.first_name, time, duration: fmt.duration(r.worked_minutes) });
+      show('step-done');
+      doneTimer = setTimeout(() => resetCode(''), DONE_MS);
+    }
 
     // -----------------------------------------------------------------
     // DEMARAJ
     // -----------------------------------------------------------------
 
-    if (store.get()) {
-      await loadDevice();
-    } else {
-      showActivate('');
-    }
-    // Chak 5 minit: mòd pwentaj la ak dènye aktivite tablèt la.
+    if (store.get()) await loadDevice();
+    else showActivate('');
+    // Chak 5 minit: mòd pwentaj la, mòd kòd la ak dènye aktivite tablèt la.
     setInterval(() => { if (store.get()) loadDevice(); }, 5 * 60 * 1000);
   })();
   </script>
