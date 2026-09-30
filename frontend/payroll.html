@@ -115,7 +115,7 @@
     function deductionsOf(s) {
       return (s.tax_amount || 0) + (s.supplemental_tax_amount || 0) + (s.ona_amount || 0)
         + (s.ofatma_amount || 0) + (s.cfgdct_amount || 0) + (s.fdu_cas_amount || 0)
-        + (s.other_deductions || 0);
+        + (s.other_deductions || 0) + (s.advance_amount || 0);
     }
 
     // Toujou fr-FR pou chan yo: parseMoney li l nan tout lang, epi chif yo rete 0-9.
@@ -751,6 +751,7 @@
         line('CFGDCT', s.cfgdct_amount, true),
         line('FDU / CAS', s.fdu_cas_amount, true),
         line(t('Lòt dediksyon'), s.other_deductions, true),
+        line(t('Ranbousman avans'), s.advance_amount, true),
         h('div', { class: 'row total' }, h('span', {}, t('Net')), h('span', {}, fmt.money(s.net_amount))),
       );
 
@@ -773,7 +774,7 @@
       const form = h('form', { class: 'adjust-form', novalidate: true },
         h('div', { class: 'field' }, h('label', { for: bonus.id }, t('Bonis (HTG)')), bonus),
         h('div', { class: 'field' }, h('label', { for: other.id }, t('Lòt dediksyon (HTG)')), other,
-          h('span', { class: 'hint' }, t('Avans sou salè, prè, elatriye.'))),
+          h('span', { class: 'hint' }, t('Prè, elatriye. Avans sou salè yo retire otomatikman.'))),
         h('div', { class: 'field' }, h('label', { for: method.id }, t('Peman')), method),
         h('div', { class: 'field' }, h('label', { for: note.id }, t('Nòt')), note),
         msg,

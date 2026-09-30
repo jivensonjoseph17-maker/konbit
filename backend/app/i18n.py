@@ -659,6 +659,31 @@ _ROWS: list[tuple[str, str, str]] = [
     ("Yon lòt moun dwe apwouve pwòp demann ou.",
      "Une autre personne doit approuver votre propre demande.",
      "Someone else must approve your own request."),
+    # --- Avans sou salè (salary_advances.py) ---
+    ("Moun sa a pa sou pewòl: li pa ka resevwa yon avans.",
+     "Cette personne n'est pas sur la paie : elle ne peut pas recevoir d'avance.",
+     "This person is not on payroll: they cannot receive an advance."),
+    ("Gen yon avans ki poko fin ranbouse (oswa ki an atant) pou moun sa a.",
+     "Cette personne a déjà une avance non remboursée (ou en attente).",
+     "This person already has an advance that is not fully repaid (or is pending)."),
+    ("Ou pa ka apwouve pwòp avans ou.",
+     "Vous ne pouvez pas approuver votre propre avance.",
+     "You cannot approve your own advance."),
+    ("Yon lòt moun dwe apwouve pwòp avans ou.",
+     "Une autre personne doit approuver votre propre avance.",
+     "Someone else must approve your own advance."),
+    ("Sèlman yon demann an atant ka anile.",
+     "Seule une demande en attente peut être annulée.",
+     "Only a pending request can be cancelled."),
+    ("Moun sa a gen yon lòt avans k ap ranbouse deja.",
+     "Cette personne rembourse déjà une autre avance.",
+     "This person is already repaying another advance."),
+    ("Yon lòt moun dwe fèmen pwòp avans ou.",
+     "Une autre personne doit clôturer votre propre avance.",
+     "Someone else must close your own advance."),
+    ("Sèlman yon avans k ap ranbouse ka fèmen.",
+     "Seule une avance en cours de remboursement peut être clôturée.",
+     "Only an advance being repaid can be closed."),
 ]
 
 MESSAGES: dict[str, dict[str, str]] = {ht: {"fr": fr, "en": en} for ht, fr, en in _ROWS}
@@ -807,6 +832,13 @@ PATTERNS: list[tuple[re.Pattern[str], dict[str, str]]] = [
     _p(r"^Nòt ou a se (?P<s>\S+)%\. Ou bezwen omwen (?P<p>\S+)% pou pase\.$",
        "Votre note est de {s} %. Il vous faut au moins {p} % pour réussir.",
        "Your score is {s}%. You need at least {p}% to pass."),
+    # --- Avans sou salè ---
+    _p(r"^Avans lan pa ka depase salè yon peryòd \((?P<amount>[^)]+)\)\.$",
+       "L'avance ne peut pas dépasser le salaire d'une période ({amount}).",
+       "The advance cannot exceed one period's salary ({amount})."),
+    _p(r"^Demann lan nan estati '(?P<s>[^']+)'\.$",
+       "La demande est au statut '{s}'.",
+       "The request is in status '{s}'."),
 ]
 
 _VALUE_WORDS: dict[str, dict[str, str]] = {

@@ -599,6 +599,8 @@ class Payslip(Base, TimestampMixin):
     fdu_cas_amount = Column(Integer, default=0)
 
     other_deductions = Column(Integer, default=0)
+    # Ranbousman avans sou salè (routers/salary_advances.py), apre enpo.
+    advance_amount = Column(Integer, default=0, nullable=False, server_default="0")
     net_amount = Column(Integer, default=0, nullable=False)
     currency = Column(SQLEnum(Currency), default=Currency.HTG, nullable=False)
 
@@ -1066,3 +1068,49 @@ class KioskPairing(Base, TimestampMixin):
     expires_at = Column(DateTime(timezone=True), nullable=False)
     used_at = Column(DateTime(timezone=True))
     device_id = Column(Integer, ForeignKey("kiosk_devices.id"))
+
+
+# ---------------------------------------------------------------------------
+# AVANS SOU SALÈ (routers/salary_advances.py)
+#
+# Anplwaye a mande, manadjè a (oswa HR) apwouve, pewòl la retire yon vèsman
+# sou chak fich jiskaske balans lan rive a 0. Balans = amount - sum(repayments).
+# Estati se String (pa Enum PostgreSQL): pending, approved, repaid,
+# rejected, cancelled, closed.
+# ---------------------------------------------------------------------------
+
+class SalaryAdvance(Base, TimestampMixin):
+    __tablename__ = "salary_advances"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), index=True, nullable=False)
+    employee_id = Column(Integer, ForeignKey("employees.id"), index=True, nullable=False)
+    requested_by_id = Column(Integer, ForeignKey("users.id"))
+
+    amount = Column(Integer, nullable=False)                 # an santim
+    installments = Column(Integer, nullable=False, default=1)
+    installment_amount = Column(Integer, nullable=False)     # an santim, pa fich
+    reason = Column(Text)
+    status = Column(String(12), default="pending", nullable=False, server_default="pending")
+
+    decided_by_id = Column(Integer, ForeignKey("users.id"))
+    decided_at = Column(DateTime(timezone=True))
+    decision_note = Column(Text)
+    closed_at = Column(DateTime(timezone=True))   # fin ranbouse, refize, anile oswa fèmen
+
+
+class SalaryAdvanceRepayment(Base):
+    """Yon retrè sou yon fich peye. Yon liy pa avans pa fich."""
+    __tablename__ = "salary_advance_repayments"
+    __table_args__ = (
+        UniqueConstraint("advance_id", "payslip_id", name="uq_advance_repayment_slip"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), index=True, nullable=False)
+    advance_id = Column(Integer, ForeignKey("salary_advances.id"), index=True, nullable=False)
+    employee_id = Column(Integer, ForeignKey("employees.id"), index=True, nullable=False)
+    payslip_id = Column(Integer, ForeignKey("payslips.id"), index=True, nullable=False)
+    pay_period_id = Column(Integer, ForeignKey("pay_periods.id"), nullable=False)
+    amount = Column(Integer, nullable=False)                 # an santim
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

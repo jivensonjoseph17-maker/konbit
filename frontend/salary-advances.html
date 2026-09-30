@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n>Avans sou salè — KONMBIT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div class="app">
+    <aside id="sidebar"></aside>
+
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+
+      <main class="page">
+        <div class="page-head-row">
+          <div class="page-head">
+            <h1 data-i18n>Avans sou salè</h1>
+            <p data-i18n>Anplwaye yo mande yon avans, ou apwouve l, epi pewòl la retire vèsman yo otomatikman.</p>
+          </div>
+          <button class="btn btn-primary" type="button" id="new-btn" hidden data-i18n>Anrejistre yon avans</button>
+        </div>
+
+        <section class="panel form-panel" id="new-panel" hidden></section>
+
+        <div id="notice"></div>
+
+        <section class="panel" style="margin-top: 20px;">
+          <div class="panel-head" id="list-head"><h2 data-i18n>Demann ak avans yo</h2></div>
+          <div id="list"><p class="loading" data-i18n>Ap chaje…</p></div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script src="shell.js"></script>
+  <script>
+  (async function () {
+    'use strict';
+    const { api, fmt, h, ApiError, shell, t } = Konbit;
+
+    const identity = await shell.mount('salary-advances', shell.MANAGERS);
+    if (!identity) return;
+
+    const $ = (id) => document.getElementById(id);
+    const isHr = shell.ADMIN.includes(identity.user.role);
+    const myEmployeeId = identity.employee_id || null;
+
+    // Tèks yo ekri dirèkteman anndan t() pou check_i18n.py jwenn kle yo.
+    const STATUS = {
+      pending: () => [t('Ap tann'), 'badge-pending'],
+      approved: () => [t('Ap ranbouse'), 'badge-info'],
+      repaid: () => [t('Fin ranbouse'), 'badge-approved'],
+      rejected: () => [t('Refize'), 'badge-rejected'],
+      cancelled: () => [t('Anile'), 'badge-cancelled'],
+      closed: () => [t('Fèmen|avans'), 'badge-cancelled'],
+    };
+
+    // ---------------------------------------------------------------------
+    // ZOUTI
+    // ---------------------------------------------------------------------
+
+    function statusBadge(status) {
+      const [label, cls] = STATUS[status] ? STATUS[status]() : [status, ''];
+      return h('span', { class: `badge ${cls}` }, label);
+    }
+
+    function errorMessage(err) {
+      let msg = err instanceof ApiError ? err.message : t('Yon bagay pa mache.');
+      if (err && err.fields && err.fields.length) {
+        msg += ' ' + err.fields.map((f) => `${f.field}: ${f.message}`).join('; ');
+      }
+      return msg;
+    }
+
+    function installmentSelect(id) {
+      return h('select', { class: 'select', id },
+        ...Array.from({ length: 12 }, (_, i) => h('option', { value: String(i + 1) }, String(i + 1))));
+    }
+
+    /** Montan an santim, oswa null si li vid / pa valab / ≤ 0. */
+    function readMoney(input) {
+      const v = input.value.trim();
+      if (!v) return null;
+      const cents = fmt.parseMoney(v);
+      return cents && cents > 0 ? cents : null;
+    }
+
+    function showNotice(text) {
+      $('notice').replaceChildren(...(text ? [h('div', { class: 'alert alert-ok' }, text)] : []));
+    }
+
+    // ---------------------------------------------------------------------
+    // FILTÈ
+    // ---------------------------------------------------------------------
+
+    const filter = h('select', { class: 'select', id: 'filter', 'aria-label': t('Estati') },
+      h('option', { value: 'pending' }, t('Ap tann')),
+      h('option', { value: 'approved' }, t('Ap ranbouse')),
+      h('option', { value: 'repaid' }, t('Fin ranbouse')),
+      h('option', { value: 'rejected' }, t('Refize')),
+      h('option', { value: 'closed' }, t('Fèmen|avans')),
+      h('option', { value: '' }, t('Tout')),
+    );
+    filter.style.width = 'auto';
+    filter.style.marginInlineStart = 'auto';
+    $('list-head').append(filter);
+    filter.addEventListener('change', () => { showNotice(null); load(); });
+
+    // ---------------------------------------------------------------------
+    // NOUVO AVANS (HR) — pou yon avans ki deja bay; li apwouve touswit
+    // ---------------------------------------------------------------------
+
+    if (isHr) {
+      const picker = shell.employeePicker({ id: 'a-emp' });
+      const amountIn = h('input', { class: 'input', id: 'a-amount', inputmode: 'decimal', autocomplete: 'off' });
+      const countIn = installmentSelect('a-count');
+      const reasonIn = h('textarea', { class: 'textarea', id: 'a-reason', maxlength: '500' });
+      const preview = h('p', { class: 'hint', style: 'display: block; margin: 8px 0 0;' });
+      const formError = h('p', { class: 'field-error', role: 'alert', style: 'margin-top: 12px;' });
+      const saveBtn = h('button', { class: 'btn btn-primary', type: 'submit' }, t('Anrejistre avans lan'));
+      const cancelBtn = h('button', { class: 'btn btn-ghost', type: 'button' }, t('Anile|aksyon'));
+
+      const form = h('form', { novalidate: true },
+        h('div', { class: 'form-grid' },
+          h('div', { class: 'field span-2' }, h('label', { for: 'a-emp' }, t('Anplwaye')), picker.el),
+          h('div', { class: 'field' }, h('label', { for: 'a-amount' }, t('Montan')), amountIn),
+          h('div', { class: 'field' }, h('label', { for: 'a-count' }, t('Kantite vèsman')), countIn),
+          h('div', { class: 'field span-2' }, h('label', { for: 'a-reason' }, t('Rezon (opsyonèl)')), reasonIn),
+        ),
+        preview,
+        formError,
+        h('div', { class: 'form-actions' }, saveBtn, cancelBtn),
+      );
+
+      $('new-panel').append(
+        h('div', { class: 'panel-head' }, h('h2', {}, t('Anrejistre yon avans'))),
+        h('p', { class: 'hint', style: 'display: block; margin: 0 0 12px;' },
+          t('Pou yon avans ou deja bay (egz: kach). Li apwouve touswit.')),
+        form,
+      );
+
+      function updatePreview() {
+        const cents = readMoney(amountIn);
+        const n = Number(countIn.value);
+        preview.textContent = cents
+          ? t('{n} vèsman {amount} ap retire sou fich peye li yo.', { n, amount: fmt.money(Math.ceil(cents / n)) })
+          : '';
+      }
+      amountIn.addEventListener('input', updatePreview);
+      countIn.addEventListener('change', updatePreview);
+
+      function closeForm() {
+        form.reset();
+        picker.clear();
+        preview.textContent = '';
+        formError.textContent = '';
+        $('new-panel').hidden = true;
+        $('new-btn').hidden = false;
+      }
+
+      $('new-btn').hidden = false;
+      $('new-btn').addEventListener('click', () => {
+        showNotice(null);
+        $('new-panel').hidden = false;
+        $('new-btn').hidden = true;
+        $('a-emp').focus();
+      });
+      cancelBtn.addEventListener('click', closeForm);
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        formError.textContent = '';
+        if (!picker.value) { formError.textContent = t('Chwazi anplwaye a.'); return; }
+        const cents = readMoney(amountIn);
+        if (!cents) { formError.textContent = t('Mete yon montan valab.'); return; }
+
+        saveBtn.disabled = true;
+        try {
+          await api.post('/api/salary-advances', {
+            employee_id: picker.value,
+            amount: cents,
+            installments: Number(countIn.value),
+            reason: reasonIn.value.trim() || null,
+          });
+          closeForm();
+          filter.value = 'approved';
+          showNotice(t('Avans lan anrejistre.'));
+          await load();
+        } catch (err) {
+          formError.textContent = errorMessage(err);
+        } finally {
+          saveBtn.disabled = false;
+        }
+      });
+    }
+
+    // ---------------------------------------------------------------------
+    // DETAY, DESIZYON AK FÈMTI
+    // ---------------------------------------------------------------------
+
+    function details(a) {
+      const cur = a.currency;
+      return h('div', {},
+        h('p', { class: 'sub', style: 'margin: 0 0 6px;' }, t('Mande {date}', { date: fmt.date(a.created_at) })),
+        // Rezon ak nòt yo ekri pa moun yo, jan yo ekri yo.
+        a.reason ? h('p', { style: 'margin: 0 0 6px;' }, `« ${a.reason} »`) : null,
+        a.decision_note ? h('p', { class: 'sub', style: 'margin: 0 0 6px;' }, `${t('Nòt')}: ${a.decision_note}`) : null,
+        h('strong', {}, t('Ranbousman yo')),
+        a.repayments.length
+          ? h('ul', { class: 'list', style: 'margin-top: 8px;' }, ...a.repayments.map((r) =>
+              h('li', {},
+                h('span', {}, r.period_name),
+                h('span', { class: 'sub' }, `−${fmt.money(r.amount, cur)}`))))
+          : h('p', { class: 'empty', style: 'margin: 6px 0 0;' }, t('Poko gen ranbousman.')),
+      );
+    }
+
+    function decisionBox(a, approve, onCancel) {
+      const cur = a.currency;
+      const note = h('input', { class: 'input', maxlength: '500',
+        placeholder: t('Nòt (opsyonèl)'), 'aria-label': t('Nòt (opsyonèl)') });
+      const question = approve
+        ? t('Apwouve avans {amount} pou {name}? {n} vèsman {inst} ap retire sou fich peye li yo.', {
+            amount: fmt.money(a.amount, cur), name: a.employee_name,
+            n: a.installments, inst: fmt.money(a.installment_amount, cur) })
+        : t('Refize demann {name} an?', { name: a.employee_name });
+      const yes = h('button', { class: approve ? 'btn btn-primary btn-sm' : 'btn btn-danger btn-sm', type: 'button' },
+        t('Wi, kontinye'));
+      const no = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, t('Anile|aksyon'));
+      const err = h('p', { class: 'field-error', role: 'status' });
+
+      no.addEventListener('click', onCancel);
+      yes.addEventListener('click', async () => {
+        yes.disabled = true; no.disabled = true;
+        yes.textContent = t('Yon ti moman…');
+        try {
+          await api.post(`/api/salary-advances/${a.id}/decide`, {
+            approve, note: note.value.trim() || null,
+          });
+          await load();
+        } catch (e) {
+          err.textContent = errorMessage(e);
+          yes.disabled = false; no.disabled = false;
+          yes.textContent = t('Wi, kontinye');
+        }
+      });
+
+      const box = h('div', { class: 'confirm-box', role: 'alertdialog' },
+        h('p', {}, question), note,
+        h('div', { class: 'form-actions', style: 'margin-top: 12px;' }, yes, no), err);
+      setTimeout(() => note.focus(), 0);
+      return box;
+    }
+
+    function closeBox(a, onCancel) {
+      const note = h('input', { class: 'input', maxlength: '500', id: `close-${a.id}` });
+      const yes = h('button', { class: 'btn btn-danger btn-sm', type: 'button' }, t('Fèmen balans lan'));
+      const no = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, t('Anile|aksyon'));
+      const err = h('p', { class: 'field-error', role: 'status' });
+
+      no.addEventListener('click', onCancel);
+      yes.addEventListener('click', async () => {
+        err.textContent = '';
+        if (note.value.trim().length < 3) { err.textContent = t('Ekri yon rezon (omwen 3 karaktè).'); return; }
+        yes.disabled = true; no.disabled = true;
+        try {
+          await api.post(`/api/salary-advances/${a.id}/close`, { note: note.value.trim() });
+          await load();
+        } catch (e) {
+          err.textContent = errorMessage(e);
+          yes.disabled = false; no.disabled = false;
+        }
+      });
+
+      const box = h('div', { class: 'confirm-box', role: 'alertdialog' },
+        h('p', {}, t('Rès balans lan ({amount}) p ap retire ankò.', { amount: fmt.money(a.remaining_amount, a.currency) })),
+        h('div', { class: 'field' }, h('label', { for: note.id }, t('Poukisa w fèmen balans lan?')), note),
+        h('div', { class: 'form-actions', style: 'margin-top: 12px;' }, yes, no), err);
+      setTimeout(() => note.focus(), 0);
+      return box;
+    }
+
+    // ---------------------------------------------------------------------
+    // LIS LA
+    // ---------------------------------------------------------------------
+
+    function render(items) {
+      if (!items.length) {
+        $('list').replaceChildren(h('p', { class: 'empty' }, t('Pa gen avans pou filtè sa a.')));
+        return;
+      }
+      const tbody = h('tbody');
+
+      for (const a of items) {
+        const cur = a.currency;
+        const detailCell = h('td', { colspan: '6' });
+        const detailRow = h('tr', { class: 'detail-row', hidden: true }, detailCell);
+        const toggle = h('button', { class: 'btn btn-quiet btn-sm', type: 'button', 'aria-expanded': 'false' }, t('Detay'));
+
+        const setOpen = (open) => {
+          detailRow.hidden = !open;
+          toggle.setAttribute('aria-expanded', String(open));
+        };
+        const showDetails = () => detailCell.replaceChildren(details(a));
+        const backToDetails = () => { showDetails(); setOpen(false); };
+        const openBox = (box) => { detailCell.replaceChildren(box); setOpen(true); };
+
+        showDetails();
+        toggle.addEventListener('click', () => { showDetails(); setOpen(detailRow.hidden); });
+
+        const own = myEmployeeId !== null && a.employee_id === myEmployeeId;
+        const actions = h('td', { class: 'actions' });
+
+        if (a.status === 'pending') {
+          if (own) {
+            actions.append(h('span', { class: 'sub' }, t('Ou pa ka desid pwòp avans ou.')));
+          } else {
+            const yes = h('button', { class: 'btn btn-primary btn-sm', type: 'button' }, t('Apwouve|aksyon'));
+            const no = h('button', { class: 'btn btn-danger btn-sm', type: 'button' }, t('Refize|aksyon'));
+            yes.addEventListener('click', () => openBox(decisionBox(a, true, backToDetails)));
+            no.addEventListener('click', () => openBox(decisionBox(a, false, backToDetails)));
+            actions.append(yes, no);
+          }
+        }
+        if (a.status === 'approved' && isHr && !own) {
+          const close = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, t('Fèmen balans lan'));
+          close.addEventListener('click', () => openBox(closeBox(a, backToDetails)));
+          actions.append(close);
+        }
+        actions.append(toggle);
+
+        tbody.append(
+          h('tr', {},
+            h('td', {},
+              h('div', { class: 'who' }, a.employee_name),
+              h('div', { class: 'num' }, a.employee_number)),
+            h('td', { class: 'num-col' }, fmt.money(a.amount, cur)),
+            h('td', { class: 'num-col hide-sm cell-muted' },
+              `${a.installments} × ${fmt.money(a.installment_amount, cur)}`),
+            h('td', { class: 'num-col' }, a.remaining_amount ? fmt.money(a.remaining_amount, cur) : '—'),
+            h('td', {}, statusBadge(a.status)),
+            actions,
+          ),
+          detailRow,
+        );
+      }
+
+      $('list').replaceChildren(h('div', { class: 'table-wrap flush' },
+        h('table', { class: 'table' },
+          h('thead', {}, h('tr', {},
+            h('th', { scope: 'col' }, t('Anplwaye')),
+            h('th', { scope: 'col', class: 'num-col' }, t('Montan')),
+            h('th', { scope: 'col', class: 'num-col hide-sm' }, t('Vèsman')),
+            h('th', { scope: 'col', class: 'num-col' }, t('Rete')),
+            h('th', { scope: 'col' }, t('Estati')),
+            h('th', { scope: 'col' }, h('span', { class: 'visually-hidden' }, t('Aksyon'))),
+          )),
+          tbody,
+        ),
+      ));
+    }
+
+    async function load() {
+      $('list').replaceChildren(h('p', { class: 'loading' }, t('Ap chaje…')));
+      try {
+        const q = filter.value ? `?status=${encodeURIComponent(filter.value)}` : '';
+        const data = await api.get(`/api/salary-advances${q}`);
+        render(data.items);
+      } catch (err) {
+        $('list').replaceChildren(h('p', { class: 'empty' }, errorMessage(err)));
+      }
+    }
+
+    await load();
+  })();
+  </script>
+</body>
+</html>

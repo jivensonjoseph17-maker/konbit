@@ -168,6 +168,7 @@
         minusRow('CFGDCT', s.cfgdct_amount, cur),
         minusRow('FDU / CAS', s.fdu_cas_amount, cur),
         minusRow(t('Lòt dediksyon'), s.other_deductions, cur),
+        minusRow(t('Ranbousman avans'), s.advance_amount, cur),
       ];
     }
 
@@ -1328,6 +1329,193 @@
       return el;
     }
 
+    // -----------------------------------------------------------------------
+    // AVANS SOU SALÈ — demann, balans ki rete, ranbousman sou fich peye yo
+    // -----------------------------------------------------------------------
+
+    const ADVANCE_STATUS = {
+      pending: () => [t('Ap tann'), 'badge-pending'],
+      approved: () => [t('Ap ranbouse'), 'badge-info'],
+      repaid: () => [t('Fin ranbouse'), 'badge-approved'],
+      rejected: () => [t('Refize'), 'badge-rejected'],
+      cancelled: () => [t('Anile'), 'badge-cancelled'],
+      closed: () => [t('Fèmen|avans'), 'badge-cancelled'],
+    };
+
+    function advanceBadge(status) {
+      const [label, cls] = ADVANCE_STATUS[status] ? ADVANCE_STATUS[status]() : [status, ''];
+      return h('span', { class: `badge ${cls}` }, label);
+    }
+
+    function advanceSection() {
+      const toggle = h('button', { class: 'btn btn-ghost btn-sm', type: 'button', 'aria-expanded': 'false' },
+        t('Mande yon avans'));
+      const { el, body } = panel(t('Avans sou salè'), toggle);
+      const current = h('div', {});
+      const history = h('div', {});
+      const msg = h('p', { role: 'status' });
+
+      const amount = h('input', { class: 'input', id: 'adv-amount', inputmode: 'decimal', autocomplete: 'off' });
+      const count = h('select', { class: 'select', id: 'adv-count' },
+        ...Array.from({ length: 12 }, (_, i) => h('option', { value: String(i + 1) }, String(i + 1))));
+      const reason = h('textarea', { class: 'textarea', id: 'adv-reason', maxlength: '500' });
+      const preview = h('p', { class: 'hint', style: 'display: block; margin: 0;' });
+      const submit = h('button', { class: 'btn btn-primary', type: 'submit' }, t('Voye demann lan'));
+
+      const form = h('form', { class: 'leave-form', novalidate: true, hidden: true },
+        h('div', { class: 'form-row' },
+          h('div', { class: 'field' }, h('label', { for: 'adv-amount' }, t('Montan')), amount),
+          h('div', { class: 'field' }, h('label', { for: 'adv-count' }, t('Kantite vèsman')), count),
+        ),
+        preview,
+        h('div', { class: 'field' },
+          h('label', { for: 'adv-reason' }, t('Rezon (opsyonèl)')),
+          reason,
+          h('span', { class: 'hint' }, t('Sèlman manadjè w ak HR ap wè sa.')),
+        ),
+        h('p', { class: 'hint', style: 'display: block; margin: 0;' },
+          t('Avans lan retire sou fich peye w yo, apre enpo. Yon vèsman pa janm depase net fich la.')),
+        h('div', {}, submit),
+      );
+
+      function readAmount() {
+        const v = amount.value.trim();
+        if (!v) return null;
+        const cents = fmt.parseMoney(v);
+        return cents && cents > 0 ? cents : null;
+      }
+
+      function updatePreview() {
+        const cents = readAmount();
+        const n = Number(count.value);
+        preview.textContent = cents
+          ? t('{n} vèsman {amount} ap retire sou fich peye w yo.', { n, amount: fmt.money(Math.ceil(cents / n)) })
+          : '';
+      }
+      amount.addEventListener('input', updatePreview);
+      count.addEventListener('change', updatePreview);
+
+      function setOpen(open) {
+        form.hidden = !open;
+        toggle.setAttribute('aria-expanded', String(open));
+        toggle.textContent = open ? t('Kache fòm lan') : t('Mande yon avans');
+        if (open) amount.focus();
+      }
+      toggle.addEventListener('click', () => setOpen(form.hidden));
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        msg.className = '';
+        msg.textContent = '';
+        const cents = readAmount();
+        if (!cents) {
+          msg.className = 'field-error';
+          msg.textContent = t('Mete yon montan valab.');
+          return;
+        }
+        submit.disabled = true;
+        try {
+          await api.post('/api/salary-advances/me', {
+            amount: cents,
+            installments: Number(count.value),
+            reason: reason.value.trim() || null,
+          });
+          form.reset();
+          updatePreview();
+          setOpen(false);
+          msg.className = 'alert alert-ok';
+          msg.textContent = t('Demann lan voye. Manadjè w ap resevwa l.');
+          await load();
+        } catch (err) {
+          msg.className = 'field-error';
+          msg.textContent = errorText(err);
+        } finally {
+          submit.disabled = false;
+        }
+      });
+
+      function activeCard(a) {
+        const cur = a.currency;
+        if (a.status === 'pending') {
+          const cancel = h('button', { class: 'btn btn-quiet btn-sm', type: 'button' }, t('Anile demann lan'));
+          cancel.addEventListener('click', async () => {
+            cancel.disabled = true;
+            try {
+              await api.post(`/api/salary-advances/me/${a.id}/cancel`, {});
+              await load();
+            } catch (err) {
+              msg.className = 'field-error';
+              msg.textContent = errorText(err);
+              cancel.disabled = false;
+            }
+          });
+          return h('div', { class: 'course' },
+            h('div', { class: 'course-top' },
+              h('span', { class: 'course-title' },
+                t('{amount} sou {n} vèsman', { amount: fmt.money(a.amount, cur), n: a.installments })),
+              advanceBadge(a.status)),
+            h('p', { class: 'sub', style: 'margin: 6px 0 10px;' }, t('Ap tann apwobasyon manadjè w oswa HR.')),
+            cancel,
+          );
+        }
+
+        const pct = a.amount ? Math.min(100, Math.round((a.repaid_amount / a.amount) * 100)) : 0;
+        const bar = h('div', { class: 'bar', role: 'progressbar',
+          'aria-valuenow': String(pct), 'aria-valuemin': '0', 'aria-valuemax': '100',
+          'aria-label': t('Pwogrè ranbousman') }, h('span', {}));
+        bar.firstChild.style.width = `${pct}%`;
+
+        return h('div', { class: 'course' },
+          h('div', { class: 'course-top' },
+            h('span', { class: 'course-title' }, t('Rete: {amount}', { amount: fmt.money(a.remaining_amount, cur) })),
+            advanceBadge(a.status)),
+          bar,
+          h('p', { class: 'sub', style: 'margin: 8px 0 0;' },
+            t('Ranbouse: {paid} sou {total}', { paid: fmt.money(a.repaid_amount, cur), total: fmt.money(a.amount, cur) })),
+          h('p', { class: 'sub', style: 'margin: 2px 0 0;' },
+            t('Vèsman: {amount} pa fich peye', { amount: fmt.money(a.installment_amount, cur) })),
+          a.repayments.length
+            ? h('ul', { class: 'list', style: 'margin-top: 10px;' }, ...a.repayments.map((r) =>
+                h('li', {},
+                  h('span', {}, r.period_name),
+                  h('span', { class: 'sub' }, `−${fmt.money(r.amount, cur)}`))))
+            : null,
+        );
+      }
+
+      function historyList(items) {
+        if (!items.length) return null;
+        return h('details', { class: 'breakdown' },
+          h('summary', {}, t('Istwa avans yo')),
+          h('ul', { class: 'list', style: 'margin-top: 10px;' }, ...items.map((a) => h('li', {},
+            h('div', {},
+              h('div', {}, t('{amount} sou {n} vèsman', { amount: fmt.money(a.amount, a.currency), n: a.installments })),
+              h('div', { class: 'sub' }, t('Mande {date}', { date: fmt.shortDate(a.created_at) })),
+              // Nòt la ekri pa manadjè a oswa HR, jan li ekri l.
+              a.decision_note ? h('div', { class: 'sub' }, `« ${a.decision_note} »`) : null),
+            advanceBadge(a.status)))));
+      }
+
+      async function load() {
+        try {
+          const data = await api.get('/api/salary-advances/me');
+          const active = data.items.find((a) => a.status === 'pending' || a.status === 'approved');
+          toggle.hidden = Boolean(active);
+          if (active) setOpen(false);
+          fill(current, active
+            ? activeCard(active)
+            : (data.items.length ? null : h('p', { class: 'empty' }, t('Ou pa gen okenn avans.'))));
+          fill(history, historyList(data.items.filter((a) => a !== active)));
+        } catch (err) {
+          fill(current, h('p', { class: 'empty' }, errorText(err)));
+        }
+      }
+
+      fill(body, current, msg, form, history);
+      load();
+      return el;
+    }
+
     const ICONS = {
       calendar: ['M4 6h16v14H4z', 'M4 10h16', 'M8 3v4', 'M16 3v4'],
       receipt: ['M6 3h12v18l-3-2-3 2-3-2-3 2z', 'M9 8h6', 'M9 12h6'],
@@ -1336,6 +1524,9 @@
         'M17.7 17.7l1.4 1.4', 'M2 12h2', 'M20 12h2', 'M4.9 19.1l1.4-1.4', 'M17.7 6.3l1.4-1.4'],
       chart: ['M4 20V10', 'M10 20V4', 'M16 20v-7', 'M22 20H2'],
       user: ['M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', 'M4 21a8 8 0 0 1 16 0'],
+      coin: ['M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z',
+        'M15 9.5c-.4-1-1.5-1.5-3-1.5-1.7 0-3 .8-3 2s1.3 1.6 3 2 3 .8 3 2-1.3 2-3 2c-1.5 0-2.6-.5-3-1.5',
+        'M12 6.5V8', 'M12 16v1.5'],
     };
 
     function icon(name) {
@@ -1426,6 +1617,7 @@
             render: () => timeSection(kioskOnly, kpis.refreshHours) },
           { id: 'konje', label: t('Konje'), icon: 'sun', render: () => leaveSection(kpis.refreshLeave) },
           { id: 'total-ane', label: t('Total ane a'), icon: 'chart', render: ytdSection },
+          { id: 'avans', label: t('Avans'), icon: 'coin', render: advanceSection },
           { id: 'dosye', label: t('Dosye mwen'), icon: 'user', render: profileSection },
         ]));
 

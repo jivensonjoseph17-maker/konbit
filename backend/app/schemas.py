@@ -761,6 +761,7 @@ class PayslipOut(BaseModel):
     cfgdct_amount: int = 0           # Kolektivite teritoryal, 1%
     fdu_cas_amount: int = 0          # Fon dijans + Kès Asistans Sosyal, 1%
     other_deductions: int
+    advance_amount: int = 0          # Ranbousman avans sou salè
     net_amount: int
     currency: Currency
     hours_worked: Optional[float] = None

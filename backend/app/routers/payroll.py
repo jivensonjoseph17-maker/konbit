@@ -94,6 +94,7 @@ from ..payslip_pdf import PayslipDoc, render_payslip_pdf
 from ..timezone_utils import get_local_today, get_org_timezone
 from .timesheets import approved_employee_ids, has_time_entries
 from .org_logo import logo_png_for
+from .salary_advances import apply_advance_repayments
 
 logger = logging.getLogger("konbit")
 
@@ -477,6 +478,7 @@ def _recompute(slip: Payslip, period: PayPeriod) -> None:
         slip.gross_amount
         - sum(deductions.values())
         - (slip.other_deductions or 0)
+        - (slip.advance_amount or 0)
     ))
 
 
@@ -718,11 +720,19 @@ def run_payroll(
             **data,
         )
         db.add(slip)
+        db.flush()      # slip.id pou tab ranbousman avans yo
+
+        # Avans sou salè: yon vèsman, apre enpo, san depase net la.
+        advance_note = apply_advance_repayments(db, org_id, emp, slip, period)
+        if advance_note:
+            warnings.append(f"{full_name}: {advance_note}")
 
         created += 1
-        total_gross += data["gross_amount"]
-        total_net += data["net_amount"]
-        total_deductions += sum(data[field] for field in DEDUCTION_FIELDS)
+        total_gross += slip.gross_amount
+        total_net += slip.net_amount
+        total_deductions += (
+            sum(data[field] for field in DEDUCTION_FIELDS) + (slip.advance_amount or 0)
+        )
 
     db.commit()
     _audit(db, request, user, "run_payroll", "pay_period", period.id,
@@ -1164,7 +1174,8 @@ def payslip_pdf(
         ofatma_amount=slip.ofatma_amount or 0,
         cfgdct_amount=slip.cfgdct_amount or 0,
         fdu_cas_amount=slip.fdu_cas_amount or 0,
-        other_deductions=slip.other_deductions or 0,
+        # Avans lan parèt nan "Lòt dediksyon" sou PDF la (pou kounye a).
+        other_deductions=(slip.other_deductions or 0) + (slip.advance_amount or 0),
         net_amount=slip.net_amount or 0,
         supplemental_rate=supplemental_tax_rate(period.pay_date),
         ona_rate=ONA_RATE,

@@ -49,6 +49,7 @@
     { group: 'Ekip', roles: MANAGERS, items: [
       { id: 'team', label: 'Ekip mwen', href: 'team.html' },
       { id: 'timesheets', label: 'Tan travay', href: 'timesheets.html' },
+      { id: 'salary-advances', label: 'Avans sou salè', href: 'salary-advances.html' },
       { id: 'schedule', label: 'Orè', href: 'schedule.html' },
     ] },
   ];
