@@ -684,6 +684,19 @@ _ROWS: list[tuple[str, str, str]] = [
     ("Sèlman yon avans k ap ranbouse ka fèmen.",
      "Seule une avance en cours de remboursement peut être clôturée.",
      "Only an advance being repaid can be closed."),
+    # --- Pwoteksyon koneksyon (auth.py, deps.py, employees.py) ---
+    ("Twòp enskripsyon soti nan menm koneksyon an. Eseye ankò pita.",
+     "Trop d'inscriptions depuis la même connexion. Réessayez plus tard.",
+     "Too many sign-ups from the same connection. Try again later."),
+    ("Biznis sa a dezaktive. Kontakte KONMBIT.",
+     "Cette entreprise est désactivée. Contactez KONMBIT.",
+     "This business is deactivated. Contact KONMBIT."),
+    ("Wòl sa a pa ka bay yon anplwaye.",
+     "Ce rôle ne peut pas être attribué à un employé.",
+     "This role cannot be given to an employee."),
+    ("Se sèlman yon administratè ki ka jere kont yon administratè.",
+     "Seul un administrateur peut gérer le compte d'un administrateur.",
+     "Only an administrator can manage an administrator's account."),
 ]
 
 MESSAGES: dict[str, dict[str, str]] = {ht: {"fr": fr, "en": en} for ht, fr, en in _ROWS}

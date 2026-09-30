@@ -50,6 +50,7 @@ from ..schemas import (
     Message,
     TerminationRequest,
 )
+from ..login_guard import unlock_login
 from ..security import generate_temp_password, hash_password
 
 logger = logging.getLogger("konbit")
@@ -161,6 +162,31 @@ def _validate_refs(db: Session, org_id: int, department_id: Optional[int],
 # ---------------------------------------------------------------------------
 # LIS
 # ---------------------------------------------------------------------------
+
+# Wòl yon kont koneksyon ka resevwa lè HR kreye l. super_admin (ekip KONMBIT)
+# ak applicant pa janm; org_admin sèlman si se yon administratè ki bay li.
+_GRANTABLE_ROLES = {UserRole.EMPLOYEE, UserRole.MANAGER, UserRole.HR, UserRole.ORG_ADMIN}
+_ADMIN_ROLES = (UserRole.ORG_ADMIN, UserRole.SUPER_ADMIN)
+
+
+def _check_grantable_role(actor: User, role: UserRole) -> None:
+    if role not in _GRANTABLE_ROLES:
+        raise HTTPException(status_code=422, detail="Wòl sa a pa ka bay yon anplwaye.")
+    if role == UserRole.ORG_ADMIN and actor.role not in _ADMIN_ROLES:
+        raise HTTPException(
+            status_code=403,
+            detail="Se sèlman yon administratè ki ka bay oswa retire wòl administratè.",
+        )
+
+
+def _check_can_manage_login(actor: User, login: User) -> None:
+    """HR pa ka reset modpas ni mete deyò yon administratè: se ta yon fason pou pran kont li."""
+    if login.role in _ADMIN_ROLES and actor.role not in _ADMIN_ROLES:
+        raise HTTPException(
+            status_code=403,
+            detail="Se sèlman yon administratè ki ka jere kont yon administratè.",
+        )
+
 
 class EmployeeListResponse(BaseModel):
     total: int
@@ -312,6 +338,7 @@ def create_employee(
     new_user = None
 
     if payload.create_login:
+        _check_grantable_role(user, payload.login_role)
         login_email = str(payload.login_email or payload.personal_email).lower().strip()
         if db.query(User).filter(User.email == login_email).first():
             raise HTTPException(
@@ -349,13 +376,11 @@ def create_employee(
         )
         db.add(emp)
         db.commit()
-    except Exception as exc:
+    except Exception:
         db.rollback()
-        logger.exception("Kreyasyon anplwaye echwe")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"{type(exc).__name__}: {exc}",
-        )
+        # main.unhandled_exception_handler: detay an devlopman, mesaj jenerik
+        # an pwodiksyon (pa janm non tab oswa valè done bay kliyan an).
+        raise
 
     db.refresh(emp)
     _audit(db, request, user, "create", emp.id,
@@ -490,6 +515,23 @@ def terminate_employee(
     if emp.status == EmploymentStatus.TERMINATED:
         raise HTTPException(status_code=400, detail="Anplwaye a deja pa nan biznis la.")
 
+    # Kont koneksyon moun nan. HR pa ka mete yon administratè deyò (se ta yon
+    # fason pou pran biznis la), e biznis la kenbe omwen yon administratè aktif.
+    login = db.query(User).filter(User.id == emp.user_id).first() if emp.user_id else None
+    if login is not None:
+        _check_can_manage_login(user, login)
+        if payload.deactivate_login and login.role == UserRole.ORG_ADMIN and login.is_active:
+            admins = db.query(User).filter(
+                User.organization_id == org_id,
+                User.role == UserRole.ORG_ADMIN,
+                User.is_active.is_(True),
+            ).count()
+            if admins <= 1:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Biznis la dwe toujou gen omwen yon administratè.",
+                )
+
     emp.status = EmploymentStatus.TERMINATED
     emp.termination_date = payload.termination_date
     emp.termination_reason = payload.reason
@@ -503,10 +545,9 @@ def terminate_employee(
     for r in reports:
         r.manager_id = emp.manager_id
 
-    if payload.deactivate_login and emp.user_id:
-        login = db.query(User).filter(User.id == emp.user_id).first()
-        if login:
-            login.is_active = False
+    if payload.deactivate_login and login is not None:
+        login.is_active = False
+        login.token_version = (login.token_version or 0) + 1
 
     db.commit()
     db.refresh(emp)
@@ -539,6 +580,8 @@ def reactivate_employee(
             login.failed_login_count = 0
 
     db.commit()
+    if emp.user_id and login:
+        unlock_login(db, login.email)
     db.refresh(emp)
     _audit(db, request, user, "reactivate", emp.id)
     return emp
@@ -689,12 +732,16 @@ def reset_employee_password(
     login = db.query(User).filter(User.id == emp.user_id).first()
     if login is None:
         raise HTTPException(status_code=404, detail="Kont koneksyon an pa jwenn.")
+    _check_can_manage_login(user, login)
 
     temp = generate_temp_password()
     login.hashed_password = hash_password(temp)
     login.must_change_password = True
     login.failed_login_count = 0
+    # Ansyen sesyon yo (ak yon moun ki te ka vòlè youn) pa mache ankò.
+    login.token_version = (login.token_version or 0) + 1
     db.commit()
+    unlock_login(db, login.email)
 
     _audit(db, request, user, "reset_password", emp.id)
     return TempPasswordResponse(

@@ -191,3 +191,14 @@ import pytest as _pytest_konbit  # noqa: E402
 def _skip_forced_password_change(monkeypatch):
     import app.deps
     monkeypatch.setattr(app.deps, "ENFORCE_PASSWORD_CHANGE", False)
+
+
+# --- KONMBIT: limit koneksyon (app/login_guard.py) ---
+# Tout tès yo soti nan menm "IP" (testclient) epi yo kreye plizyè santèn
+# biznis: limit pwodiksyon yo ta bloke yo. test_auth_hardening.py mete pwòp
+# limit pa l ak monkeypatch.
+@_pytest_konbit.fixture(autouse=True)
+def _relax_auth_limits(monkeypatch):
+    from app.config import settings
+    monkeypatch.setattr(settings, "login_max_failures_per_ip", 1_000_000)
+    monkeypatch.setattr(settings, "signup_max_per_ip_hour", 1_000_000)

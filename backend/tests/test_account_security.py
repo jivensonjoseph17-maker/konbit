@@ -46,6 +46,10 @@ def test_temporary_password_must_be_changed(client, org_admin, monkeypatch):
     }, headers=h)
     assert changed.status_code == 200, changed.text
 
+    # Chanje modpas anile ansyen token yo (token_version): nou sèvi ak nouvo yo.
+    assert client.get("/api/employees/me", headers=h).status_code == 401
+    h = {"Authorization": f"Bearer {changed.json()['access_token']}"}
+
     assert client.get("/api/employees/me", headers=h).status_code == 200
     assert client.get("/api/auth/identity", headers=h).json()["user"]["must_change_password"] is False
 

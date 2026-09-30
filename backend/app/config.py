@@ -34,7 +34,19 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
     password_min_length: int = 10
+    # --- Pwoteksyon koneksyon (app/login_guard.py) ---
+    # Move esè sou YON imel nan fenèt la → imel sa a bloke jiskaske fenèt la pase.
     max_failed_logins: int = 5
+    login_window_minutes: int = 15
+    # Move esè depi YON IP nan fenèt la (sou nenpòt imel) → IP sa a bloke.
+    login_max_failures_per_ip: int = 30
+    signup_max_per_ip_hour: int = 5
+
+    # --- Kiyòsk ---
+    # Kle HMAC pou mòd "kòd sèlman" tablèt la (routers/kiosk.py). SEPARE ak
+    # SECRET_KEY: konsa yon rotasyon SECRET_KEY pa kase kòd tablèt yo.
+    # Vid = SECRET_KEY (devlopman). Obligatwa nan pwodiksyon.
+    kiosk_lookup_key: str = ""
 
     # --- CORS ---
     # Nan varyab anviwonman: ALLOWED_ORIGINS=["https://konmbit.com","https://www.konmbit.com"]
@@ -95,6 +107,18 @@ class Settings(BaseSettings):
             raise ValueError("SECRET_KEY sa a twò fasil pou devine. Jenere yon lòt.")
         return v
 
+    @field_validator("kiosk_lookup_key")
+    @classmethod
+    def kiosk_key_must_be_strong(cls, v: str) -> str:
+        v = v.strip()
+        if v and len(v) < 32:
+            raise ValueError("KIOSK_LOOKUP_KEY twò kout. Li dwe gen omwen 32 karaktè.")
+        return v
+
+    @property
+    def kiosk_key(self) -> str:
+        return self.kiosk_lookup_key or self.secret_key
+
     @property
     def is_production(self) -> bool:
         return self.environment == "production"
@@ -108,3 +132,10 @@ if settings.is_production:
         raise RuntimeError("Pa sèvi ak SQLite nan pwodiksyon. Sèvi ak PostgreSQL.")
     if settings.debug:
         raise RuntimeError("DEBUG pa ka True nan pwodiksyon.")
+    if not settings.kiosk_lookup_key:
+        raise RuntimeError("KIOSK_LOOKUP_KEY obligatwa nan pwodiksyon (kle separe ak SECRET_KEY).")
+    if settings.kiosk_lookup_key == settings.secret_key:
+        raise RuntimeError("KIOSK_LOOKUP_KEY dwe diferan de SECRET_KEY.")
+    for _origin in (settings.frontend_url, *settings.allowed_origins):
+        if not _origin.startswith("https://") or "localhost" in _origin or "127.0.0.1" in _origin:
+            raise RuntimeError(f"Orijin CORS pa sekirize nan pwodiksyon: {_origin}")

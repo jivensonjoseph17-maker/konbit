@@ -40,12 +40,23 @@ from ..schemas import (
 from .positions import seed_default_positions
 from .org_logo import logo_url_for
 from .employee_photos import photo_url_for
+from ..login_guard import (
+    LOGIN,
+    SIGNUP,
+    client_ip,
+    email_locked,
+    ip_blocked,
+    record_attempt,
+    signup_blocked,
+)
 from ..security import (
+    DUMMY_HASH,
     REFRESH_TOKEN,
     create_access_token,
     create_refresh_token,
     decode_token,
     hash_password,
+    token_version_of,
     validate_password_strength,
     verify_password,
 )
@@ -92,39 +103,51 @@ def _issue_tokens(user: User) -> TokenPair:
             user_id=user.id,
             role=user.role.value,
             organization_id=user.organization_id,
+            token_version=user.token_version or 0,
         ),
-        refresh_token=create_refresh_token(user_id=user.id),
+        refresh_token=create_refresh_token(user_id=user.id, token_version=user.token_version or 0),
         expires_in=settings.access_token_expire_minutes * 60,
     )
 
 
-def _authenticate(db: Session, email: str, password: str) -> User:
+TOO_MANY_ATTEMPTS = "Twòp esè. Tann kèk minit."
+TOO_MANY_SIGNUPS = "Twòp enskripsyon soti nan menm koneksyon an. Eseye ankò pita."
+
+
+def _authenticate(db: Session, request: Request, email: str, password: str) -> User:
     """
-    Mesaj erè a rete menm bagay la pou move imel ak move modpas.
-    Si ou di 'imel sa a pa egziste', ou ede yon atakè jwenn ki kont ki reyèl.
+    Mesaj erè a rete menm bagay la pou move imel ak move modpas, e chak
+    repons koute yon verifikasyon bcrypt (DUMMY_HASH): yon atakè pa ka
+    devine ki kont ki reyèl, ni pa mesaj la ni pa tan an.
+
+    Blokaj (app/login_guard.py): TANPORÈ, pa imel oswa pa IP, menm repons
+    pou imel ki pa egziste. Pandan blokaj la esè yo pa konte.
     """
+    email = email.lower().strip()
+    ip = client_ip(request)
     invalid = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Imel oswa modpas la pa kòrèk.",
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-    user = db.query(User).filter(User.email == email.lower().strip()).first()
-    if user is None:
-        # Fo verifikasyon: konsa tan reponn lan rete menm jan, epi yon atakè
-        # pa ka mezire tan an pou l devine ki imel ki egziste.
-        verify_password(password, "$2b$12$" + "x" * 53)
-        raise invalid
-
-    if user.failed_login_count >= settings.max_failed_logins:
+    if ip_blocked(db, ip) or email_locked(db, email):
+        verify_password(password, DUMMY_HASH)
         raise HTTPException(
-            status_code=status.HTTP_423_LOCKED,
-            detail="Kont lan bloke apre twòp esè. Kontakte administratè w la.",
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=TOO_MANY_ATTEMPTS,
         )
 
+    user = db.query(User).filter(User.email == email).first()
+    if user is None:
+        verify_password(password, DUMMY_HASH)
+        record_attempt(db, LOGIN, ip, email, success=False)
+        raise invalid
+
     if not verify_password(password, user.hashed_password):
-        user.failed_login_count += 1
-        db.commit()
+        record_attempt(db, LOGIN, ip, email, success=False)
+        # Jounal odit biznis la: administratè a wè atak sou kont li yo.
+        _log(db, request, user, "login_failed", "user", user.id)
         raise invalid
 
     if not user.is_active:
@@ -133,6 +156,7 @@ def _authenticate(db: Session, email: str, password: str) -> User:
             detail="Kont sa a dezaktive.",
         )
 
+    record_attempt(db, LOGIN, ip, email, success=True)
     user.failed_login_count = 0
     user.last_login_at = datetime.now(timezone.utc)
     db.commit()
@@ -148,7 +172,16 @@ def signup(payload: SignupRequest, request: Request, db: DbSession):
     """
     Kreye yon nouvo biznis ak premye administratè l la.
     Se sèl fason yon Organization kreye — pa gen endpoint separe pou sa.
+    Limit: settings.signup_max_per_ip_hour enskripsyon pa IP pa èdtan.
     """
+    ip = client_ip(request)
+    if signup_blocked(db, ip):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=TOO_MANY_SIGNUPS,
+        )
+    record_attempt(db, SIGNUP, ip, payload.admin_email, success=False)
+
     slug = payload.organization.slug.lower().strip()
     if db.query(Organization).filter(Organization.slug == slug).first():
         raise HTTPException(
@@ -222,7 +255,7 @@ def signup(payload: SignupRequest, request: Request, db: DbSession):
 
 @router.post("/login", response_model=TokenPair)
 def login(payload: LoginRequest, request: Request, db: DbSession):
-    user = _authenticate(db, payload.email, payload.password)
+    user = _authenticate(db, request, payload.email, payload.password)
     _log(db, request, user, "login", "user", user.id)
     return _issue_tokens(user)
 
@@ -234,7 +267,7 @@ def login_oauth_form(
     db: DbSession,
 ):
     """Menm bagay ak /login, men ak fòm OAuth2. Se sa bouton 'Authorize' nan /docs sèvi."""
-    user = _authenticate(db, form.username, form.password)
+    user = _authenticate(db, request, form.username, form.password)
     _log(db, request, user, "login", "user", user.id)
     return _issue_tokens(user)
 
@@ -255,6 +288,13 @@ def refresh(payload: RefreshRequest, db: DbSession):
             detail="Kont lan pa disponib.",
         )
 
+    # Refresh token ki te bay avan yon dekoneksyon oswa yon chanjman modpas.
+    if token_version_of(data) != (user.token_version or 0):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token an pa valab oswa li ekspire.",
+        )
+
     # Nou re-li wòl la nan baz done a: si HR chanje l, nouvo token an ap gen bon wòl la.
     return _issue_tokens(user)
 
@@ -262,10 +302,12 @@ def refresh(payload: RefreshRequest, db: DbSession):
 @router.post("/logout", response_model=Message)
 def logout(user: CurrentUser, request: Request, db: DbSession):
     """
-    ATANSYON: JWT pa ka revoke san yon lis nwa. Kounye a sa a se sèlman
-    yon antre nan jounal la — se frontend lan ki dwe efase token an.
-    Si ou bezwen vrè revokasyon, ajoute yon tab `revoked_tokens` sou chan `jti`.
+    Dekonekte sou TOUT aparèy: token_version monte, kidonk tout access ak
+    refresh token ki te bay pou kont sa a sispann mache (deps.get_current_user,
+    /refresh). Frontend lan efase pwòp token pa l tou.
     """
+    user.token_version = (user.token_version or 0) + 1
+    db.commit()
     _log(db, request, user, "logout", "user", user.id)
     return Message(detail="Ou dekonekte.")
 
@@ -312,7 +354,12 @@ def update_me(payload: MeUpdate, user: CurrentUser, db: DbSession):
     return user
 
 
-@router.post("/change-password", response_model=Message)
+class PasswordChanged(TokenPair):
+    """Chanje modpas anile ansyen token yo: nou bay nouvo yo (api.js sere yo)."""
+    detail: str
+
+
+@router.post("/change-password", response_model=PasswordChanged)
 def change_password(
     payload: PasswordChange,
     user: CurrentUser,
@@ -341,9 +388,12 @@ def change_password(
     user.hashed_password = hash_password(payload.new_password)
     user.failed_login_count = 0
     user.must_change_password = False
+    # Tout ansyen sesyon yo (ak yon moun ki te ka vòlè youn) sispann mache.
+    user.token_version = (user.token_version or 0) + 1
     db.commit()
+    db.refresh(user)
     _log(db, request, user, "change_password", "user", user.id)
-    return Message(detail="Modpas la chanje.")
+    return PasswordChanged(detail="Modpas la chanje.", **_issue_tokens(user).model_dump())
 
 
 # ---------------------------------------------------------------------------

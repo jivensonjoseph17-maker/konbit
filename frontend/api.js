@@ -552,6 +552,10 @@
     }
 
     if (!res.ok) throw toApiError(res.status, data);
+    // Chanje modpas anile tout ansyen token yo (token_version): backend la voye nouvo yo.
+    if (path === '/api/auth/change-password' && data && data.access_token) {
+      tokens.save(data.access_token, data.refresh_token);
+    }
     return data;
   }
 

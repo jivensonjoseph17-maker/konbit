@@ -146,7 +146,7 @@ def verify_pin(pin: str, stored: Optional[str]) -> bool:
 
 def pin_lookup(org_id: int, pin: str) -> str:
     """Kle rechèch pou mòd "kòd sèlman": HMAC ak kle sekrè sèvè a, pa biznis."""
-    return hmac.new(settings.secret_key.encode(), f"{org_id}:{pin}".encode(),
+    return hmac.new(settings.kiosk_key.encode(), f"{org_id}:{pin}".encode(),
                     hashlib.sha256).hexdigest()
 
 

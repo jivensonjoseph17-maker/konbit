@@ -221,6 +221,9 @@ class User(Base, TimestampMixin):
     # True apre HR kreye kont lan oswa jenere yon modpas tanporè: moun nan
     # dwe chwazi pwòp modpas li anvan li fè anyen (gade deps.get_current_user).
     must_change_password = Column(Boolean, default=False, nullable=False, server_default=false())
+    # Chak token pote vèsyon sa a (claim "ver"). Dekonekte, chanje modpas oswa
+    # yon reset HR ogmante l: tout ansyen token yo sispann mache (deps.py).
+    token_version = Column(Integer, default=0, nullable=False, server_default="0")
 
     organization = relationship("Organization", back_populates="users")
     employee = relationship("Employee", back_populates="user", uselist=False)
@@ -1114,3 +1117,20 @@ class SalaryAdvanceRepayment(Base):
     pay_period_id = Column(Integer, ForeignKey("pay_periods.id"), nullable=False)
     amount = Column(Integer, nullable=False)                 # an santim
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+# ---------------------------------------------------------------------------
+# ESÈ KONEKSYON AK ENSKRIPSYON (app/login_guard.py)
+#
+# Yon liy pa esè. Sèvi pou: blokaj tanporè pa imel, limit pa IP, limit
+# enskripsyon. Liy ki gen plis pase 2 jou efase otomatikman.
+# ---------------------------------------------------------------------------
+
+class AuthAttempt(Base):
+    __tablename__ = "auth_attempts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    kind = Column(String(10), nullable=False)               # "login" oswa "signup"
+    ip_address = Column(String(45), index=True)
+    email = Column(String(255), index=True)
+    success = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, index=True)

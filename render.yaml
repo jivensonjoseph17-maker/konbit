@@ -58,6 +58,8 @@ services:
         value: https://konmbit.com
       - key: ALLOWED_ORIGINS
         value: '["https://konmbit.com","https://www.konmbit.com"]'
+      - key: KIOSK_LOOKUP_KEY
+        sync: false            # KLE SEPARE ak SECRET_KEY (kòd tablèt yo). Jenere l menm jan.
 
   # ------------------------------------------------------------------
   # FRONTEND — fichye HTML/JS/CSS yo tèl jan yo ye, pa gen build.
@@ -83,6 +85,15 @@ services:
       - path: /*
         name: Permissions-Policy
         value: geolocation=(self), camera=(), microphone=()
+      - path: /*
+        name: Strict-Transport-Security
+        value: max-age=31536000; includeSubDomains
+      # CSP: 'unsafe-inline' paske chak paj gen <script> anndan HTML la. Pou
+      # retire l, fòk kòd JavaScript la deplase nan fichye .js (apre lansman).
+      # connect-src limite kote paj la ka voye done: api.konmbit.com sèlman.
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' https: blob:; connect-src 'self' https://api.konmbit.com; frame-src https://www.youtube-nocookie.com https://player.vimeo.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
       # Tradiksyon yo chanje chak fwa nou ajoute yon fraz: pa kenbe yo nan kach twò lontan.
       - path: /i18n/*
         name: Cache-Control

@@ -83,6 +83,24 @@ app.add_middleware(
 )
 
 
+# ---------------------------------------------------------------------------
+# HEADER SEKIRITE SOU REPONS API YO
+#
+# Repons yo gen salè, fich peye, nimewo kont: yon òdinatè pataje (sibè,
+# biwo) pa dwe kenbe yo nan kach. setdefault: yon repons ki mete pwòp
+# Cache-Control li (logo, foto) kenbe l.
+# ---------------------------------------------------------------------------
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers.setdefault("Cache-Control", "no-store")
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    return response
+
+
 def cors_headers_for(request: Request) -> dict[str, str]:
     """
     Header CORS pou yon repons ki PA pase nan CORSMiddleware la (erè 500 yo).

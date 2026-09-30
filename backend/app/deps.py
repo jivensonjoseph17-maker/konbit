@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from .database import get_db
 from .models import Employee, Organization, User, UserRole
-from .security import decode_token
+from .security import decode_token, token_version_of
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token")
 
@@ -59,6 +59,21 @@ def get_current_user(
     user = db.query(User).filter(User.id == int(payload["sub"])).first()
     if user is None or not user.is_active:
         raise CREDENTIALS_ERROR
+
+    # Token ki te bay avan yon dekoneksyon / chanjman modpas / reset HR.
+    if token_version_of(payload) != (user.token_version or 0):
+        raise CREDENTIALS_ERROR
+
+    # Yon biznis KONMBIT dezaktive: pèsonn ladan l pa ka travay ankò.
+    if user.organization_id is not None:
+        org_active = db.query(Organization.is_active).filter(
+            Organization.id == user.organization_id
+        ).scalar()
+        if org_active is False:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Biznis sa a dezaktive. Kontakte KONMBIT.",
+            )
 
     if (ENFORCE_PASSWORD_CHANGE and user.must_change_password
             and request.url.path not in _PASSWORD_CHANGE_ALLOWED):

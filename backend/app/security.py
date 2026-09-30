@@ -46,6 +46,14 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         return False
 
 
+# Yon VRÈ hash bcrypt, kalkile yon sèl fwa lè sèvè a demare. auth._authenticate
+# verifye modpas la kont li lè imel la pa egziste oswa li bloke: konsa chak
+# repons koute menm tan an, e yon atakè pa ka mezire tan an pou l konnen ki
+# imel ki gen kont. (Ansyen fo hash "$2b$12$xxx..." la pa t valab: bcrypt te
+# refize l touswit, san travay, e diferans tan an te vizib.)
+DUMMY_HASH = hash_password(secrets.token_urlsafe(24))
+
+
 def validate_password_strength(password: str) -> list[str]:
     """Retounen lis pwoblèm yo. Lis vid = modpas la bon."""
     problems = []
@@ -93,26 +101,37 @@ def create_access_token(
     user_id: int,
     role: str,
     organization_id: Optional[int] = None,
+    token_version: int = 0,
 ) -> str:
     """
-    Nou mete role ak organization_id nan token an pou nou evite yon rekèt
-    baz done sou chak apèl. ATANSYON: si HR chanje wòl yon moun, chanjman an
-    ap pran efè sèlman lè token an ekspire (30 min pa defo).
+    `ver` = User.token_version: dekonekte, chanje modpas oswa yon reset HR
+    ogmante l, e deps.get_current_user refize tout token ki gen yon ansyen
+    vèsyon. Wòl ak òganizasyon an li nan baz done a chak rekèt (deps.py):
+    yo nan token an pou enfòmasyon sèlman.
     """
     return _create_token(
         subject=user_id,
         token_type=ACCESS_TOKEN,
         expires_delta=timedelta(minutes=settings.access_token_expire_minutes),
-        extra_claims={"role": role, "org": organization_id},
+        extra_claims={"role": role, "org": organization_id, "ver": token_version},
     )
 
 
-def create_refresh_token(user_id: int) -> str:
+def create_refresh_token(user_id: int, token_version: int = 0) -> str:
     return _create_token(
         subject=user_id,
         token_type=REFRESH_TOKEN,
         expires_delta=timedelta(days=settings.refresh_token_expire_days),
+        extra_claims={"ver": token_version},
     )
+
+
+def token_version_of(payload: dict[str, Any]) -> int:
+    """Vèsyon ki nan token an. Token ki te bay avan chanjman sa a pa gen "ver": 0."""
+    try:
+        return int(payload.get("ver", 0) or 0)
+    except (TypeError, ValueError):
+        return -1
 
 
 def decode_token(token: str, expected_type: str = ACCESS_TOKEN) -> Optional[dict[str, Any]]:
