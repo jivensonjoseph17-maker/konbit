@@ -25,6 +25,9 @@ RÈG BALANS (konje ki rache: vakans, maladi, matènite, patènite):
     Konsa de demann an menm tan pa ka depase balans lan.
   - Lè manadjè a apwouve, nou verifye balans lan ANKÒ (HR te ka chanje l).
     Balans lan pa janm tonbe anba zewo.
+  - Yon konje ki travèse 2 ane (29 des → 5 jan) rache jou CHAK ane nan
+    balans ane sa a: 3 jou nan 2031, 3 jou nan 2032. Chak ane dwe gen
+    balans li, e chak ane verifye apa (gade _days_by_year).
 """
 
 import logging
@@ -34,7 +37,7 @@ from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
-from sqlalchemy import and_, func, or_
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from ..deps import (
@@ -137,6 +140,24 @@ def _business_days(start: date, end: date) -> Decimal:
     return Decimal(days)
 
 
+def _days_by_year(start: date, end: date) -> dict[int, Decimal]:
+    """
+    Jou travay yon peryòd, separe pa ane (sèlman ane ki gen omwen 1 jou).
+
+        29 des 2031 → 5 jan 2032  ⇒  {2031: 3, 2032: 3}
+
+    Total la toujou egal _business_days(start, end), kidonk egal
+    LeaveRequest.total_days: nou ka rekalkile separasyon an nenpòt ki lè
+    apati dat yo, san nou pa bezwen sere l.
+    """
+    out: dict[int, Decimal] = {}
+    for year in range(start.year, end.year + 1):
+        days = _business_days(max(start, date(year, 1, 1)), min(end, date(year, 12, 31)))
+        if days:
+            out[year] = days
+    return out
+
+
 def _get_employee_or_404(db: Session, org_id: int, employee_id: int) -> Employee:
     emp = db.query(Employee).filter(
         Employee.id == employee_id,
@@ -201,18 +222,25 @@ def _balance_remaining(bal: Optional[LeaveBalance]) -> Decimal:
 
 def _pending_days(db: Session, org_id: int, employee_id: int, leave_type: LeaveType,
                   year: int, exclude_id: Optional[int] = None) -> Decimal:
-    """Jou nan demann ki toujou ap tann pou menm kalite konje ak menm ane a."""
-    q = db.query(func.coalesce(func.sum(LeaveRequest.total_days), 0)).filter(
+    """
+    Jou NAN ANE `year` pou demann ki toujou ap tann (menm kalite konje).
+    Yon demann 29 des → 5 jan konte 3 jou pou ane 1 la, 3 jou pou ane 2 a
+    — pa 6 jou nan premye ane a.
+    """
+    q = db.query(LeaveRequest).filter(
         LeaveRequest.organization_id == org_id,
         LeaveRequest.employee_id == employee_id,
         LeaveRequest.leave_type == leave_type,
         LeaveRequest.status == RequestStatus.PENDING,
-        LeaveRequest.start_date >= date(year, 1, 1),
         LeaveRequest.start_date <= date(year, 12, 31),
+        LeaveRequest.end_date >= date(year, 1, 1),
     )
     if exclude_id is not None:
         q = q.filter(LeaveRequest.id != exclude_id)
-    return Decimal(str(q.scalar() or 0))
+    return sum(
+        (_days_by_year(r.start_date, r.end_date).get(year, Decimal(0)) for r in q.all()),
+        Decimal(0),
+    )
 
 
 def _fmt_days(value: Decimal) -> str:
@@ -286,25 +314,26 @@ def create_leave_request(
             detail="Peryòd la pa gen okenn jou travay (sèlman wikenn).",
         )
 
-    # Konje ki rache: HR dwe mete balans lan, epi li dwe ase — menm lè
-    # nou konte lòt demann ki toujou ap tann yo.
+    # Konje ki rache: HR dwe mete balans CHAK ane demann lan touche, epi
+    # jou ki tonbe nan chak ane dwe ase — menm lè nou konte lòt demann ki
+    # toujou ap tann yo.
     if payload.leave_type not in NON_DEDUCTIBLE:
-        year = payload.start_date.year
-        bal = _find_balance(db, org_id, emp.id, payload.leave_type, year)
-        if _balance_total(bal) == 0:
-            raise HTTPException(status_code=400, detail=NO_BALANCE)
+        for year, days in _days_by_year(payload.start_date, payload.end_date).items():
+            bal = _find_balance(db, org_id, emp.id, payload.leave_type, year)
+            if _balance_total(bal) == 0:
+                raise HTTPException(status_code=400, detail=NO_BALANCE)
 
-        available = _balance_remaining(bal) - _pending_days(
-            db, org_id, emp.id, payload.leave_type, year,
-        )
-        if total_days > available:
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    f"Ou mande {_fmt_days(total_days)} jou men ou gen sèlman "
-                    f"{_fmt_days(max(Decimal(0), available))} jou ki rete."
-                ),
+            available = _balance_remaining(bal) - _pending_days(
+                db, org_id, emp.id, payload.leave_type, year,
             )
+            if days > available:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Ou mande {_fmt_days(days)} jou men ou gen sèlman "
+                        f"{_fmt_days(max(Decimal(0), available))} jou ki rete."
+                    ),
+                )
 
     req = LeaveRequest(
         organization_id=org_id,
@@ -359,9 +388,10 @@ def my_requests(
     if status_filter:
         q = q.filter(LeaveRequest.status == status_filter)
     if year:
+        # Demann ki KOUVRI ane a (yon konje 29 des → 5 jan parèt nan 2 ane yo).
         q = q.filter(
-            LeaveRequest.start_date >= date(year, 1, 1),
             LeaveRequest.start_date <= date(year, 12, 31),
+            LeaveRequest.end_date >= date(year, 1, 1),
         )
 
     items = q.order_by(LeaveRequest.start_date.desc()).all()
@@ -378,7 +408,8 @@ def cancel_my_request(
     user: CurrentUser,
 ):
     """
-    Anile pwòp demann ou. Si li te deja apwouve, jou yo retounen nan balans lan.
+    Anile pwòp demann ou. Si li te deja apwouve, jou yo retounen nan balans
+    lan — nan balans CHAK ane, menm jan yo te rache a.
     Nou pa efase liy lan — nou make l CANCELLED.
     """
     req = _get_request_or_404(db, org_id, request_id)
@@ -397,10 +428,9 @@ def cancel_my_request(
     req.status = RequestStatus.CANCELLED
 
     if was_approved and req.leave_type not in NON_DEDUCTIBLE:
-        bal = _get_or_create_balance(
-            db, org_id, req.employee_id, req.leave_type, req.start_date.year
-        )
-        bal.used_days = max(Decimal(0), Decimal(bal.used_days or 0) - Decimal(req.total_days))
+        for year, days in _days_by_year(req.start_date, req.end_date).items():
+            bal = _get_or_create_balance(db, org_id, req.employee_id, req.leave_type, year)
+            bal.used_days = max(Decimal(0), Decimal(bal.used_days or 0) - days)
 
     db.commit()
     _audit(db, request, user, "cancel", req.id)
@@ -481,13 +511,16 @@ def decide_request(
             detail="Ou pa gen dwa pou deside sou demann sa a.",
         )
 
-    # Apwobasyon: verifye balans lan ANKÒ — HR te ka chanje l depi demann
-    # lan fèt, oswa demann lan te fèt anvan règ la te egziste. Refize toujou posib.
-    bal = None
+    # Apwobasyon: verifye balans CHAK ane ANKÒ — HR te ka chanje l depi
+    # demann lan fèt, oswa demann lan te fèt anvan règ la te egziste.
+    # Refize toujou posib. Nou verifye TOUT ane yo anvan nou rache anyen.
+    to_deduct: list[tuple[LeaveBalance, Decimal]] = []
     if payload.approve and req.leave_type not in NON_DEDUCTIBLE:
-        bal = _find_balance(db, org_id, req.employee_id, req.leave_type, req.start_date.year)
-        if _balance_total(bal) == 0 or Decimal(req.total_days) > _balance_remaining(bal):
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=NOT_ENOUGH_TO_APPROVE)
+        for year, days in _days_by_year(req.start_date, req.end_date).items():
+            bal = _find_balance(db, org_id, req.employee_id, req.leave_type, year)
+            if _balance_total(bal) == 0 or days > _balance_remaining(bal):
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=NOT_ENOUGH_TO_APPROVE)
+            to_deduct.append((bal, days))
 
     approver = db.query(Employee).filter(Employee.user_id == user.id).first()
 
@@ -496,9 +529,9 @@ def decide_request(
     req.approved_at = datetime.now(timezone.utc)
     req.decision_note = payload.note
 
-    # Rache jou yo nan balans lan sèlman lè demann lan apwouve
-    if bal is not None:
-        bal.used_days = Decimal(bal.used_days or 0) + Decimal(req.total_days)
+    # Rache jou yo nan balans chak ane sèlman lè demann lan apwouve
+    for bal, days in to_deduct:
+        bal.used_days = Decimal(bal.used_days or 0) + days
 
     db.commit()
     db.refresh(req)
