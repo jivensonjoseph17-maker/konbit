@@ -1593,11 +1593,40 @@
     // DEMARAJ
     // -----------------------------------------------------------------------
 
+    /**
+     * Bandwòl "Imel ou poko verifye" (pati B). San yon imel verifye,
+     * "Mwen bliye modpas mwen" pa ka rive jwenn moun nan.
+     */
+    function verifyEmailBanner(identity) {
+      if (identity.user.email_verified) return null;
+      const msg = h('span', { role: 'status' });
+      const btn = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, t('Voye lyen an ankò'));
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        msg.textContent = '';
+        try {
+          await api.post('/api/auth/resend-verification', {});
+          msg.textContent = t('Nou voye yon nouvo lyen. Gade bwat imel ou.');
+        } catch (err) {
+          msg.textContent = errorText(err);
+          btn.disabled = false;
+        }
+      });
+      return h('div', { class: 'dash-note', style: 'display: flex; flex-wrap: wrap; align-items: center; gap: 10px;' },
+        h('span', {}, t('Imel ou ({email}) poko verifye. Sa enpòtan pou w ka chanje modpas ou si w bliye l.',
+          { email: identity.user.email })),
+        btn,
+        msg,
+      );
+    }
+
     async function start() {
       const identity = await shell.mount('dashboard');
       if (!identity) return;
 
       renderGreeting(identity);
+      const emailNote = verifyEmailBanner(identity);
+      if (emailNote) top.append(emailNote);
       const role = identity.user.role;
       const hasEmployee = Boolean(identity.employee_id);
       const isAdmin = shell.ADMIN.includes(role);

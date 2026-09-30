@@ -68,9 +68,35 @@
             <button class="btn btn-primary" type="submit" id="login-submit" data-i18n>Konekte</button>
           </form>
 
+          <p class="auth-switch" style="margin-top: 12px;">
+            <button class="link-btn" type="button" id="go-forgot" data-i18n>Mwen bliye modpas mwen</button>
+          </p>
+
           <p class="auth-switch">
             <span data-i18n>Premye fwa w sou KONMBIT?</span>
             <button class="link-btn" type="button" data-go="signup" data-i18n>Enskri biznis ou</button>
+          </p>
+        </section>
+
+        <!-- MWEN BLIYE MODPAS MWEN -->
+        <section id="panel-forgot" hidden>
+          <h2 data-i18n>Ou bliye modpas ou?</h2>
+          <p class="sub" data-i18n>Mete imel kont ou. N ap voye yon lyen pou w chwazi yon nouvo modpas.</p>
+
+          <form class="auth-form" id="forgot-form" novalidate>
+            <div class="alert alert-error" id="forgot-error" role="alert"></div>
+            <div class="alert alert-ok" id="forgot-ok" role="status" hidden data-i18n>Si imel sa a gen yon kont, n ap voye yon lyen pou chanje modpas la. Gade bwat imel ou (ak spam yo).</div>
+
+            <div class="field">
+              <label for="forgot-email" data-i18n>Imel</label>
+              <input class="input" id="forgot-email" type="email" autocomplete="username" required>
+            </div>
+
+            <button class="btn btn-primary" type="submit" id="forgot-submit" data-i18n>Voye lyen an</button>
+          </form>
+
+          <p class="auth-switch">
+            <button class="link-btn" type="button" id="forgot-back" data-i18n>Retounen nan koneksyon an</button>
           </p>
         </section>
 
@@ -143,7 +169,7 @@
   <script>
   (async function () {
     'use strict';
-    const { auth, ApiError, i18n, t } = Konbit;
+    const { api, auth, ApiError, i18n, t } = Konbit;
 
     // Tradiksyon yo nan frontend/i18n/<lang>.json.
     await i18n.ready;
@@ -177,6 +203,7 @@
     };
 
     function show(which) {
+      document.getElementById('panel-forgot').hidden = true;
       for (const [name, [tab, panel]] of Object.entries(tabs)) {
         const active = name === which;
         tab.setAttribute('aria-selected', String(active));
@@ -231,6 +258,53 @@
         loginForm.password.value = '';
         loginForm.password.focus();
         setBusy(loginBtn, false, t('Konekte'));
+      }
+    });
+
+    // --- Mwen bliye modpas mwen (pati B) ---
+    // Repons lan toujou menm jan an: backend la pa di si imel la gen yon kont.
+    const forgotPanel = document.getElementById('panel-forgot');
+    const forgotForm = document.getElementById('forgot-form');
+    const forgotEmail = document.getElementById('forgot-email');
+    const forgotError = document.getElementById('forgot-error');
+    const forgotOk = document.getElementById('forgot-ok');
+    const forgotBtn = document.getElementById('forgot-submit');
+
+    function showForgot() {
+      tabs.login[1].hidden = true;
+      tabs.signup[1].hidden = true;
+      forgotPanel.hidden = false;
+      forgotOk.hidden = true;
+      forgotError.textContent = '';
+      const typed = loginForm.email.value.trim();
+      if (typed && !forgotEmail.value) forgotEmail.value = typed;
+      forgotEmail.focus();
+    }
+
+    document.getElementById('go-forgot').addEventListener('click', showForgot);
+    document.getElementById('forgot-back').addEventListener('click', () => show('login'));
+    if (location.hash === '#bliye') showForgot();
+
+    forgotForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      forgotError.textContent = '';
+      forgotOk.hidden = true;
+
+      const email = forgotEmail.value.trim();
+      if (!email || !forgotEmail.checkValidity()) {
+        forgotError.textContent = t('Mete yon imel valab.');
+        forgotEmail.focus();
+        return;
+      }
+
+      setBusy(forgotBtn, true, t('Voye lyen an'));
+      try {
+        await api.post('/api/auth/forgot-password', { email }, { auth: false });
+        forgotOk.hidden = false;
+      } catch (err) {
+        showError(forgotError, err);
+      } finally {
+        setBusy(forgotBtn, false, t('Voye lyen an'));
       }
     });
 

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title data-i18n>Verifye imel — KONMBIT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="app.css">
+  <style>
+    .pw-page { min-height: 100vh; display: grid; place-items: center; padding: 32px 20px; }
+    .pw-card { width: 100%; max-width: 440px; }
+    .pw-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 28px; }
+    .pw-actions { margin-top: 18px; display: flex; gap: 10px; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+  <main class="pw-page">
+    <div class="pw-card panel">
+      <div class="pw-top">
+        <a class="brand" href="index.html" data-i18n-attr="aria-label" aria-label="KONMBIT — akèy">
+          <span class="brand-mark" aria-hidden="true">K</span>
+          <span class="brand-name">KONMBIT</span>
+        </a>
+        <div id="lang-slot"></div>
+      </div>
+
+      <p class="loading" id="ve-wait" data-i18n>Ap verifye imel ou…</p>
+
+      <div id="ve-ok" hidden>
+        <div class="alert alert-ok" role="status" data-i18n>Imel ou verifye. Mèsi!</div>
+      </div>
+
+      <div id="ve-bad" hidden>
+        <div class="alert alert-error" id="ve-bad-text" role="alert"></div>
+      </div>
+
+      <div class="pw-actions" id="ve-actions" hidden></div>
+    </div>
+  </main>
+
+  <script src="api.js"></script>
+  <script>
+  (async function () {
+    'use strict';
+    const { api, auth, h, ApiError, i18n, t } = Konbit;
+
+    await i18n.ready;
+    document.getElementById('lang-slot').append(i18n.switcher());
+
+    const $ = (id) => document.getElementById(id);
+
+    // Token an apre "#": nou li l epi nou retire l nan URL la.
+    const token = decodeURIComponent(location.hash.slice(1));
+    if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+
+    /** Bouton pou kontinye: tablo de bò a si moun nan konekte, sinon paj koneksyon an. */
+    function showActions() {
+      const link = auth.isLoggedIn()
+        ? h('a', { class: 'btn btn-primary', href: 'dashboard.html' }, t('Ale nan tablo de bò mwen'))
+        : h('a', { class: 'btn btn-primary', href: 'login.html' }, t('Konekte'));
+      $('ve-actions').replaceChildren(link);
+      $('ve-actions').hidden = false;
+    }
+
+    function showBad(text) {
+      $('ve-wait').hidden = true;
+      $('ve-bad-text').textContent = text;
+      $('ve-bad').hidden = false;
+      showActions();
+    }
+
+    if (!/^[A-Za-z0-9_-]{20,200}$/.test(token)) {
+      showBad(t('Lyen verifikasyon an pa konplè. Konekte epi mande yon lòt lyen sou tablo de bò a.'));
+      return;
+    }
+
+    // POST ak JavaScript, pa yon GET: robo antispam ki "ouvri" lyen nan imel yo
+    // pa egzekite paj la, kidonk yo pa ka konsome lyen an avan moun nan.
+    try {
+      await api.post('/api/auth/verify-email', { token }, { auth: false });
+      $('ve-wait').hidden = true;
+      $('ve-ok').hidden = false;
+      showActions();
+    } catch (err) {
+      showBad(err instanceof ApiError ? err.message : t('Yon bagay pa mache. Eseye ankò.'));
+    }
+  })();
+  </script>
+</body>
+</html>
