@@ -740,7 +740,8 @@
 
           return h('div', { class: 'course' },
             h('div', { class: 'course-top' },
-              h('span', { class: 'course-title' }, c.course.title),
+              h('a', { class: 'course-title plain-link', href: `my-course.html?id=${c.course.id}` },
+                c.course.title),
               status,
             ),
             bar,

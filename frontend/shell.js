@@ -223,6 +223,9 @@
     const s = String(link || '').replace(/^\/+/, '');
     if (/^[a-z0-9-]+\.html(#[a-z0-9-]+)?$/i.test(s)) return s;
     if (/^payslips\/\d+$/.test(s)) return 'dashboard.html#fich-peye';
+    const course = s.match(/^training\/(\d+)$/);
+    if (course) return `my-course.html?id=${course[1]}`;
+    if (/^leaves\/\d+$/.test(s)) return 'dashboard.html#konje';
     return null;
   }
 
