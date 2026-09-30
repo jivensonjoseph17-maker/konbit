@@ -697,6 +697,10 @@ _ROWS: list[tuple[str, str, str]] = [
     ("Se sèlman yon administratè ki ka jere kont yon administratè.",
      "Seul un administrateur peut gérer le compte d'un administrateur.",
      "Only an administrator can manage an administrator's account."),
+    # --- Imel: mwen bliye modpas mwen, verifye imel (auth.py) ---
+    ("Lyen sa a pa valab ankò. Mande yon lòt.",
+     "Ce lien n'est plus valide. Demandez-en un autre.",
+     "This link is no longer valid. Request a new one."),
 ]
 
 MESSAGES: dict[str, dict[str, str]] = {ht: {"fr": fr, "en": en} for ht, fr, en in _ROWS}

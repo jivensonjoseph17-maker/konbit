@@ -18,7 +18,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from sqlalchemy.orm import Session
@@ -168,7 +168,7 @@ def _authenticate(db: Session, request: Request, email: str, password: str) -> U
 # ---------------------------------------------------------------------------
 
 @router.post("/signup", response_model=TokenPair, status_code=status.HTTP_201_CREATED)
-def signup(payload: SignupRequest, request: Request, db: DbSession):
+def signup(payload: SignupRequest, request: Request, background: BackgroundTasks, db: DbSession):
     """
     Kreye yon nouvo biznis ak premye administratè l la.
     Se sèl fason yon Organization kreye — pa gen endpoint separe pou sa.
@@ -246,6 +246,8 @@ def signup(payload: SignupRequest, request: Request, db: DbSession):
 
     db.refresh(admin)
     _log(db, request, admin, "create", "organization", org.id)
+    # Lyen verifikasyon imel (an aryèplan: repons lan pa tann sèvè imel la).
+    send_verification(db, admin, background)
     return _issue_tokens(admin)
 
 
@@ -432,3 +434,136 @@ def read_identity(user: CurrentUser, db: DbSession):
         department_id=emp.department_id if emp else None,
         manager_id=emp.manager_id if emp else None,
     )
+
+
+# ---------------------------------------------------------------------------
+# MWEN BLIYE MODPAS MWEN / VERIFYE IMEL (pati B — app/mailer.py)
+#
+# Lyen yo gen token an apre "#" (reset-password.html#…): navigatè a pa janm
+# voye pati sa a bay sèvè a, kidonk li pa parèt nan jounal sèvè yo.
+# ---------------------------------------------------------------------------
+
+from datetime import timedelta  # noqa: E402
+
+from ..email_texts import reset_email_text, verify_email_text  # noqa: E402
+from ..email_tokens import RESET, VERIFY, consume_token, issue_token  # noqa: E402
+from ..login_guard import RESET_REQUEST, reset_blocked, unlock_login  # noqa: E402
+from ..mailer import send_email  # noqa: E402
+
+FORGOT_REPLY = (
+    "Si imel sa a gen yon kont, n ap voye yon lyen pou chanje modpas la. "
+    "Gade bwat imel ou (ak spam yo)."
+)
+BAD_LINK = "Lyen sa a pa valab ankò. Mande yon lòt."
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(min_length=20, max_length=200)
+    new_password: str = Field(min_length=10, max_length=128)
+
+
+class EmailTokenRequest(BaseModel):
+    token: str = Field(min_length=20, max_length=200)
+
+
+def _frontend_link(page: str, raw_token: str) -> str:
+    return f"{settings.frontend_url.rstrip('/')}/{page}#{raw_token}"
+
+
+def send_verification(db: Session, user: User, background: BackgroundTasks) -> None:
+    """Nouvo lyen verifikasyon (ansyen an anile), voye an aryèplan."""
+    raw = issue_token(db, user, VERIFY, timedelta(hours=settings.email_verify_hours))
+    subject, text = verify_email_text(
+        user.preferred_language, user.full_name,
+        _frontend_link("verify-email.html", raw), settings.email_verify_hours,
+    )
+    background.add_task(send_email, user.email, subject, text)
+
+
+@router.post("/forgot-password", response_model=Message)
+def forgot_password(
+    payload: ForgotPasswordRequest,
+    request: Request,
+    background: BackgroundTasks,
+    db: DbSession,
+):
+    """
+    Voye yon lyen pou chanje modpas la. Repons lan TOUJOU menm jan an
+    (imel ki egziste oswa non, limit rive oswa non): yon atakè pa aprann
+    anyen, e yon moun pa ka itilize nou pou voye spam.
+    """
+    email = payload.email.lower().strip()
+    ip = client_ip(request)
+    if reset_blocked(db, ip, email):
+        return Message(detail=FORGOT_REPLY)
+    record_attempt(db, RESET_REQUEST, ip, email, success=False)
+
+    user = db.query(User).filter(User.email == email).first()
+    if user is not None and user.is_active:
+        raw = issue_token(db, user, RESET, timedelta(minutes=settings.password_reset_minutes))
+        subject, text = reset_email_text(
+            user.preferred_language, user.full_name,
+            _frontend_link("reset-password.html", raw), settings.password_reset_minutes,
+        )
+        background.add_task(send_email, user.email, subject, text)
+        _log(db, request, user, "password_reset_requested", "user", user.id)
+
+    return Message(detail=FORGOT_REPLY)
+
+
+@router.post("/reset-password", response_model=Message)
+def reset_password(payload: ResetPasswordRequest, request: Request, db: DbSession):
+    """
+    Nouvo modpas ak lyen imel la. Modpas la verifye AVAN lyen an: yon modpas
+    twò fèb pa gaspiye lyen an. Tout sesyon yo anile (token_version), blokaj
+    la efase, e imel la konsidere verifye (moun nan te resevwa l).
+    """
+    problems = validate_password_strength(payload.new_password)
+    if problems:
+        raise HTTPException(status_code=422, detail=problems)
+
+    user = consume_token(db, payload.token, RESET)
+    if user is None:
+        raise HTTPException(status_code=400, detail=BAD_LINK)
+
+    user.hashed_password = hash_password(payload.new_password)
+    user.must_change_password = False
+    user.failed_login_count = 0
+    user.email_verified = True
+    user.token_version = (user.token_version or 0) + 1
+    db.commit()
+    unlock_login(db, user.email)
+    _log(db, request, user, "password_reset", "user", user.id)
+    return Message(detail="Modpas la chanje. Konekte ak nouvo modpas la.")
+
+
+@router.post("/verify-email", response_model=Message)
+def verify_email(payload: EmailTokenRequest, request: Request, db: DbSession):
+    user = consume_token(db, payload.token, VERIFY)
+    if user is None:
+        raise HTTPException(status_code=400, detail=BAD_LINK)
+    user.email_verified = True
+    db.commit()
+    _log(db, request, user, "verify_email", "user", user.id)
+    return Message(detail="Imel ou verifye. Mèsi!")
+
+
+@router.post("/resend-verification", response_model=Message)
+def resend_verification(
+    user: CurrentUser,
+    request: Request,
+    background: BackgroundTasks,
+    db: DbSession,
+):
+    if user.email_verified:
+        return Message(detail="Imel ou deja verifye.")
+    ip = client_ip(request)
+    if reset_blocked(db, ip, user.email):
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=TOO_MANY_ATTEMPTS)
+    record_attempt(db, RESET_REQUEST, ip, user.email, success=False)
+    send_verification(db, user, background)
+    return Message(detail="Nou voye yon nouvo lyen. Gade bwat imel ou.")

@@ -1134,3 +1134,19 @@ class AuthAttempt(Base):
     email = Column(String(255), index=True)
     success = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), nullable=False, index=True)
+
+# ---------------------------------------------------------------------------
+# LYEN PA IMEL (app/email_tokens.py): chanje modpas, verifye imel.
+# Nou sere sha256 lyen an sèlman. Yon lyen sèvi yon sèl fwa epi li ekspire.
+# ---------------------------------------------------------------------------
+
+class EmailToken(Base):
+    __tablename__ = "email_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    purpose = Column(String(10), nullable=False)             # "reset" oswa "verify"
+    token_hash = Column(String(64), unique=True, index=True, nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    used_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), nullable=False)

@@ -60,6 +60,19 @@ services:
         value: '["https://konmbit.com","https://www.konmbit.com"]'
       - key: KIOSK_LOOKUP_KEY
         sync: false            # KLE SEPARE ak SECRET_KEY (kòd tablèt yo). Jenere l menm jan.
+      # --- Imel (app/mailer.py): valè yo depann de founisè a (Zoho, ZeptoMail, Resend) ---
+      - key: MAIL_BACKEND
+        value: smtp
+      - key: MAIL_FROM
+        value: "KONMBIT <no-reply@konmbit.com>"
+      - key: SMTP_HOST
+        sync: false            # egz: smtp.zoho.com, smtp.zeptomail.com, smtp.resend.com
+      - key: SMTP_PORT
+        value: "465"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false            # "app password" / kle API — PA modpas prensipal bwat imel la
 
   # ------------------------------------------------------------------
   # FRONTEND — fichye HTML/JS/CSS yo tèl jan yo ye, pa gen build.

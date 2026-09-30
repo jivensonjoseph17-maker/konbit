@@ -455,6 +455,10 @@ def hire_candidate(
     new_user = None
 
     if payload.create_login:
+        # Menm règ ak POST /api/employees: HR pa ka kreye yon kont administratè,
+        # e pèsonn pa ka bay super_admin ni applicant (se te yon twou sekirite).
+        from .employees import _check_grantable_role
+        _check_grantable_role(user, payload.login_role)
         login_email = str(payload.login_email or app.email).lower().strip()
         if db.query(User).filter(User.email == login_email).first():
             raise HTTPException(

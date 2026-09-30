@@ -33,6 +33,8 @@ if str(BACKEND_DIR) not in sys.path:
 # varyab anviwonman anvan valè `.env` la, kidonk sa a fòse yon baz done
 # SEPARE pou tès yo, pa touche `konbit.db` devlopman an.
 os.environ["DATABASE_URL"] = "sqlite:///./test_konbit.db"
+# Imel yo sere nan app.mailer.OUTBOX olye yo pati (test_email_flows.py li yo).
+os.environ["MAIL_BACKEND"] = "memory"
 
 import pytest
 from fastapi.testclient import TestClient
@@ -202,3 +204,5 @@ def _relax_auth_limits(monkeypatch):
     from app.config import settings
     monkeypatch.setattr(settings, "login_max_failures_per_ip", 1_000_000)
     monkeypatch.setattr(settings, "signup_max_per_ip_hour", 1_000_000)
+    monkeypatch.setattr(settings, "reset_max_per_email_hour", 1_000_000)
+    monkeypatch.setattr(settings, "reset_max_per_ip_hour", 1_000_000)

@@ -128,3 +128,26 @@ def signup_blocked(db: Session, ip: Optional[str]) -> bool:
 def unlock_login(db: Session, email: Optional[str]) -> None:
     """HR bay yon nouvo modpas oswa reaktive kont lan: blokaj la efase."""
     record_attempt(db, LOGIN, None, email, success=True)
+
+
+# ---------------------------------------------------------------------------
+# MWEN BLIYE MODPAS / VOYE LYEN VERIFIKASYON ANKÒ (routers/auth.py)
+# Limit pa imel ak pa IP pa èdtan. Lè limit la rive, auth.py bay MENM
+# repons lan san li pa voye imel (pa gen enimerasyon, pa gen spam).
+# ---------------------------------------------------------------------------
+
+RESET_REQUEST = "reset"
+
+
+def reset_blocked(db: Session, ip: Optional[str], email: Optional[str]) -> bool:
+    since = _now() - timedelta(hours=1)
+    base = db.query(func.count(AuthAttempt.id)).filter(
+        AuthAttempt.kind == RESET_REQUEST,
+        AuthAttempt.created_at > since,
+    )
+    email = _norm_email(email)
+    if email and (base.filter(AuthAttempt.email == email).scalar() or 0) >= settings.reset_max_per_email_hour:
+        return True
+    if ip and (base.filter(AuthAttempt.ip_address == ip).scalar() or 0) >= settings.reset_max_per_ip_hour:
+        return True
+    return False

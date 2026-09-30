@@ -48,6 +48,21 @@ class Settings(BaseSettings):
     # Vid = SECRET_KEY (devlopman). Obligatwa nan pwodiksyon.
     kiosk_lookup_key: str = ""
 
+    # --- Imel (app/mailer.py) ---
+    # "console": ekri imel yo nan tèminal sèvè a (devlopman). "memory": tès yo.
+    # "smtp": voye yo vre — obligatwa nan pwodiksyon.
+    mail_backend: Literal["console", "memory", "smtp"] = "console"
+    mail_from: str = "KONMBIT <no-reply@konmbit.com>"
+    smtp_host: str = ""
+    smtp_port: int = 465
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_starttls: bool = False          # 587 → true; 465 → false (SSL dirèk)
+    password_reset_minutes: int = 30
+    email_verify_hours: int = 48
+    reset_max_per_email_hour: int = 3    # "Mwen bliye modpas mwen" + "voye lyen an ankò"
+    reset_max_per_ip_hour: int = 10
+
     # --- CORS ---
     # Nan varyab anviwonman: ALLOWED_ORIGINS=["https://konmbit.com","https://www.konmbit.com"]
     frontend_url: str = "http://localhost:3000"
@@ -139,3 +154,7 @@ if settings.is_production:
     for _origin in (settings.frontend_url, *settings.allowed_origins):
         if not _origin.startswith("https://") or "localhost" in _origin or "127.0.0.1" in _origin:
             raise RuntimeError(f"Orijin CORS pa sekirize nan pwodiksyon: {_origin}")
+
+# Imel: nan pwodiksyon yo DWE pati (sinon "Mwen bliye modpas mwen" pa janm rive).
+if settings.is_production and settings.mail_backend != "smtp":
+    raise RuntimeError("MAIL_BACKEND dwe 'smtp' nan pwodiksyon.")
