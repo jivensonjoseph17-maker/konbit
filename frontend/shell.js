@@ -228,6 +228,12 @@
     const course = s.match(/^training\/(\d+)$/);
     if (course) return `my-course.html?id=${course[1]}`;
     if (/^leaves\/\d+$/.test(s)) return 'dashboard.html#konje';
+    const application = s.match(/^applications\/(\d+)$/);
+    if (application) return `application.html?id=${application[1]}`;
+    // Fidbak ak evalyasyon parèt sou tablo de bò a; fèy èdtan yo sou timesheets.html.
+    if (/^feedback\/\d+$/.test(s) || /^reviews\/\d+$/.test(s)) return 'dashboard.html';
+    if (/^timesheets\/\d+$/.test(s)) return 'timesheets.html';
+    // Yon nouvo kalite lyen? Ajoute l isit la: test_notification_links.py ap echwe san li.
     return null;
   }
 
