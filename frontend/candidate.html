@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="logo.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n>Espas kandida — KONMBIT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="app.css">
+  <style>
+    /* Paj piblik (menm stil ak careers.html): pa gen meni biznis. */
+    body { background: var(--bg); }
+    .c-bar {
+      position: sticky; top: 0; z-index: 10;
+      display: flex; justify-content: space-between; align-items: center; gap: 12px;
+      padding: 12px 24px; border-bottom: 1px solid var(--line);
+      background: color-mix(in srgb, var(--bg) 88%, transparent);
+      backdrop-filter: blur(8px);
+    }
+    .c-bar .brand { text-decoration: none; }
+    .c-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+    .c-user { font-size: 14px; font-weight: 600; color: var(--muted); }
+    .cand { max-width: 820px; margin: 0 auto; padding: 32px 20px 64px; }
+    .auth-box { max-width: 460px; }
+
+    .app-card {
+      border: 1px solid var(--line); border-radius: 16px; background: var(--surface);
+      padding: 18px 20px; display: grid; gap: 14px; min-width: 0;
+    }
+    .app-top { display: flex; gap: 14px; align-items: center; min-width: 0; }
+    .app-top h3 { margin: 2px 0 0; font-size: 17px; overflow-wrap: anywhere; }
+    .app-top .company { font-size: 13.5px; font-weight: 600; color: var(--muted); }
+    .c-avatar {
+      width: 46px; height: 46px; border-radius: 12px; flex: none;
+      display: grid; place-items: center; font-size: 17px; font-weight: 800; color: #fff;
+      background: linear-gradient(135deg, #1d4ed8, #0b1f4b);
+    }
+    .c-avatar.has-logo { background: #fff; border: 1px solid var(--line); padding: 5px; }
+    .c-avatar img { width: 100%; height: 100%; object-fit: contain; display: block; }
+
+    /* Ba etap yo: resevwa → an revizyon → antrevi → pwopozisyon → anboche */
+    .track { display: flex; gap: 6px; list-style: none; padding: 0; margin: 0; flex-wrap: wrap; }
+    .track li {
+      flex: 1 1 90px; font-size: 12.5px; color: var(--muted);
+      border-top: 4px solid var(--line); padding-top: 6px;
+    }
+    .track li.done, .track li.current { border-color: var(--accent, #2563eb); color: var(--text); }
+    .track li.current { font-weight: 700; }
+
+    .box { border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 8px; }
+    .box h4 { margin: 0; font-size: 14.5px; }
+    .row-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  </style>
+</head>
+<body>
+  <header class="c-bar">
+    <a class="brand" href="index.html" data-i18n-attr="aria-label" aria-label="KONMBIT — akèy">
+      <span class="brand-mark" aria-hidden="true">K</span>
+      <span class="brand-name">KONMBIT</span>
+    </a>
+    <div class="c-right">
+      <span id="user-slot" class="c-right"></span>
+      <div id="lang-slot"></div>
+    </div>
+  </header>
+
+  <main class="cand">
+    <div class="page-head">
+      <h1 data-i18n>Espas kandida</h1>
+      <p data-i18n>Swiv tout aplikasyon w yo nan biznis ki sou KONMBIT: etap yo, antrevi yo ak pwopozisyon yo.</p>
+    </div>
+    <div id="content"><p class="loading" data-i18n>Ap chaje…</p></div>
+  </main>
+
+  <script src="api.js"></script>
+  <script>
+  (async function () {
+    'use strict';
+    const { api, auth, fmt, h, ApiError, i18n, t } = Konbit;
+
+    await i18n.ready;
+    document.getElementById('lang-slot').append(i18n.switcher());
+
+    const content = document.getElementById('content');
+    const userSlot = document.getElementById('user-slot');
+
+    // Tèks yo anndan t() dirèkteman: konsa check_i18n.py jwenn kle yo.
+    const STEPS = () => [
+      ['received', t('Resevwa')],
+      ['review', t('An revizyon')],
+      ['interview', t('Antrevi')],
+      ['offer', t('Pwopozisyon|etap')],
+      ['hired', t('Anboche|etap')],
+    ];
+    const OFFER_STATUS = () => ({
+      sent: [t('Ap tann repons ou'), 'badge-pending'],
+      accepted: [t('Aksepte'), 'badge-approved'],
+      declined: [t('Refize'), 'badge-cancelled'],
+      expired: [t('Ekspire'), 'badge-cancelled'],
+    });
+    const employmentType = (v) => ({
+      full_time: t('Tan plen'), part_time: t('Tan pasyèl'), contract: t('Kontra'),
+      intern: t('Estaj'), seasonal: t('Sezon'),
+    })[v] || v;
+
+    // -------------------------------------------------------------------
+    // ZOUTI
+    // -------------------------------------------------------------------
+
+    function errorMessage(err) {
+      let msg = err instanceof ApiError ? err.message : t('Yon bagay pa mache. Eseye ankò.');
+      if (err && err.fields && err.fields.length) {
+        msg += ' ' + err.fields.map((f) => `${f.field}: ${f.message}`).join('; ');
+      }
+      return msg;
+    }
+
+    function field(label, inputEl, hint) {
+      return h('div', { class: 'field' },
+        h('label', { for: inputEl.id }, label),
+        inputEl,
+        hint ? h('span', { class: 'hint' }, hint) : null);
+    }
+
+    /** Sèlman lyen http/https: yon lyen "javascript:" pa janm rive nan paj la. */
+    function safeUrl(value, base) {
+      if (!value) return null;
+      try {
+        const u = new URL(value, base);
+        return u.protocol === 'https:' || u.protocol === 'http:' ? u.href : null;
+      } catch {
+        return null;
+      }
+    }
+
+    function initials(name) {
+      return (name || '?').split(/\s+/).filter(Boolean).slice(0, 2)
+        .map((p) => p[0].toUpperCase()).join('');
+    }
+
+    /** Inisyal biznis la touswit; logo a ranplase yo lè l fin chaje. */
+    function avatar(companyName, logoUrl) {
+      const box = h('div', { class: 'c-avatar', 'aria-hidden': 'true' }, initials(companyName));
+      const src = safeUrl(logoUrl, Konbit.API_URL);
+      if (src) {
+        const img = h('img', { src, decoding: 'async' });
+        img.alt = '';
+        img.referrerPolicy = 'no-referrer';
+        img.addEventListener('load', () => { box.classList.add('has-logo'); box.replaceChildren(img); });
+      }
+      return box;
+    }
+
+    async function logout() {
+      try { await api.post('/api/auth/logout'); } catch { /* token deja ekspire: pa grav */ }
+      try {
+        localStorage.removeItem('konbit.access_token');
+        localStorage.removeItem('konbit.refresh_token');
+      } catch { /* navigasyon prive */ }
+      location.replace('candidate.html');
+    }
+
+    function renderUser(identity) {
+      if (!identity) { userSlot.replaceChildren(); return; }
+      const out = h('button', { class: 'btn btn-quiet btn-sm', type: 'button' }, t('Dekonekte'));
+      out.addEventListener('click', logout);
+      userSlot.replaceChildren(h('span', { class: 'c-user' }, identity.user.full_name), out);
+    }
+
+    // -------------------------------------------------------------------
+    // KONEKTE / KREYE KONT
+    // -------------------------------------------------------------------
+
+    function loginForm() {
+      const email = h('input', { class: 'input', id: 'l-email', type: 'email', autocomplete: 'username' });
+      const pw = h('input', { class: 'input', id: 'l-pw', type: 'password', autocomplete: 'current-password' });
+      const err = h('div', { class: 'alert alert-error', role: 'alert' });
+      const btn = h('button', { class: 'btn btn-primary', type: 'submit' }, t('Konekte'));
+
+      const form = h('form', { class: 'auth-form', novalidate: true },
+        err, field(t('Imel'), email), field(t('Modpas'), pw), btn,
+        h('p', { class: 'auth-switch' },
+          h('a', { class: 'link-btn', href: 'login.html#bliye' }, t('Mwen bliye modpas mwen'))));
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        err.textContent = '';
+        if (!email.value.trim() || !pw.value) { err.textContent = t('Mete imel ou ak modpas ou.'); return; }
+        btn.disabled = true;
+        btn.textContent = t('Yon ti moman…');
+        try {
+          await auth.login(email.value.trim(), pw.value);
+          await start();
+        } catch (ex) {
+          err.textContent = errorMessage(ex);
+          pw.value = '';
+          btn.disabled = false;
+          btn.textContent = t('Konekte');
+        }
+      });
+      return form;
+    }
+
+    function signupForm() {
+      const name = h('input', { class: 'input', id: 's-name', autocomplete: 'name', maxlength: '200' });
+      const email = h('input', { class: 'input', id: 's-email', type: 'email', autocomplete: 'email' });
+      const pw = h('input', { class: 'input', id: 's-pw', type: 'password', autocomplete: 'new-password', minlength: '10' });
+      const err = h('div', { class: 'alert alert-error', role: 'alert' });
+      const btn = h('button', { class: 'btn btn-primary', type: 'submit' }, t('Kreye kont kandida'));
+
+      const form = h('form', { class: 'auth-form', novalidate: true },
+        err,
+        field(t('Non konplè'), name),
+        field(t('Imel'), email, t('Itilize menm imel ou te mete nan aplikasyon w yo: yo ap parèt otomatikman.')),
+        field(t('Modpas'), pw, t('Omwen 10 karaktè, ak lèt ak chif.')),
+        btn);
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        err.textContent = '';
+        const password = pw.value;
+        if (name.value.trim().length < 2 || !email.value.trim()) {
+          err.textContent = t('Ranpli tout chan ki obligatwa yo.');
+          return;
+        }
+        if (!email.checkValidity()) { err.textContent = t('Mete yon imel valab.'); return; }
+        if (password.length < 10 || !/\d/.test(password) || !/[a-zA-Z]/.test(password)) {
+          err.textContent = t('Modpas la dwe gen omwen 10 karaktè, ak lèt ak chif.');
+          return;
+        }
+        btn.disabled = true;
+        btn.textContent = t('Yon ti moman…');
+        try {
+          await api.post('/api/candidate/signup',
+            { full_name: name.value.trim(), email: email.value.trim(), password },
+            { auth: false });
+          // Repons lan toujou menm jan an (backend la pa di si imel la deja gen kont).
+          form.replaceWith(h('div', { class: 'alert alert-ok', role: 'status', style: 'margin-top: 16px;' },
+            t('Nou voye yon imel ba ou. Louvri lyen ki ladan l pou w aktive kont ou.')));
+        } catch (ex) {
+          err.textContent = errorMessage(ex);
+          btn.disabled = false;
+          btn.textContent = t('Kreye kont kandida');
+        }
+      });
+      return form;
+    }
+
+    function authForms(startTab) {
+      const tabLogin = h('button', { class: 'tab', role: 'tab', type: 'button' }, t('Konekte'));
+      const tabSignup = h('button', { class: 'tab', role: 'tab', type: 'button' }, t('Kreye kont kandida'));
+      const loginPanel = loginForm();
+      const signupPanel = signupForm();
+
+      function show(which) {
+        const signup = which === 'signup';
+        tabLogin.setAttribute('aria-selected', String(!signup));
+        tabSignup.setAttribute('aria-selected', String(signup));
+        loginPanel.hidden = signup;
+        signupPanel.hidden = !signup;
+      }
+      tabLogin.addEventListener('click', () => show('login'));
+      tabSignup.addEventListener('click', () => show('signup'));
+      show(startTab);
+
+      return h('section', { class: 'panel auth-box' },
+        h('div', { class: 'tabs', role: 'tablist' }, tabLogin, tabSignup),
+        loginPanel, signupPanel);
+    }
+
+    function verifyBox(identity) {
+      const msg = h('span', { role: 'status' });
+      const btn = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, t('Voye lyen an ankò'));
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        msg.textContent = '';
+        try {
+          await api.post('/api/auth/resend-verification', {});
+          msg.textContent = t('Nou voye yon nouvo lyen. Gade bwat imel ou.');
+        } catch (err) {
+          msg.textContent = errorMessage(err);
+          btn.disabled = false;
+        }
+      });
+      return h('section', { class: 'panel' },
+        h('p', { style: 'margin: 0 0 12px;' },
+          t('Verifye imel ou ({email}) pou w wè aplikasyon w yo. Louvri lyen nou voye ba ou a.',
+            { email: identity.user.email })),
+        h('div', { class: 'row-actions' }, btn, msg));
+    }
+
+    // -------------------------------------------------------------------
+    // APLIKASYON YO
+    // -------------------------------------------------------------------
+
+    function track(status) {
+      const steps = STEPS();
+      const index = steps.findIndex(([key]) => key === status);
+      return h('ol', { class: 'track' }, ...steps.map(([, label], i) =>
+        h('li', {
+          class: i < index ? 'done' : i === index ? 'current' : null,
+          'aria-current': i === index ? 'step' : null,
+        }, label)));
+    }
+
+    function interviewsBox(list) {
+      if (!list.length) return null;
+      return h('div', { class: 'box' },
+        h('h4', {}, t('Antrevi')),
+        ...list.map((iv) => {
+          const link = safeUrl(iv.location);
+          return h('div', { style: 'display: grid; gap: 2px;' },
+            h('div', { class: 'row-actions' },
+              h('strong', {}, t('Wonn {round} · {when}', { round: iv.round_number, when: fmt.dateTime(iv.scheduled_at) })),
+              h('span', { class: `badge ${iv.completed ? 'badge-approved' : 'badge-pending'}` },
+                iv.completed ? t('Fèt') : t('Planifye|estati'))),
+            h('div', { class: 'sub' }, t('{n} min', { n: iv.duration_minutes })),
+            // Kote a ekri pa biznis la: nou montre l jan l ye (lyen sèlman si http/https).
+            iv.location
+              ? h('div', { class: 'sub' }, link
+                ? h('a', { href: link, target: '_blank', rel: 'noopener noreferrer' }, t('Lyen apèl la'))
+                : iv.location)
+              : null);
+        }));
+    }
+
+    function offerBox(app, redraw) {
+      const o = app.offer;
+      if (!o) return null;
+      const [label, cls] = OFFER_STATUS()[o.status] || [o.status, ''];
+      const doc = safeUrl(o.document_url);
+      const details = [employmentType(o.employment_type)];
+      if (o.start_date) details.push(`${t('Dat antre')}: ${fmt.date(o.start_date)}`);
+      if (o.expires_at && o.status === 'sent') details.push(`${t('Repons avan')}: ${fmt.dateTime(o.expires_at)}`);
+
+      const box = h('div', { class: 'box' },
+        h('h4', {}, t('Pwopozisyon travay')),
+        h('div', { class: 'row-actions' },
+          h('strong', { style: 'font-size: 18px;' }, `${fmt.money(o.salary, o.currency)} · ${t('Salè pa mwa')}`),
+          h('span', { class: `badge ${cls}` }, label)),
+        h('div', { class: 'sub' }, details.join(' · ')),
+        doc ? h('a', { class: 'plain-link', href: doc, target: '_blank', rel: 'noopener noreferrer' }, t('Wè dokiman an')) : null);
+
+      if (o.can_respond) {
+        const note = h('input', { class: 'input', id: `note-${o.id}`, maxlength: '1000' });
+        const msg = h('p', { class: 'field-error', role: 'status', style: 'margin: 0;' });
+        const yes = h('button', { class: 'btn btn-primary btn-sm', type: 'button' }, t('Aksepte pwopozisyon an'));
+        const no = h('button', { class: 'btn btn-danger btn-sm', type: 'button' }, t('Refize pwopozisyon an'));
+
+        const respond = async (accept) => {
+          const question = accept
+            ? t('Aksepte pwopozisyon sa a? Biznis la ap kontakte w pou pwochen etap yo.')
+            : t('Refize pwopozisyon sa a? Aplikasyon w lan ap fèmen.');
+          if (!confirm(question)) return;
+          yes.disabled = true; no.disabled = true; msg.textContent = '';
+          try {
+            redraw(await api.post(`/api/candidate/offers/${o.id}/respond`,
+              { accept, note: note.value.trim() || null }));
+          } catch (err) {
+            msg.textContent = errorMessage(err);
+            yes.disabled = false; no.disabled = false;
+          }
+        };
+        yes.addEventListener('click', () => respond(true));
+        no.addEventListener('click', () => respond(false));
+        box.append(field(t('Nòt pou biznis la (opsyonèl)'), note), h('div', { class: 'row-actions' }, yes, no), msg);
+      }
+      return box;
+    }
+
+    function statusBlock(app) {
+      if (app.status === 'closed') {
+        return h('div', { style: 'display: grid; gap: 6px;' },
+          h('span', { class: 'badge badge-cancelled', style: 'justify-self: start;' }, t('Pa retni')),
+          h('p', { class: 'sub', style: 'margin: 0;' }, t('Biznis la pa kontinye ak aplikasyon sa a. Mèsi paske w te aplike.')));
+      }
+      if (app.status === 'withdrawn') {
+        return h('span', { class: 'badge badge-cancelled', style: 'justify-self: start;' }, t('Retire|etap'));
+      }
+      if (app.status === 'hired') {
+        return h('div', { class: 'alert alert-ok', role: 'status' }, t('Felisitasyon! Biznis la anboche w.'));
+      }
+      return track(app.status);
+    }
+
+    function card(app) {
+      const el = h('article', { class: 'app-card' });
+
+      function draw(a) {
+        const msg = h('p', { class: 'field-error', role: 'status', style: 'margin: 0;' });
+        const actions = h('div', { class: 'row-actions' });
+
+        if (a.org_slug && a.job_slug) {
+          actions.append(h('a', {
+            class: 'btn btn-ghost btn-sm',
+            href: `careers.html?org=${encodeURIComponent(a.org_slug)}&job=${encodeURIComponent(a.job_slug)}`,
+          }, t('Wè pòs la')));
+        }
+        if (a.can_withdraw) {
+          const wd = h('button', { class: 'btn btn-quiet btn-sm', type: 'button' }, t('Retire aplikasyon an'));
+          wd.addEventListener('click', async () => {
+            if (!confirm(t('Retire aplikasyon w pou "{title}"? Ou p ap ka anile sa.', { title: a.job_title }))) return;
+            wd.disabled = true;
+            msg.textContent = '';
+            try {
+              draw(await api.post(`/api/candidate/applications/${a.id}/withdraw`, {}));
+            } catch (err) {
+              msg.textContent = errorMessage(err);
+              wd.disabled = false;
+            }
+          });
+          actions.append(wd);
+        }
+
+        // Non biznis la ak tit pòs la ekri pa biznis la: yo rete jan yo ye.
+        el.replaceChildren(
+          h('div', { class: 'app-top' },
+            avatar(a.company_name, a.company_logo),
+            h('div', { style: 'min-width: 0;' },
+              h('div', { class: 'company' }, a.company_name),
+              h('h3', {}, a.job_title),
+              h('div', { class: 'sub' }, t('Aplike {date}', { date: fmt.date(a.submitted_at) })))),
+          statusBlock(a),
+          interviewsBox(a.interviews || []),
+          offerBox(a, draw),
+          actions.childNodes.length ? actions : null,
+          msg,
+        );
+      }
+
+      draw(app);
+      return el;
+    }
+
+    async function loadApplications(identity) {
+      content.replaceChildren(h('p', { class: 'loading' }, t('Ap chaje…')));
+      try {
+        const data = await api.get('/api/candidate/applications');
+        const first = (identity.user.full_name || '').split(/\s+/)[0];
+        content.replaceChildren(
+          h('h2', { style: 'margin: 0 0 6px;' }, t('Bonjou, {name}', { name: first })),
+          h('p', { class: 'sub-label', style: 'margin-bottom: 14px;' }, t('Aplikasyon mwen yo')),
+          data.items.length
+            ? h('div', { style: 'display: grid; gap: 16px;' }, ...data.items.map(card))
+            : h('p', { class: 'empty' }, t('Ou poko gen aplikasyon. Aplikasyon ou voye ak imel sa a ap parèt isit la.')),
+        );
+      } catch (err) {
+        content.replaceChildren(h('div', { class: 'alert alert-error' }, errorMessage(err)));
+      }
+    }
+
+    // -------------------------------------------------------------------
+    // DEMARAJ
+    // -------------------------------------------------------------------
+
+    async function start() {
+      if (!auth.isLoggedIn()) {
+        renderUser(null);
+        content.replaceChildren(authForms(location.hash === '#enskri' ? 'signup' : 'login'));
+        return;
+      }
+
+      let identity;
+      try {
+        identity = await api.get('/api/auth/identity');
+      } catch (err) {
+        content.replaceChildren(h('div', { class: 'alert alert-error' }, errorMessage(err)));
+        return;
+      }
+      renderUser(identity);
+
+      if (identity.user.role !== 'applicant') {
+        content.replaceChildren(h('section', { class: 'panel' },
+          h('p', { style: 'margin: 0 0 12px;' },
+            t('Kont sa a se yon kont biznis. Espas kandida a se pou moun k ap chèche travay.')),
+          h('a', { class: 'btn btn-primary', href: 'dashboard.html' }, t('Ale nan tablo de bò mwen'))));
+        return;
+      }
+
+      if (!identity.user.email_verified) {
+        content.replaceChildren(verifyBox(identity));
+        return;
+      }
+      await loadApplications(identity);
+    }
+
+    await start();
+  })();
+  </script>
+</body>
+</html>

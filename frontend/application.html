@@ -655,7 +655,7 @@
       const oid = row.offer.id;
       return h('div', { style: 'display: grid; gap: 8px; margin-top: 14px;' },
         h('p', { class: 'hint' },
-          t('Sistèm lan pa voye imel. Voye dokiman an bay kandida a, epi make l "voye" isit la.')),
+          t('Lè w make l voye, kandida a resevwa yon imel epi li ka aksepte oswa refize l sou espas kandida KONMBIT la.')),
         h('div', { style: 'display: flex; gap: 8px; flex-wrap: wrap;' },
           actionButton(t('Make l voye'), 'btn-primary', () => api.post(`/api/offers/${oid}/send`), msg),
           actionButton(t('Efase bouyon an'), 'btn-danger', async () => {
@@ -675,6 +675,8 @@
         accept, note: note.value.trim() || null,
       });
       return h('div', { style: 'display: grid; gap: 10px; margin-top: 14px;' },
+        h('p', { class: 'hint' },
+          t('Kandida a ka reponn sou entènèt. Sèvi ak bouton sa yo sèlman si li reponn ou pa telefòn oswa an pèsòn.')),
         field(t('Nòt sou repons lan'), note),
         h('div', { style: 'display: flex; gap: 8px; flex-wrap: wrap;' },
           actionButton(t('Kandida a aksepte'), 'btn-primary', respond(true), msg),

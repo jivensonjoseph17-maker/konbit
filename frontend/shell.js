@@ -469,6 +469,12 @@
       return null;
     }
 
+    // Kont kandida (paj karyè): li pa fè pati okenn biznis — espas pa l se candidate.html.
+    if (identity.user.role === 'applicant') {
+      location.replace('candidate.html');
+      return null;
+    }
+
     if (allowedRoles && !allowedRoles.includes(identity.user.role)) {
       location.replace('dashboard.html');
       return null;

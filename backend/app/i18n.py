@@ -701,6 +701,22 @@ _ROWS: list[tuple[str, str, str]] = [
     ("Lyen sa a pa valab ankò. Mande yon lòt.",
      "Ce lien n'est plus valide. Demandez-en un autre.",
      "This link is no longer valid. Request a new one."),
+    # --- Espas kandida (candidate.py) ---
+    ("Espas sa a se pou kandida sèlman.",
+     "Cet espace est réservé aux candidats.",
+     "This area is for candidates only."),
+    ("Verifye imel ou anvan. Gade bwat imel ou.",
+     "Vérifiez d'abord votre e-mail. Consultez votre boîte de réception.",
+     "Verify your email first. Check your inbox."),
+    ("Ou pa ka retire aplikasyon sa a ankò.",
+     "Vous ne pouvez plus retirer cette candidature.",
+     "You can no longer withdraw this application."),
+    ("Pwopozisyon sa a pa ka reponn ankò.",
+     "Il n'est plus possible de répondre à cette offre.",
+     "This offer can no longer be answered."),
+    ("Pwopozisyon sa a ekspire.",
+     "Cette offre a expiré.",
+     "This offer has expired."),
 ]
 
 MESSAGES: dict[str, dict[str, str]] = {ht: {"fr": fr, "en": en} for ht, fr, en in _ROWS}

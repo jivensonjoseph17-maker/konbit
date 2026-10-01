@@ -25,7 +25,7 @@ import logging
 from datetime import date, datetime, timezone
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -107,6 +107,27 @@ def _next_employee_number(db: Session, org_id: int) -> str:
         if exists is None:
             return candidate
         num += 1
+
+
+def _email_offer(db: Session, org_id: int, app: Application, background: BackgroundTasks) -> None:
+    """Pwopozisyon voye: imel kandida a pou l reponn sou espas kandida a."""
+    from ..config import settings
+    from ..email_texts import offer_sent_text
+    from ..mailer import send_email
+    from ..models import Organization
+
+    org = db.query(Organization).filter(Organization.id == org_id).first()
+    job = db.query(JobPosting).filter(JobPosting.id == app.job_posting_id).first()
+    account = db.query(User).filter(User.email == (app.email or "").lower()).first()
+    subject, text = offer_sent_text(
+        account.preferred_language if account else "ht",
+        app.full_name,
+        org.name if org else "",
+        job.title if job else "",
+        f"{settings.frontend_url.rstrip('/')}/candidate.html",
+        app.email,
+    )
+    background.add_task(send_email, app.email, subject, text)
 
 
 def _is_expired(offer: Offer) -> bool:
@@ -274,13 +295,15 @@ def send_offer(
     user: CurrentUser,
     org_id: TenantId,
     request: Request,
+    background: BackgroundTasks,
     db: DbSession,
 ):
     """
     Make pwopozisyon an voye. Aplikasyon an pase nan etap 'offer'.
 
-    NÒT: sistèm lan pa voye imel pou kounye a. HR voye dokiman an
-    limenm, epi li anrejistre repons kandida a ak /respond.
+    Kandida a resevwa yon imel: li reponn sou espas kandida a
+    (routers/candidate.py). HR ka toujou anrejistre yon repons li resevwa
+    pa telefòn oswa an pèsòn ak /respond.
     """
     offer = _get_offer_or_404(db, org_id, offer_id)
 
@@ -301,6 +324,8 @@ def send_offer(
     db.commit()
     db.refresh(offer)
     _audit(db, request, user, "send", "offer", offer.id)
+    if app is not None:
+        _email_offer(db, org_id, app, background)
     return offer
 
 

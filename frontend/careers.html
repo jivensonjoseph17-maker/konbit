@@ -92,7 +92,10 @@
       <span class="brand-mark" aria-hidden="true">K</span>
       <span class="brand-name">KONMBIT</span>
     </a>
-    <div id="lang-slot"></div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <a class="btn btn-ghost btn-sm" href="candidate.html" data-i18n>Espas kandida</a>
+      <div id="lang-slot"></div>
+    </div>
   </header>
 
   <main class="careers">
@@ -590,6 +593,10 @@
             t('Aplikasyon w pou "{title}" rive.', { title: job.title })),
           h('p', { style: 'margin: 0;' }, text),
         ),
+        h('section', { class: 'panel', style: 'margin-top: 16px;' },
+          h('p', { style: 'margin: 0 0 12px;' },
+            t('Swiv aplikasyon w lan sou entènèt: etap yo, antrevi yo ak pwopozisyon an. Kreye yon kont kandida ak menm imel la.')),
+          h('a', { class: 'btn btn-primary', href: 'candidate.html#enskri' }, t('Kreye kont kandida'))),
         h('p', { style: 'margin-top: 20px;' },
           h('a', { class: 'plain-link', href: listUrl() }, t('Wè lòt pòs yo'))),
       );
