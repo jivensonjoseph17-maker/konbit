@@ -33,6 +33,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 
+from .crypto import EncryptedString
 from .database import Base
 
 
@@ -225,7 +226,7 @@ class User(Base, TimestampMixin):
     # yon reset HR ogmante l: tout ansyen token yo sispann mache (deps.py).
     token_version = Column(Integer, default=0, nullable=False, server_default="0")
     # Verifikasyon an 2 etap (TOTP, routers/mfa.py). Sekrè a ap chifre nan pati D.
-    totp_secret = Column(String(64))
+    totp_secret = Column(EncryptedString())      # CHIFRE (app/crypto.py)
     totp_enabled = Column(Boolean, default=False, nullable=False, server_default=false())
     totp_last_step = Column(Integer)        # dènye fenèt 30 s ki sèvi: yon kòd pa sèvi 2 fwa
 
@@ -295,7 +296,7 @@ class Employee(Base, TimestampMixin):
     personal_email = Column(String(255))
     phone = Column(String(50))
     date_of_birth = Column(Date)
-    national_id = Column(String(60))            # NIF / CIN
+    national_id = Column(EncryptedString())     # NIF / CIN — CHIFRE (app/crypto.py)
     address = Column(Text)
     city = Column(String(100))
     emergency_contact_name = Column(String(200))
@@ -320,8 +321,8 @@ class Employee(Base, TimestampMixin):
     # Peyman
     preferred_payment_method = Column(SQLEnum(PaymentMethod), default=PaymentMethod.CHECK)
     bank_name = Column(String(150))
-    bank_account_number = Column(String(80))    # chiffre sa nan pwodiksyon
-    mobile_money_number = Column(String(50))    # MonCash / NatCash
+    bank_account_number = Column(EncryptedString())   # CHIFRE (app/crypto.py)
+    mobile_money_number = Column(EncryptedString())   # MonCash / NatCash — CHIFRE
 
     # False = moun nan nan òganigram lan, men pewòl la pa kalkile fich pou li
     # (pwopriyetè, fondatè ki pa touche salè oswa ki touche dividann).

@@ -1487,5 +1487,8 @@
  "Verifikasyon an 2 etap dezaktive.": "تم إيقاف التحقق بخطوتين.",
  "Tape kòd 6 chif aplikasyon otantifikasyon ou a, oswa yon kòd sekou.": "أدخل الرمز المكوّن من 6 أرقام من تطبيق المصادقة، أو رمز استرداد.",
  "Verifye": "تحقق",
- "Mete kòd la.": "أدخل الرمز."
+ "Mete kòd la.": "أدخل الرمز.",
+ "Efase 2FA": "إعادة تعيين التحقق بخطوتين",
+ "Efase verifikasyon 2 etap {name}? Fè sa sèlman si li pèdi telefòn li ak kòd sekou li yo. Li ap oblije konfigire l ankò.": "إعادة تعيين التحقق بخطوتين لـ {name}؟ افعل ذلك فقط إذا فقد هاتفه ورموز الاسترداد. سيتعين عليه إعداده من جديد.",
+ "Verifikasyon 2 etap la efase.": "تمت إعادة تعيين التحقق بخطوتين."
 }

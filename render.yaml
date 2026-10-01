@@ -60,6 +60,8 @@ services:
         value: '["https://konmbit.com","https://www.konmbit.com"]'
       - key: KIOSK_LOOKUP_KEY
         sync: false            # KLE SEPARE ak SECRET_KEY (kòd tablèt yo). Jenere l menm jan.
+      - key: DATA_ENCRYPTION_KEY
+        sync: false            # Kle Fernet (app/crypto.py). SERE L NAN YON JESYONÈ MODPAS: san li, backup yo pa ka li nimewo kont yo.
       # --- Imel (app/mailer.py): valè yo depann de founisè a (Zoho, ZeptoMail, Resend) ---
       - key: MAIL_BACKEND
         value: smtp

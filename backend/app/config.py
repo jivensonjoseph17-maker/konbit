@@ -48,6 +48,12 @@ class Settings(BaseSettings):
     # Vid = SECRET_KEY (devlopman). Obligatwa nan pwodiksyon.
     kiosk_lookup_key: str = ""
 
+    # --- Chifraj done sansib (app/crypto.py) ---
+    # Kle Fernet. Plizyè kle separe pa vigil = rotasyon: premye a chifre, tout yo
+    # dechifre. Vid = kle devlopman ki soti nan SECRET_KEY (refize nan pwodiksyon).
+    # PÈDI KLE A = PÈDI DONE CHIFRE YO (menm backup yo): sere l yon kote ki an sekirite.
+    data_encryption_key: str = ""
+
     # --- Imel (app/mailer.py) ---
     # "console": ekri imel yo nan tèminal sèvè a (devlopman). "memory": tès yo.
     # "smtp": voye yo vre — obligatwa nan pwodiksyon.
@@ -158,3 +164,10 @@ if settings.is_production:
 # Imel: nan pwodiksyon yo DWE pati (sinon "Mwen bliye modpas mwen" pa janm rive).
 if settings.is_production and settings.mail_backend != "smtp":
     raise RuntimeError("MAIL_BACKEND dwe 'smtp' nan pwodiksyon.")
+
+# Chifraj: nan pwodiksyon kle a obligatwa, e li dwe diferan de SECRET_KEY.
+if settings.is_production:
+    if not settings.data_encryption_key.strip():
+        raise RuntimeError("DATA_ENCRYPTION_KEY obligatwa nan pwodiksyon (kont labank, NIF, 2FA).")
+    if settings.secret_key in [k.strip() for k in settings.data_encryption_key.split(",")]:
+        raise RuntimeError("DATA_ENCRYPTION_KEY dwe diferan de SECRET_KEY.")

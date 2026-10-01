@@ -1487,5 +1487,8 @@
  "Verifikasyon an 2 etap dezaktive.": "La vérification en deux étapes est désactivée.",
  "Tape kòd 6 chif aplikasyon otantifikasyon ou a, oswa yon kòd sekou.": "Saisissez le code à 6 chiffres de votre application d'authentification, ou un code de secours.",
  "Verifye": "Vérifier",
- "Mete kòd la.": "Saisissez le code."
+ "Mete kòd la.": "Saisissez le code.",
+ "Efase 2FA": "Réinitialiser la 2FA",
+ "Efase verifikasyon 2 etap {name}? Fè sa sèlman si li pèdi telefòn li ak kòd sekou li yo. Li ap oblije konfigire l ankò.": "Réinitialiser la vérification en deux étapes de {name} ? Faites-le seulement si la personne a perdu son téléphone et ses codes de secours. Elle devra la configurer à nouveau.",
+ "Verifikasyon 2 etap la efase.": "La vérification en deux étapes a été réinitialisée."
 }

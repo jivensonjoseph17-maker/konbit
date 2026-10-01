@@ -1487,5 +1487,8 @@
  "Verifikasyon an 2 etap dezaktive.": "两步验证已关闭。",
  "Tape kòd 6 chif aplikasyon otantifikasyon ou a, oswa yon kòd sekou.": "请输入身份验证器应用中的 6 位验证码，或一个恢复码。",
  "Verifye": "验证",
- "Mete kòd la.": "请输入验证码。"
+ "Mete kòd la.": "请输入验证码。",
+ "Efase 2FA": "重置两步验证",
+ "Efase verifikasyon 2 etap {name}? Fè sa sèlman si li pèdi telefòn li ak kòd sekou li yo. Li ap oblije konfigire l ankò.": "要重置 {name} 的两步验证吗？仅在对方丢失手机和恢复码时执行。对方需要重新设置。",
+ "Verifikasyon 2 etap la efase.": "两步验证已重置。"
 }

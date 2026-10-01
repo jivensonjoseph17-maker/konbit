@@ -1487,5 +1487,8 @@
  "Verifikasyon an 2 etap dezaktive.": "Die Bestätigung in zwei Schritten ist deaktiviert.",
  "Tape kòd 6 chif aplikasyon otantifikasyon ou a, oswa yon kòd sekou.": "Geben Sie den 6-stelligen Code aus Ihrer Authenticator-App oder einen Wiederherstellungscode ein.",
  "Verifye": "Bestätigen",
- "Mete kòd la.": "Geben Sie den Code ein."
+ "Mete kòd la.": "Geben Sie den Code ein.",
+ "Efase 2FA": "2FA zurücksetzen",
+ "Efase verifikasyon 2 etap {name}? Fè sa sèlman si li pèdi telefòn li ak kòd sekou li yo. Li ap oblije konfigire l ankò.": "Die Bestätigung in zwei Schritten von {name} zurücksetzen? Nur tun, wenn Telefon und Wiederherstellungscodes verloren sind. Sie muss danach neu eingerichtet werden.",
+ "Verifikasyon 2 etap la efase.": "Die Bestätigung in zwei Schritten wurde zurückgesetzt."
 }

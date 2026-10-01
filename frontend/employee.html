@@ -128,6 +128,27 @@
         }
       });
 
+      // Efase 2FA (telefòn pèdi): administratè biznis la sèlman, jamè pou pwòp kont li.
+      const canResetMfa = ['org_admin', 'super_admin'].includes(identity.user.role)
+        && emp.user_id && emp.user_id !== identity.user.id;
+      const mfaBtn = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, t('Efase 2FA'));
+      mfaBtn.addEventListener('click', async () => {
+        if (!confirm(t('Efase verifikasyon 2 etap {name}? Fè sa sèlman si li pèdi telefòn li ak kòd sekou li yo. Li ap oblije konfigire l ankò.', { name }))) return;
+        mfaBtn.disabled = true;
+        actionMsg.className = 'field-error';
+        actionMsg.textContent = '';
+        try {
+          await api.post(`/api/auth/mfa/reset/${id}`);
+          actionMsg.className = 'alert alert-ok';
+          actionMsg.textContent = t('Verifikasyon 2 etap la efase.');
+        } catch (err) {
+          actionMsg.className = 'field-error';
+          actionMsg.textContent = errorMessage(err);
+        } finally {
+          mfaBtn.disabled = false;
+        }
+      });
+
       const statusBtn = terminated
         ? h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, t('Remete l nan biznis la'))
         : h('button', { class: 'btn btn-danger btn-sm', type: 'button' }, t('Mete deyò'));
@@ -168,6 +189,7 @@
         ),
         h('div', { class: 'emp-actions' },
           emp.user_id ? resetBtn : null,
+          canResetMfa ? mfaBtn : null,
           statusBtn,
         ),
       );
