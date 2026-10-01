@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n>Verifikasyon 2 etap — KONMBIT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="app.css">
+  <style>
+    .mfa-wrap { max-width: 640px; display: grid; gap: 18px; }
+    .qr { width: 200px; height: 200px; image-rendering: pixelated; background: #fff; padding: 8px; border-radius: 12px; border: 1px solid var(--line); }
+    .secret { font-family: ui-monospace, Consolas, monospace; font-size: 15px; letter-spacing: 0.06em;
+      padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; display: inline-block;
+      direction: ltr; unicode-bidi: isolate; overflow-wrap: anywhere; }
+    .codes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; list-style: none; padding: 0; margin: 0; }
+    .codes li { font-family: ui-monospace, Consolas, monospace; font-size: 16px; padding: 8px 12px;
+      border: 1px solid var(--line); border-radius: 8px; text-align: center; direction: ltr; unicode-bidi: isolate; }
+    .row-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .stack { display: grid; gap: 12px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside id="sidebar"></aside>
+
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+
+      <main class="page">
+        <div class="mfa-wrap" id="content"><p class="loading" data-i18n>Ap chaje…</p></div>
+      </main>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script src="shell.js"></script>
+  <script>
+  (async function () {
+    'use strict';
+    const { api, h, ApiError, shell, t } = Konbit;
+
+    const identity = await shell.mount('security');
+    if (!identity) return;
+
+    const content = document.getElementById('content');
+
+    // -------------------------------------------------------------------
+    // ZOUTI
+    // -------------------------------------------------------------------
+
+    function errorMessage(err) {
+      let msg = err instanceof ApiError ? err.message : t('Yon bagay pa mache.');
+      if (err && err.fields && err.fields.length) {
+        msg += ' ' + err.fields.map((f) => `${f.field}: ${f.message}`).join('; ');
+      }
+      return msg;
+    }
+
+    function field(label, inputEl, hint) {
+      return h('div', { class: 'field' },
+        h('label', { for: inputEl.id }, label),
+        inputEl,
+        hint ? h('span', { class: 'hint' }, hint) : null);
+    }
+
+    const passwordInput = (id) => h('input', {
+      class: 'input', id, type: 'password', autocomplete: 'current-password', maxlength: '128',
+    });
+    const codeInput = (id) => h('input', {
+      class: 'input', id, type: 'text', autocomplete: 'one-time-code', maxlength: '20',
+      style: 'max-width: 240px; letter-spacing: 0.1em;',
+    });
+    const panel = (...children) => h('section', { class: 'panel stack' }, ...children);
+
+    /** Bouton ki rele yon aksyon asenkron, ak mesaj erè anba l. */
+    function busy(btn, on, label) {
+      btn.disabled = on;
+      btn.textContent = on ? t('Yon ti moman…') : label;
+    }
+
+    function downloadCodes(codes) {
+      const text = `KONMBIT — ${t('Nouvo kòd sekou')}\n${identity.user.email}\n\n${codes.join('\n')}\n`;
+      const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
+      const link = h('a', { href: url, download: 'konmbit-kod-sekou.txt' });
+      document.body.append(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    }
+
+    // -------------------------------------------------------------------
+    // KÒD SEKOU (parèt YON SÈL FWA)
+    // -------------------------------------------------------------------
+
+    function codesPanel(codes, onDone) {
+      const copyMsg = h('span', { class: 'hint', role: 'status' });
+      const copy = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, t('Kopye tout'));
+      copy.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(codes.join('\n'));
+          copyMsg.textContent = t('Kopye ✓');
+        } catch {
+          copyMsg.textContent = t('Kopye l alamen.');
+        }
+      });
+      const download = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, t('Telechaje (.txt)'));
+      download.addEventListener('click', () => downloadCodes(codes));
+
+      const saved = h('input', { type: 'checkbox', id: 'codes-saved' });
+      const done = h('button', { class: 'btn btn-primary', type: 'button', disabled: true }, t('Fini'));
+      saved.addEventListener('change', () => { done.disabled = !saved.checked; });
+      done.addEventListener('click', onDone);
+
+      return panel(
+        h('h2', { style: 'margin: 0;' }, t('3. Sove kòd sekou ou yo')),
+        h('p', { class: 'sub', style: 'margin: 0;' },
+          t('Si w pèdi telefòn ou, chak kòd sa yo ka ranplase kòd 6 chif la yon sèl fwa. Sove yo yon kote ki an sekirite: yo p ap parèt ankò.')),
+        h('ul', { class: 'codes' }, ...codes.map((c) => h('li', {}, c))),
+        h('div', { class: 'row-actions' }, copy, download, copyMsg),
+        h('label', { class: 'check', for: saved.id }, saved, h('span', {}, t('Mwen sove kòd yo yon kote ki an sekirite'))),
+        h('div', {}, done),
+      );
+    }
+
+    // -------------------------------------------------------------------
+    // AKTIVE: modpas → kòd QR → kòd 6 chif → kòd sekou
+    // -------------------------------------------------------------------
+
+    function setupPanel(status) {
+      const box = h('div', { class: 'stack' });
+
+      const password = passwordInput('mfa-pw');
+      const err = h('p', { class: 'field-error', role: 'status', style: 'margin: 0;' });
+      const start = h('button', { class: 'btn btn-primary', type: 'submit' }, t('Kòmanse|aksyon'));
+      const form = h('form', { novalidate: true, class: 'stack' },
+        h('h2', { style: 'margin: 0;' }, t('1. Konfime modpas ou')),
+        field(t('Modpas'), password), err, h('div', {}, start));
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        err.textContent = '';
+        if (!password.value) { password.focus(); return; }
+        busy(start, true, t('Kòmanse|aksyon'));
+        try {
+          const setup = await api.post('/api/auth/mfa/setup', { password: password.value });
+          box.replaceChildren(scanPanel(setup, status));
+        } catch (ex) {
+          err.textContent = errorMessage(ex);
+          busy(start, false, t('Kòmanse|aksyon'));
+        } finally {
+          password.value = '';
+        }
+      });
+
+      box.append(panel(form));
+      return box;
+    }
+
+    function scanPanel(setup, status) {
+      const wrap = h('div', { class: 'stack' });
+      const code = codeInput('mfa-code');
+      const err = h('p', { class: 'field-error', role: 'status', style: 'margin: 0;' });
+      const enable = h('button', { class: 'btn btn-primary', type: 'submit' }, t('Aktive'));
+
+      // Sekrè a an gwoup 4 lèt pou l pi fasil pou tape alamen.
+      const grouped = (setup.secret.match(/.{1,4}/g) || []).join(' ');
+
+      const form = h('form', { novalidate: true, class: 'stack' },
+        h('h2', { style: 'margin: 0;' }, t('2. Eskane kòd QR la')),
+        h('p', { class: 'sub', style: 'margin: 0;' },
+          t('Ouvri yon aplikasyon otantifikasyon (Google Authenticator, Microsoft Authenticator…) sou telefòn ou epi eskane kòd sa a.')),
+        h('img', { class: 'qr', src: setup.qr_png, alt: '', width: '200', height: '200' }),
+        h('p', { class: 'sub', style: 'margin: 0;' }, t('Ou pa ka eskane l? Tape kle sa a nan aplikasyon an:')),
+        h('div', {}, h('span', { class: 'secret' }, grouped)),
+        field(t('Kòd 6 chif aplikasyon an bay la'), code),
+        err,
+        h('div', {}, enable));
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        err.textContent = '';
+        if (code.value.trim().length < 6) { err.textContent = t('Mete kòd la.'); code.focus(); return; }
+        busy(enable, true, t('Aktive'));
+        try {
+          // api.js sere nouvo token yo: lòt sesyon yo anile, pa pa nou an.
+          const result = await api.post('/api/auth/mfa/enable', { code: code.value.trim() });
+          wrap.replaceChildren(codesPanel(result.codes, () => {
+            location.href = status.required ? 'dashboard.html' : 'security.html';
+          }));
+        } catch (ex) {
+          err.textContent = errorMessage(ex);
+          busy(enable, false, t('Aktive'));
+          code.value = '';
+          code.focus();
+        }
+      });
+
+      wrap.append(panel(form));
+      setTimeout(() => code.focus(), 0);
+      return wrap;
+    }
+
+    // -------------------------------------------------------------------
+    // DEJA AKTIVE: kòd sekou, dezaktive (anplwaye sèlman)
+    // -------------------------------------------------------------------
+
+    function enabledPanels(status) {
+      const out = [];
+
+      // --- Nouvo kòd sekou ---
+      const regenBox = h('div', { class: 'stack' });
+      const pw = passwordInput('regen-pw');
+      const err = h('p', { class: 'field-error', role: 'status', style: 'margin: 0;' });
+      const btn = h('button', { class: 'btn btn-ghost', type: 'submit' }, t('Nouvo kòd sekou'));
+      const regen = h('form', { novalidate: true, class: 'stack' },
+        h('h2', { style: 'margin: 0;' }, t('Nouvo kòd sekou')),
+        h('p', { class: 'sub', style: 'margin: 0;' },
+          `${t('{n} kòd sekou ki rete', { n: status.recovery_codes_left })} · ${t('Ansyen kòd yo ap sispann mache.')}`),
+        field(t('Modpas'), pw), err, h('div', {}, btn));
+      regen.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        err.textContent = '';
+        if (!pw.value) { pw.focus(); return; }
+        busy(btn, true, t('Nouvo kòd sekou'));
+        try {
+          const result = await api.post('/api/auth/mfa/recovery-codes', { password: pw.value });
+          regenBox.replaceChildren(codesPanel(result.codes, load));
+        } catch (ex) {
+          err.textContent = errorMessage(ex);
+          busy(btn, false, t('Nouvo kòd sekou'));
+        } finally {
+          pw.value = '';
+        }
+      });
+      regenBox.append(panel(regen));
+      out.push(regenBox);
+
+      // --- Dezaktive (wòl ki pa oblije) ---
+      if (!status.required) {
+        const dpw = passwordInput('off-pw');
+        const dcode = codeInput('off-code');
+        const derr = h('p', { class: 'field-error', role: 'status', style: 'margin: 0;' });
+        const dbtn = h('button', { class: 'btn btn-danger', type: 'submit' }, t('Dezaktive verifikasyon an 2 etap'));
+        const off = h('form', { novalidate: true, class: 'stack' },
+          h('h2', { style: 'margin: 0;' }, t('Dezaktive verifikasyon an 2 etap')),
+          field(t('Modpas'), dpw),
+          field(t('Kòd 6 chif oswa kòd sekou'), dcode),
+          derr, h('div', {}, dbtn));
+        off.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          derr.textContent = '';
+          if (!dpw.value || dcode.value.trim().length < 6) { derr.textContent = t('Mete kòd la.'); return; }
+          busy(dbtn, true, t('Dezaktive verifikasyon an 2 etap'));
+          try {
+            await api.post('/api/auth/mfa/disable', { password: dpw.value, code: dcode.value.trim() });
+            content.replaceChildren(h('div', { class: 'alert alert-ok', role: 'status' }, t('Verifikasyon an 2 etap dezaktive.')));
+            setTimeout(load, 1500);
+          } catch (ex) {
+            derr.textContent = errorMessage(ex);
+            busy(dbtn, false, t('Dezaktive verifikasyon an 2 etap'));
+          } finally {
+            dpw.value = '';
+          }
+        });
+        out.push(panel(off));
+      }
+      return out;
+    }
+
+    // -------------------------------------------------------------------
+    // CHAJE
+    // -------------------------------------------------------------------
+
+    function header(status) {
+      return panel(
+        h('div', { class: 'panel-head', style: 'margin: 0;' },
+          h('h1', { style: 'margin: 0; font-size: 22px;' }, t('Verifikasyon 2 etap')),
+          h('span', { class: `badge ${status.enabled ? 'badge-approved' : 'badge-pending'}` },
+            status.enabled ? t('Aktif') : t('Pa aktive'))),
+        h('p', { class: 'sub', style: 'margin: 0;' },
+          t('Apre modpas ou, KONMBIT ap mande yon kòd 6 chif ki soti nan telefòn ou. Menm si yon moun jwenn modpas ou, li p ap ka konekte.')),
+        status.required && !status.enabled
+          ? h('div', { class: 'alert alert-warn' },
+              t('Wòl ou mande verifikasyon an 2 etap. Aktive l pou w ka kontinye travay.'))
+          : null,
+      );
+    }
+
+    async function load() {
+      content.replaceChildren(h('p', { class: 'loading' }, t('Ap chaje…')));
+      try {
+        const status = await api.get('/api/auth/mfa/status');
+        content.replaceChildren(
+          header(status),
+          ...(status.enabled ? enabledPanels(status) : [setupPanel(status)]),
+        );
+      } catch (err) {
+        content.replaceChildren(h('div', { class: 'alert alert-error' }, errorMessage(err)));
+      }
+    }
+
+    await load();
+  })();
+  </script>
+</body>
+</html>

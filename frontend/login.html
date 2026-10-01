@@ -78,6 +78,26 @@
           </p>
         </section>
 
+        <!-- VERIFIKASYON 2 ETAP (etap 2 koneksyon an) -->
+        <section id="panel-mfa" hidden>
+          <h2 data-i18n>Verifikasyon 2 etap</h2>
+          <p class="sub" data-i18n>Tape kòd 6 chif aplikasyon otantifikasyon ou a, oswa yon kòd sekou.</p>
+
+          <form class="auth-form" id="mfa-form" novalidate>
+            <div class="alert alert-error" id="mfa-error" role="alert"></div>
+            <div class="field">
+              <label for="mfa-code" data-i18n>Kòd 6 chif oswa kòd sekou</label>
+              <input class="input" id="mfa-code" type="text" autocomplete="one-time-code"
+                     maxlength="20" required style="letter-spacing: 0.1em;">
+            </div>
+            <button class="btn btn-primary" type="submit" id="mfa-submit" data-i18n>Verifye</button>
+          </form>
+
+          <p class="auth-switch">
+            <button class="link-btn" type="button" id="mfa-back" data-i18n>Retounen nan koneksyon an</button>
+          </p>
+        </section>
+
         <!-- MWEN BLIYE MODPAS MWEN -->
         <section id="panel-forgot" hidden>
           <h2 data-i18n>Ou bliye modpas ou?</h2>
@@ -204,6 +224,7 @@
 
     function show(which) {
       document.getElementById('panel-forgot').hidden = true;
+      document.getElementById('panel-mfa').hidden = true;
       for (const [name, [tab, panel]] of Object.entries(tabs)) {
         const active = name === which;
         tab.setAttribute('aria-selected', String(active));
@@ -251,13 +272,67 @@
 
       setBusy(loginBtn, true, t('Konekte'));
       try {
-        await auth.login(email, password);
+        const data = await auth.login(email, password);
+        if (data.mfa_required) {
+          // Modpas la bon: etap 2 (kòd la). Pa gen token ankò.
+          setBusy(loginBtn, false, t('Konekte'));
+          loginForm.password.value = '';
+          showMfa(data.mfa_token);
+          return;
+        }
         location.replace(safeNext());
       } catch (err) {
         showError(loginError, err);
         loginForm.password.value = '';
         loginForm.password.focus();
         setBusy(loginBtn, false, t('Konekte'));
+      }
+    });
+
+    // --- Verifikasyon 2 etap: etap 2 koneksyon an ---
+    // mfa_token la (5 minit) sèvi SÈLMAN pou /api/auth/mfa/verify.
+    // api.js sere token yo lè verify reyisi.
+    const mfaPanel = document.getElementById('panel-mfa');
+    const mfaForm = document.getElementById('mfa-form');
+    const mfaCode = document.getElementById('mfa-code');
+    const mfaError = document.getElementById('mfa-error');
+    const mfaBtn = document.getElementById('mfa-submit');
+    let mfaToken = null;
+
+    function showMfa(token) {
+      mfaToken = token;
+      tabs.login[1].hidden = true;
+      tabs.signup[1].hidden = true;
+      document.getElementById('panel-forgot').hidden = true;
+      mfaPanel.hidden = false;
+      mfaError.textContent = '';
+      mfaCode.value = '';
+      mfaCode.focus();
+    }
+
+    document.getElementById('mfa-back').addEventListener('click', () => {
+      mfaToken = null;
+      show('login');
+    });
+
+    mfaForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      mfaError.textContent = '';
+      const code = mfaCode.value.trim();
+      if (code.length < 6) {
+        mfaError.textContent = t('Mete kòd la.');
+        mfaCode.focus();
+        return;
+      }
+      setBusy(mfaBtn, true, t('Verifye'));
+      try {
+        await api.post('/api/auth/mfa/verify', { mfa_token: mfaToken, code }, { auth: false });
+        location.replace(safeNext());
+      } catch (err) {
+        showError(mfaError, err);
+        mfaCode.value = '';
+        mfaCode.focus();
+        setBusy(mfaBtn, false, t('Verifye'));
       }
     });
 

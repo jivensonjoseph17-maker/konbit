@@ -22,6 +22,8 @@
   const ADMIN = ['super_admin', 'org_admin', 'hr'];
   const OWNERS = ['super_admin', 'org_admin'];
   const MANAGERS = ['super_admin', 'org_admin', 'hr', 'manager'];
+  // Menm lis ak backend la (deps.MFA_REQUIRED_ROLES).
+  const MFA_REQUIRED = ['super_admin', 'org_admin', 'hr'];
 
   // `needsEmployee`: paj la sèvi sèlman si kont lan gen yon dosye anplwaye.
   // Label yo se kle tradiksyon (tèks kreyòl la). '|meni' separe "Anplwaye"
@@ -389,6 +391,7 @@
           h('div', { class: 'name' }, user.full_name),
           h('div', { class: 'role' }, fmt.role(user.role)),
           h('a', { class: 'role plain-link', href: 'password.html' }, t('Chanje modpas')),
+          h('a', { class: 'role plain-link', href: 'security.html' }, t('Verifikasyon 2 etap')),
         ),
         avatar(identity.photo_url, user.full_name),
         notifBell(),
@@ -472,6 +475,12 @@
     // Kont kandida (paj karyè): li pa fè pati okenn biznis — espas pa l se candidate.html.
     if (identity.user.role === 'applicant') {
       location.replace('candidate.html');
+      return null;
+    }
+
+    // Admin ak HR: verifikasyon an 2 etap obligatwa (backend: deps.ENFORCE_MFA).
+    if (MFA_REQUIRED.includes(identity.user.role) && !identity.user.totp_enabled && active !== 'security') {
+      location.replace('security.html');
       return null;
     }
 

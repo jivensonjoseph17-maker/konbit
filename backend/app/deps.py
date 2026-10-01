@@ -41,9 +41,9 @@ FORBIDDEN_ERROR = HTTPException(
 ENFORCE_PASSWORD_CHANGE = True
 
 # Verifikasyon an 2 etap obligatwa pou wòl sa yo (routers/mfa.py).
-# False jiskaske pati D2 (paj security.html + etap kòd nan login.html) la:
-# san ekran konfigirasyon, yon admin ta bloke deyò.
-ENFORCE_MFA = False
+# Paj security.html (konfigirasyon) ak etap kòd nan login.html egziste:
+# admin/HR san 2FA ka sèlman konfigire l (shell.js voye yo sou security.html).
+ENFORCE_MFA = True
 MFA_REQUIRED_ROLES = {UserRole.ORG_ADMIN, UserRole.HR, UserRole.SUPER_ADMIN}
 _MFA_SETUP_ALLOWED = {
     "/api/auth/identity",
