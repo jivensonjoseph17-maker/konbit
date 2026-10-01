@@ -7,7 +7,7 @@ Kreye `pake-verifikasyon-pewol.xlsx` (nan dosye kote ou lanse l la):
   - "Kijan pou itilize l": esplikasyon pou kontab la (kreyòl + franse).
   - "Règ yo": tout to ak baremn sistèm lan sèvi. Kontab la ka chanje yon
     selil epi wè efè a sou tout ka yo.
-  - "Ka tès yo": 15 ka. Pou chak ka:
+  - "Ka tès yo": 16 ka. Pou chak ka:
       * kalkil la an FÒMIL EXCEL VIZIB, ki swiv règ yo;
       * chif KONMBIT yo, ki soti DIRÈK nan app/routers/payroll.py
         (compute_deductions, employment_factor...);
@@ -88,6 +88,8 @@ CASES = [
     Case("Anboche 15/09/2026 (prorata)", 45_000, SEP_START, SEP_END, OCT_PAY, hire=date(2026, 9, 15)),
     Case("Dènye jou 10/09/2026 (prorata)", 45_000, SEP_START, SEP_END, OCT_PAY, term=date(2026, 9, 10)),
     Case("Peye chak kenzèn (22 500)", 22_500, date(2026, 9, 1), date(2026, 9, 15), date(2026, 9, 18)),
+    Case("Peye chak semèn (10 000) + 4 èdtan sip.", 10_000, date(2026, 9, 7), date(2026, 9, 13),
+         date(2026, 9, 16), overtime_hours=4),
 ]
 
 
@@ -99,8 +101,7 @@ def konmbit(case: Case) -> dict:
     periods = P._periods_per_year(period)
     salary = round(case.salary * 100)
     base = int(salary * P.employment_factor(emp, period))
-    hourly_equiv = salary / (173.33 if periods == 12 else 86.67)
-    overtime = int(hourly_equiv * case.overtime_hours * P.OVERTIME_MULTIPLIER)
+    overtime = P.salaried_overtime_pay(salary, periods, case.overtime_hours * 60)
     bonus = round(case.bonus * 100)
 
     d = P.compute_deductions(
@@ -138,8 +139,9 @@ def rules_sheet(wb: Workbook) -> None:
         (10, "Retni sou bonis/èdtan sip. APRE dat chanjman an", P.SUPPLEMENTAL_TAX_RATE_NEW, "0.00%"),
         (11, "Dat chanjman to bonis la — Date du changement", P.SUPPLEMENTAL_TAX_CHANGE_DATE, "DD/MM/YYYY"),
         (12, "Miltiplikatè èdtan siplemantè", P.OVERTIME_MULTIPLIER, "0.00"),
-        (13, "Èdtan pa mwa (to orè ekivalan)", 173.33, "0.00"),
-        (14, "Èdtan pa lòt peryòd (kenzèn, semèn) — VOIR NOTE", 86.67, "0.00"),
+        (13, "Èdtan pa mwa (to orè ekivalan) — Heures par mois", P.HOURS_PER_PERIOD[12], "0.00"),
+        (14, "Èdtan pa kenzèn — Heures par quinzaine", P.HOURS_PER_PERIOD[24], "0.00"),
+        (15, "Èdtan pa semèn — Heures par semaine", P.HOURS_PER_PERIOD[52], "0.00"),
     ]
     for row, label, value, fmt in rows:
         ws.cell(row=row, column=1, value=label)
@@ -164,8 +166,8 @@ def rules_sheet(wb: Workbook) -> None:
         "Bonis ak èdtan siplemantè: retni FIKS (pa baremn nan, pa abatman). ONA/OFATMA/CFGDCT/FDU sou tout brit la.",
         "CFGDCT: aplike sèlman si brit la, an ekivalan mansyèl, ≥ plafon an.",
         "Tout kalkil yo koupe nan santim (pa awondi) — tous les montants sont tronqués au centime.",
-        "Pa nan ka yo: konje san peye (baz − baz/22 × jou pou yon mwa), avans sou salè (apre enpo).",
-        "POU VERIFYE: pou peryòd chak semèn, kòd la sèvi 86,67 èdtan ak 11 jou travay (valè kenzèn).",
+        "Pa nan ka yo: konje san peye (baz − baz/jou × jou san peye: 22 pa mwa, 11 pa kenzèn, 5 pa semèn), avans (apre enpo).",
+        "POU VERIFYE: 173,33 èdtan pa mwa = 40 èdtan pa semèn × 52 ÷ 12. Èske se semèn legal la (Kòd Travay: 48 è?)",
     ]
     for i, text in enumerate(notes):
         ws.cell(row=24 + i, column=1, value=text)
@@ -227,7 +229,8 @@ def cases_sheet(wb: Workbook) -> None:
             "A": i + 1, "B": case.label, "C": case.salary, "D": k["periods"],
             "E": k["worked"], "F": k["total"], "G": case.bonus, "H": case.overtime_hours, "I": case.pay,
             "J": f"=ROUNDDOWN(C{r}*E{r}/F{r},2)",
-            "K": f"=ROUNDDOWN(C{r}/IF(D{r}=12,{RULES}$B$13,{RULES}$B$14)*H{r}*{RULES}$B$12,2)",
+            "K": (f"=ROUNDDOWN(C{r}/IF(D{r}=12,{RULES}$B$13,IF(D{r}=24,{RULES}$B$14,{RULES}$B$15))"
+                  f"*H{r}*{RULES}$B$12,2)"),
             "L": f"=J{r}+K{r}+G{r}",
             "M": f"=ROUNDDOWN(J{r}*(1-{RULES}$B$8),2)*D{r}",
             "N": "=ROUNDDOWN((" + "+".join(bracket_term(r, b) for b in range(17, 22)) + f")/D{r},2)",
@@ -272,14 +275,14 @@ def help_sheet(wb: Workbook) -> None:
         ("", False),
         ("KREYÒL", True),
         ("1. Fèy « Règ yo » gen tout to ak baremn KONMBIT sèvi. Verifye yo ak lwa a.", False),
-        ("2. Fèy « Ka tès yo » gen 15 ka. Kolòn ble yo se kalkil la an fòmil Excel: klike sou yon selil pou wè l.", False),
+        ("2. Fèy « Ka tès yo » gen 16 ka. Kolòn ble yo se kalkil la an fòmil Excel: klike sou yon selil pou wè l.", False),
         ("3. Kolòn jòn yo se chif KONMBIT bay. « KONMBIT − Excel » dwe 0 (sinon li vin wouj).", False),
         ("4. Mete pwòp chif ou nan kolòn vèt yo (IRI ak Net). Diferans lan vin wouj si li pa 0.", False),
         ("5. Si yon règ pa bon, chanje l nan « Règ yo »: tout ka yo rekalkile. Ekri sa w chanje nan Kòmantè.", False),
         ("", False),
         ("FRANÇAIS", True),
         ("1. La feuille « Règ yo » contient tous les taux et le barème utilisés par KONMBIT. Vérifiez-les.", False),
-        ("2. La feuille « Ka tès yo » contient 15 cas. Les colonnes bleues sont le calcul en formules Excel visibles.", False),
+        ("2. La feuille « Ka tès yo » contient 16 cas. Les colonnes bleues sont le calcul en formules Excel visibles.", False),
         ("3. Les colonnes jaunes sont les résultats de KONMBIT. « KONMBIT − Excel » doit être 0 (sinon en rouge).", False),
         ("4. Saisissez vos propres montants dans les colonnes vertes (IRI et Net). L'écart passe en rouge s'il n'est pas nul.", False),
         ("5. Si une règle est fausse, corrigez-la dans « Règ yo » : tous les cas sont recalculés. Notez-le en commentaire.", False),

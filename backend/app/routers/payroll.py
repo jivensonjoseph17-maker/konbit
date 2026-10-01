@@ -124,6 +124,13 @@ SALARY_ABATEMENT = 0.10
 
 OVERTIME_MULTIPLIER = 1.5
 
+# Èdtan ak jou travay pa kalite peryòd (kle = kantite peryòd pa ane).
+# 173,33 èdtan pa mwa = 40 èdtan pa semèn × 52 ÷ 12; kenzèn = mwatye; semèn = 40.
+# Anvan, tout peryòd ki pa t yon mwa te pran valè kenzèn yo (86,67 è, 11 jou):
+# yon moun peye chak semèn te touche MWATYE èdtan siplemantè li.
+HOURS_PER_PERIOD = {12: 173.33, 24: 86.67, 52: 40.0}
+WORKING_DAYS_PER_PERIOD = {12: 22, 24: 11, 52: 5}
+
 # Baremn IRI (anyèl, an santim HTG). Fòm: (limit siperyè, to). None = san limit.
 TAX_BRACKETS = [
     (6000000, 0.00),      # jiska 60 000 HTG/an : egzan
@@ -279,6 +286,18 @@ def compute_deductions(
     }
 
 
+def salaried_overtime_pay(base_salary: int, periods_per_year: int, overtime_min: int) -> int:
+    """Èdtan siplemantè yon salarye: to orè ekivalan × èdtan × 1,5. An santim."""
+    hourly = base_salary / HOURS_PER_PERIOD.get(periods_per_year, HOURS_PER_PERIOD[12])
+    return int(hourly * (overtime_min / 60) * OVERTIME_MULTIPLIER)
+
+
+def unpaid_leave_reduction(base: int, periods_per_year: int, unpaid_days: float) -> int:
+    """Salè baz la apre nou retire jou konje san peye yo. An santim, jamè anba 0."""
+    days = WORKING_DAYS_PER_PERIOD.get(periods_per_year, WORKING_DAYS_PER_PERIOD[12])
+    return max(0, int(base - (base / days) * unpaid_days))
+
+
 def _periods_per_year(period: PayPeriod) -> int:
     """Konbyen fwa peryòd sa a repete nan yon ane (pou anyalize enpo a)."""
     days = (period.end_date - period.start_date).days + 1
@@ -412,13 +431,10 @@ def _compute_payslip(db: Session, org_id: int, emp: Employee,
         # Rache jou konje san peye
         unpaid = _unpaid_leave_days(db, org_id, emp.id, period.start_date, period.end_date)
         if unpaid > 0:
-            working_days_in_period = 22 if periods == 12 else 11
-            daily = base / working_days_in_period if working_days_in_period else 0
-            base = max(0, int(base - daily * unpaid))
+            base = unpaid_leave_reduction(base, periods, unpaid)
 
-        hourly_equiv = (emp.base_salary or 0) / (173.33 if periods == 12 else 86.67)
         overtime_amount = (
-            int(hourly_equiv * (overtime_min / 60) * OVERTIME_MULTIPLIER)
+            salaried_overtime_pay(emp.base_salary or 0, periods, overtime_min)
             if include_overtime else 0
         )
 
