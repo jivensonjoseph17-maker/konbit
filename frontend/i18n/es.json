@@ -1490,5 +1490,20 @@
  "Mete kòd la.": "Introduzca el código.",
  "Efase 2FA": "Restablecer 2FA",
  "Efase verifikasyon 2 etap {name}? Fè sa sèlman si li pèdi telefòn li ak kòd sekou li yo. Li ap oblije konfigire l ankò.": "¿Restablecer la verificación en dos pasos de {name}? Hágalo solo si perdió su teléfono y sus códigos de recuperación. Tendrá que configurarla de nuevo.",
- "Verifikasyon 2 etap la efase.": "La verificación en dos pasos se ha restablecido."
+ "Verifikasyon 2 etap la efase.": "La verificación en dos pasos se ha restablecido.",
+ "Mwen li epi m aksepte": "He leído y acepto",
+ "Kondisyon itilizasyon yo": "los Términos de uso",
+ "ak|kondisyon": "y",
+ "Politik konfidansyalite a": "la Política de privacidad",
+ "Ou dwe aksepte kondisyon yo pou w kontinye.": "Debe aceptar las condiciones para continuar.",
+ "Beta": "Beta",
+ "Kalkil pewòl yo poko verifye pa yon kontab. Verifye chif yo avan ou peye oswa avan ou fè deklarasyon.": "Los cálculos de nómina aún no han sido verificados por un contador. Verifique los montos antes de pagar o declarar.",
+ "Mwen konprann KONMBIT se yon zouti: biznis la rete responsab deklarasyon l yo (DGI, ONA, OFATMA), e yon kontab dwe verifye chif pewòl yo. Kontinye?": "Entiendo que KONMBIT es una herramienta: la empresa sigue siendo responsable de sus declaraciones (DGI, ONA, OFATMA) y un contador debe verificar los montos de la nómina. ¿Continuar?",
+ "Ou dwe konfime avètisman an pou w apwouve pewòl la.": "Debe confirmar el aviso para aprobar la nómina.",
+ "Kondisyon itilizasyon": "Términos de uso",
+ "Politik konfidansyalite": "Política de privacidad",
+ "Kondisyon itilizasyon — KONMBIT": "Términos de uso — KONMBIT",
+ "Politik konfidansyalite — KONMBIT": "Política de privacidad — KONMBIT",
+ "Bouyon: tèks sa a poko revize pa yon avoka. Li ka chanje.": "Borrador: este texto aún no ha sido revisado por un abogado. Puede cambiar.",
+ "Tèks sa a disponib an kreyòl sèlman pou kounye a.": "Por ahora este texto solo está disponible en criollo haitiano."
 }

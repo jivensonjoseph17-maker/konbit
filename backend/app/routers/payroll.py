@@ -95,6 +95,7 @@ from ..timezone_utils import get_local_today, get_org_timezone
 from .timesheets import approved_employee_ids, has_time_entries
 from .org_logo import logo_png_for
 from .salary_advances import apply_advance_repayments
+from ..legal import require_payroll_ack
 
 logger = logging.getLogger("konbit")
 
@@ -784,6 +785,9 @@ def approve_payroll(
             status_code=400,
             detail="Pa gen fich peye. Rele /run anvan.",
         )
+
+    # Premye apwobasyon an: HR/admin dwe konfime avètisman pewòl la (app/legal.py).
+    require_payroll_ack(db, org_id)
 
     period.status = PayrollStatus.APPROVED
     period.approved_by_id = user.id

@@ -218,6 +218,8 @@ class SignupRequest(BaseModel):
     admin_full_name: str = Field(min_length=2, max_length=200)
     admin_email: EmailStr
     admin_password: str = Field(min_length=10, max_length=128)
+    # Kondisyon itilizasyon + konfidansyalite (app/legal.py). Obligatwa.
+    accept_terms: bool = False
 
 
 # ---------------------------------------------------------------------------

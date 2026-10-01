@@ -748,6 +748,13 @@ _ROWS: list[tuple[str, str, str]] = [
     ("Kont sa a gen verifikasyon an 2 etap: konekte sou paj koneksyon an.",
      "Ce compte utilise la vérification en deux étapes : connectez-vous depuis la page de connexion.",
      "This account uses two-step verification: sign in from the sign-in page."),
+    # --- Legal (app/legal.py) ---
+    ("Ou dwe aksepte kondisyon itilizasyon yo ak politik konfidansyalite a.",
+     "Vous devez accepter les conditions d'utilisation et la politique de confidentialité.",
+     "You must accept the terms of use and the privacy policy."),
+    ("Konfime avètisman pewòl la anvan premye apwobasyon an.",
+     "Confirmez l'avertissement sur la paie avant la première approbation.",
+     "Confirm the payroll warning before the first approval."),
 ]
 
 MESSAGES: dict[str, dict[str, str]] = {ht: {"fr": fr, "en": en} for ht, fr, en in _ROWS}

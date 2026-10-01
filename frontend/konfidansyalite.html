@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="logo.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n>Politik konfidansyalite — KONMBIT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="app.css">
+  <style>
+    body { background: var(--bg); }
+    .c-bar { position: sticky; top: 0; z-index: 10; display: flex; justify-content: space-between; align-items: center;
+      gap: 12px; padding: 12px 24px; border-bottom: 1px solid var(--line);
+      background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); }
+    .c-bar .brand { text-decoration: none; }
+    .legal { max-width: 760px; margin: 0 auto; padding: 32px 20px 64px; line-height: 1.7; }
+    .legal h1 { margin: 0 0 6px; }
+    .legal h2 { font-size: 18px; margin: 28px 0 8px; }
+    .legal .meta { color: var(--muted); font-size: 14px; margin-bottom: 18px; }
+    .legal .todo { background: rgba(234, 179, 8, 0.16); padding: 0 4px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <header class="c-bar">
+    <a class="brand" href="index.html" data-i18n-attr="aria-label" aria-label="KONMBIT — akèy">
+      <span class="brand-mark" aria-hidden="true">K</span>
+      <span class="brand-name">KONMBIT</span>
+    </a>
+    <div id="lang-slot"></div>
+  </header>
+
+  <main class="legal" lang="ht">
+    <h1 data-i18n>Politik konfidansyalite</h1>
+    <p class="meta">Vèsyon 2026-10-bouyon</p>
+    <div class="alert alert-warn" data-i18n>Bouyon: tèks sa a poko revize pa yon avoka. Li ka chanje.</div>
+    <p class="hint" id="lang-note" hidden data-i18n>Tèks sa a disponib an kreyòl sèlman pou kounye a.</p>
+
+    <h2>1. Kiyès ki responsab done yo</h2>
+    <ul>
+      <li><strong>Done anplwaye ak kandida yon biznis:</strong> se biznis sa a ki deside kisa li kolekte e poukisa.
+        KONMBIT trete done sa yo <strong>pou</strong> biznis la, dapre enstriksyon l.</li>
+      <li><strong>Done kont administratè yo, kont kandida yo, ak done teknik</strong> (koneksyon, sekirite):
+        se <span class="todo">[NON LEGAL ANTREPRIZ LA]</span> ki responsab yo.</li>
+    </ul>
+    <p><span class="todo">[AVOKA: ki tèks lalwa ayisyen ki aplike pou pwoteksyon done pèsonèl, e si nou swiv
+      RGPD Ewopeyen an kòm referans.]</span></p>
+
+    <h2>2. Ki done nou trete</h2>
+    <ul>
+      <li><strong>Idantite ak kontak:</strong> non, imel, telefòn, adrès, dat nesans, moun pou rele an ijans, foto pwofil.</li>
+      <li><strong>Travay:</strong> pozisyon, depatman, manadjè, dat anbochaj, kalite kontra.</li>
+      <li><strong>Salè ak peman:</strong> salè, fich peye, retni, avans, kont labank, nimewo MonCash/NatCash.</li>
+      <li><strong>Idantifyan ofisyèl:</strong> NIF / CIN.</li>
+      <li><strong>Tan travay:</strong> lè antre ak lè sòti, epi pozisyon GPS <em>sèlman</em> nan moman pwentaj la,
+        e <em>sèlman</em> si biznis la aktive « zòn otorize » a.</li>
+      <li><strong>Konje, orè, fòmasyon, evalyasyon</strong> ak fidbak.</li>
+      <li><strong>Rekritman:</strong> aplikasyon, CV (lyen), repons fòm, antrevi, pwopozisyon travay.</li>
+      <li><strong>Done teknik:</strong> adrès IP, kalite aparèy, dat koneksyon, aksyon enpòtan nan jounal odit la.</li>
+    </ul>
+
+    <h2>3. Poukisa nou trete yo</h2>
+    <ul>
+      <li>Pou fè sèvis la mache (pewòl, konje, prezans, rekritman…).</li>
+      <li>Pou sekirite: anpeche moun antre nan kont lòt moun, epi konnen kiyès ki fè kisa.</li>
+      <li>Pou ede biznis la respekte obligasyon legal li (fiskal, sosyal, travay).</li>
+      <li>Pou voye imel ki nesesè (lyen pou chanje modpas, verifye imel, pwopozisyon travay).</li>
+    </ul>
+    <p>Nou <strong>pa</strong> vann done pèsonèl. Nou <strong>pa</strong> sèvi ak yo pou piblisite.</p>
+
+    <h2>4. Kiyès ki ka wè yo</h2>
+    <ul>
+      <li>Nan yon biznis: chak moun wè sa wòl li pèmèt (anplwaye: pwòp dosye pa l; manadjè: ekip li; HR ak administratè: tout biznis la).
+        Lè yon moun gade done sansib (NIF, kont labank), sa ekri nan jounal odit la.</li>
+      <li>Yon biznis pa janm wè done yon lòt biznis.</li>
+      <li>Sèvis nou sèvi pou fè KONMBIT mache: <strong>Render</strong> (sèvè ak baz done),
+        <span class="todo">[founisè imel la]</span>, <span class="todo">[Sentry — siveyans erè, si nou itilize l]</span>.</li>
+      <li>Otorite piblik yo, sèlman si lalwa oblije nou.</li>
+    </ul>
+
+    <h2>5. Kote done yo ye</h2>
+    <p>Sèvè a ak baz done a nan yon sant done Render nan Virginia, <strong>Etazini</strong>.
+      <span class="todo">[AVOKA: tèks sou transfè done andeyò Ayiti.]</span></p>
+
+    <h2>6. Kijan nou pwoteje yo</h2>
+    <ul>
+      <li>Tout koneksyon chifre (HTTPS).</li>
+      <li>NIF/CIN, nimewo kont labank, nimewo MonCash/NatCash ak sekrè 2FA yo <strong>chifre</strong> nan baz done a.</li>
+      <li>Modpas yo pa janm sere jan yo tape yo (bcrypt).</li>
+      <li>Verifikasyon an 2 etap obligatwa pou administratè ak HR.</li>
+      <li>Kont la bloke pou yon ti tan apre plizyè move esè.</li>
+      <li>Kopi sekirite chak jou, chifre.</li>
+    </ul>
+
+    <h2>7. Konbyen tan nou kenbe yo</h2>
+    <ul>
+      <li>Pandan kont biznis la aktif.</li>
+      <li>Apre yon biznis fèmen kont li: <span class="todo">[X]</span> jou pou l telechaje done l, epi nou efase yo,
+        eksepte sa lalwa oblije kenbe.</li>
+      <li>Dosye pewòl ak fich peye: <span class="todo">[X ane — AVOKA/KONTAB: delè konsèvasyon fiskal ak sosyal]</span>.</li>
+      <li>Esè koneksyon: 2 jou. Jounal odit: <span class="todo">[X]</span>.</li>
+    </ul>
+
+    <h2>8. Dwa ou</h2>
+    <p>Ou ka mande pou <strong>wè</strong>, <strong>korije</strong> oswa <strong>efase</strong> done ou, nan limit lalwa
+      (egz: dosye pewòl biznis la oblije kenbe).</p>
+    <ul>
+      <li><strong>Anplwaye:</strong> pale ak HR biznis ou a an premye. Ou ka korije kontak ou yo ou menm nan « Dosye mwen ».</li>
+      <li><strong>Kandida:</strong> ekri nou nan <a href="mailto:kontak@konmbit.com">kontak@konmbit.com</a>.</li>
+    </ul>
+    <p>N ap reponn nan <span class="todo">[30]</span> jou.</p>
+
+    <h2>9. Fwit done</h2>
+    <p>Si yon fwit done rive, n ap avèti biznis yo konsène yo nan <span class="todo">[72 èdtan]</span> apre nou
+      dekouvri l, ak sa nou konnen ak sa nou fè. <span class="todo">[AVOKA: obligasyon legal, si genyen.]</span></p>
+
+    <h2>10. Timoun</h2>
+    <p>KONMBIT pa fèt pou moun ki gen mwens pase <span class="todo">[16]</span> an.</p>
+
+    <h2>11. Chanjman ak kontak</h2>
+    <p>Nou ka chanje politik sa a. Chak vèsyon gen yon nimewo (anlè paj la). Pou nenpòt kesyon:
+      <a href="mailto:kontak@konmbit.com">kontak@konmbit.com</a>.</p>
+  </main>
+
+  <script src="api.js"></script>
+  <script>
+  (async function () {
+    'use strict';
+    const { i18n } = Konbit;
+    await i18n.ready;
+    document.getElementById('lang-slot').append(i18n.switcher());
+    if (i18n.lang !== 'ht') document.getElementById('lang-note').hidden = false;
+  })();
+  </script>
+</body>
+</html>

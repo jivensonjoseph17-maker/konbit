@@ -195,6 +195,10 @@ def _skip_forced_password_change(monkeypatch):
     monkeypatch.setattr(app.deps, "ENFORCE_PASSWORD_CHANGE", False)
     # 2FA obligatwa: test_mfa.py aktive l li menm ak monkeypatch.
     monkeypatch.setattr(app.deps, "ENFORCE_MFA", False)
+    # Kondisyon yo ak avètisman pewòl: test_legal.py aktive yo li menm.
+    import app.legal
+    monkeypatch.setattr(app.legal, "ENFORCE_TERMS", False)
+    monkeypatch.setattr(app.legal, "ENFORCE_PAYROLL_ACK", False)
 
 
 # --- KONMBIT: limit koneksyon (app/login_guard.py) ---

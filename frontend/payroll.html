@@ -26,6 +26,11 @@
           <button class="btn btn-primary" type="button" id="new-btn" data-i18n>Nouvo peryòd</button>
         </div>
 
+        <div class="alert alert-warn" style="margin-bottom: 16px;">
+          <strong data-i18n>Beta</strong> ·
+          <span data-i18n>Kalkil pewòl yo poko verifye pa yon kontab. Verifye chif yo avan ou peye oswa avan ou fè deklarasyon.</span>
+        </div>
+
         <section class="panel form-panel" id="new-panel" hidden aria-labelledby="new-title">
           <div class="panel-head"><h2 id="new-title" data-i18n>Nouvo peryòd peye</h2></div>
           <form id="new-form" novalidate>
@@ -83,6 +88,19 @@
       paid: ['Peye|estati', 'badge-approved'],
       cancelled: ['Anile', 'badge-cancelled'],
     };
+
+    // Avètisman pewòl (yon sèl fwa pa biznis, avan premye apwobasyon an): sere sou sèvè a.
+    let payrollAck = false;
+    api.get('/api/legal/payroll-ack').then((r) => { payrollAck = Boolean(r.accepted); }).catch(() => {});
+
+    async function ensurePayrollAck() {
+      if (payrollAck) return;
+      if (!confirm(t('Mwen konprann KONMBIT se yon zouti: biznis la rete responsab deklarasyon l yo (DGI, ONA, OFATMA), e yon kontab dwe verifye chif pewòl yo. Kontinye?'))) {
+        throw new ApiError(0, t('Ou dwe konfime avètisman an pou w apwouve pewòl la.'));
+      }
+      await api.post('/api/legal/payroll-ack', {});
+      payrollAck = true;
+    }
 
     let periods = [];
     let selectedId = Number(new URLSearchParams(location.search).get('id')) || null;
@@ -574,6 +592,7 @@
             'btn btn-ghost',
             async () => {
               try {
+                await ensurePayrollAck();
                 await api.post(`/api/payroll/periods/${period.id}/approve`);
                 lastWarnings = [];
                 await refresh();

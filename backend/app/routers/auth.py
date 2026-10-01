@@ -40,6 +40,7 @@ from ..schemas import (
 from .positions import seed_default_positions
 from .org_logo import logo_url_for
 from .employee_photos import photo_url_for
+from ..legal import require_terms, stamp_terms
 from ..login_guard import (
     LOGIN,
     SIGNUP,
@@ -174,7 +175,9 @@ def signup(payload: SignupRequest, request: Request, background: BackgroundTasks
     Kreye yon nouvo biznis ak premye administratè l la.
     Se sèl fason yon Organization kreye — pa gen endpoint separe pou sa.
     Limit: settings.signup_max_per_ip_hour enskripsyon pa IP pa èdtan.
+    Kondisyon itilizasyon yo ak politik konfidansyalite a obligatwa (app/legal.py).
     """
+    require_terms(payload.accept_terms)
     ip = client_ip(request)
     if signup_blocked(db, ip):
         raise HTTPException(
@@ -229,6 +232,7 @@ def signup(payload: SignupRequest, request: Request, background: BackgroundTasks
             is_active=True,
             email_verified=False,
         )
+        stamp_terms(admin, payload.accept_terms)
         db.add(admin)
         db.commit()
     except Exception as exc:

@@ -172,6 +172,16 @@
               <span class="hint" id="pw-hint" data-i18n>Omwen 10 karaktè, ak lèt ak chif.</span>
             </div>
 
+            <label class="check" for="accept-terms" style="align-items: flex-start;">
+              <input type="checkbox" id="accept-terms">
+              <span>
+                <span data-i18n>Mwen li epi m aksepte</span>
+                <a href="kondisyon.html" target="_blank" rel="noopener" data-i18n>Kondisyon itilizasyon yo</a>
+                <span data-i18n="ak|kondisyon">ak</span>
+                <a href="konfidansyalite.html" target="_blank" rel="noopener" data-i18n>Politik konfidansyalite a</a>.
+              </span>
+            </label>
+
             <button class="btn btn-primary" type="submit" id="signup-submit" data-i18n>Kreye espas la</button>
           </form>
 
@@ -426,12 +436,17 @@
         admin_full_name: document.getElementById('admin-name').value.trim(),
         admin_email: document.getElementById('admin-email').value.trim(),
         admin_password: password,
+        accept_terms: document.getElementById('accept-terms').checked,
       };
 
       // Verifikasyon rapid anvan nou deranje sèvè a
       if (!payload.organization.name || !payload.organization.slug
           || !payload.admin_full_name || !payload.admin_email) {
         signupError.textContent = t('Ranpli tout chan ki obligatwa yo.');
+        return;
+      }
+      if (!payload.accept_terms) {
+        signupError.textContent = t('Ou dwe aksepte kondisyon yo pou w kontinye.');
         return;
       }
       if (password.length < 10 || !/\d/.test(password) || !/[a-zA-Z]/.test(password)) {

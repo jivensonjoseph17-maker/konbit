@@ -1490,5 +1490,20 @@
  "Mete kòd la.": "Saisissez le code.",
  "Efase 2FA": "Réinitialiser la 2FA",
  "Efase verifikasyon 2 etap {name}? Fè sa sèlman si li pèdi telefòn li ak kòd sekou li yo. Li ap oblije konfigire l ankò.": "Réinitialiser la vérification en deux étapes de {name} ? Faites-le seulement si la personne a perdu son téléphone et ses codes de secours. Elle devra la configurer à nouveau.",
- "Verifikasyon 2 etap la efase.": "La vérification en deux étapes a été réinitialisée."
+ "Verifikasyon 2 etap la efase.": "La vérification en deux étapes a été réinitialisée.",
+ "Mwen li epi m aksepte": "J'ai lu et j'accepte",
+ "Kondisyon itilizasyon yo": "les Conditions d'utilisation",
+ "ak|kondisyon": "et",
+ "Politik konfidansyalite a": "la Politique de confidentialité",
+ "Ou dwe aksepte kondisyon yo pou w kontinye.": "Vous devez accepter les conditions pour continuer.",
+ "Beta": "Bêta",
+ "Kalkil pewòl yo poko verifye pa yon kontab. Verifye chif yo avan ou peye oswa avan ou fè deklarasyon.": "Les calculs de paie n'ont pas encore été vérifiés par un comptable. Vérifiez les montants avant de payer ou de faire vos déclarations.",
+ "Mwen konprann KONMBIT se yon zouti: biznis la rete responsab deklarasyon l yo (DGI, ONA, OFATMA), e yon kontab dwe verifye chif pewòl yo. Kontinye?": "Je comprends que KONMBIT est un outil : l'entreprise reste responsable de ses déclarations (DGI, ONA, OFATMA) et un comptable doit vérifier les montants de la paie. Continuer ?",
+ "Ou dwe konfime avètisman an pou w apwouve pewòl la.": "Vous devez confirmer l'avertissement pour approuver la paie.",
+ "Kondisyon itilizasyon": "Conditions d'utilisation",
+ "Politik konfidansyalite": "Politique de confidentialité",
+ "Kondisyon itilizasyon — KONMBIT": "Conditions d'utilisation — KONMBIT",
+ "Politik konfidansyalite — KONMBIT": "Politique de confidentialité — KONMBIT",
+ "Bouyon: tèks sa a poko revize pa yon avoka. Li ka chanje.": "Brouillon : ce texte n'a pas encore été revu par un avocat. Il peut changer.",
+ "Tèks sa a disponib an kreyòl sèlman pou kounye a.": "Ce texte n'est disponible qu'en créole pour le moment."
 }

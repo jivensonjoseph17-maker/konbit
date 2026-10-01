@@ -192,6 +192,11 @@ class Organization(Base, TimestampMixin):
     geofence_radius_m = Column(Integer)
     # Tablèt pwentaj: "number_pin" (nimewo + kòd) oswa "pin_only" (kòd sèlman).
     kiosk_pin_mode = Column(String(12), default="number_pin", nullable=False, server_default="number_pin")
+    # Avètisman pewòl (app/legal.py): konfime yon fwa avan premye apwobasyon an.
+    payroll_ack_at = Column(DateTime(timezone=True))
+    # Pa gen ForeignKey: sa ta kreye yon 2yèm chemen organizations↔users,
+    # epi relasyon Organization.users ta vin ambigu (tout modèl yo kraze).
+    payroll_ack_by_id = Column(Integer)
     is_active = Column(Boolean, default=True, nullable=False)
 
     users = relationship("User", back_populates="organization")
@@ -229,6 +234,9 @@ class User(Base, TimestampMixin):
     totp_secret = Column(EncryptedString())      # CHIFRE (app/crypto.py)
     totp_enabled = Column(Boolean, default=False, nullable=False, server_default=false())
     totp_last_step = Column(Integer)        # dènye fenèt 30 s ki sèvi: yon kòd pa sèvi 2 fwa
+    # Vèsyon kondisyon itilizasyon / konfidansyalite moun nan aksepte (app/legal.py).
+    terms_version = Column(String(20))
+    terms_accepted_at = Column(DateTime(timezone=True))
 
     organization = relationship("Organization", back_populates="users")
     employee = relationship("Employee", back_populates="user", uselist=False)

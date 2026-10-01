@@ -1490,5 +1490,20 @@
  "Mete kòd la.": "请输入验证码。",
  "Efase 2FA": "重置两步验证",
  "Efase verifikasyon 2 etap {name}? Fè sa sèlman si li pèdi telefòn li ak kòd sekou li yo. Li ap oblije konfigire l ankò.": "要重置 {name} 的两步验证吗？仅在对方丢失手机和恢复码时执行。对方需要重新设置。",
- "Verifikasyon 2 etap la efase.": "两步验证已重置。"
+ "Verifikasyon 2 etap la efase.": "两步验证已重置。",
+ "Mwen li epi m aksepte": "我已阅读并接受",
+ "Kondisyon itilizasyon yo": "《使用条款》",
+ "ak|kondisyon": "和",
+ "Politik konfidansyalite a": "《隐私政策》",
+ "Ou dwe aksepte kondisyon yo pou w kontinye.": "您必须接受条款才能继续。",
+ "Beta": "测试版",
+ "Kalkil pewòl yo poko verifye pa yon kontab. Verifye chif yo avan ou peye oswa avan ou fè deklarasyon.": "工资计算尚未经会计师核实。在付款或申报前，请核对金额。",
+ "Mwen konprann KONMBIT se yon zouti: biznis la rete responsab deklarasyon l yo (DGI, ONA, OFATMA), e yon kontab dwe verifye chif pewòl yo. Kontinye?": "我理解 KONMBIT 只是一个工具：企业仍须对其申报（DGI、ONA、OFATMA）负责，且工资金额必须由会计师核实。继续吗？",
+ "Ou dwe konfime avètisman an pou w apwouve pewòl la.": "您必须确认此提示才能批准工资。",
+ "Kondisyon itilizasyon": "使用条款",
+ "Politik konfidansyalite": "隐私政策",
+ "Kondisyon itilizasyon — KONMBIT": "使用条款 — KONMBIT",
+ "Politik konfidansyalite — KONMBIT": "隐私政策 — KONMBIT",
+ "Bouyon: tèks sa a poko revize pa yon avoka. Li ka chanje.": "草稿：本文本尚未经律师审阅，可能会更改。",
+ "Tèks sa a disponib an kreyòl sèlman pou kounye a.": "本文本目前仅提供海地克里奥尔语版本。"
 }

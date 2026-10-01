@@ -1490,5 +1490,20 @@
  "Mete kòd la.": "Enter the code.",
  "Efase 2FA": "Reset 2FA",
  "Efase verifikasyon 2 etap {name}? Fè sa sèlman si li pèdi telefòn li ak kòd sekou li yo. Li ap oblije konfigire l ankò.": "Reset {name}'s two-step verification? Only do this if they lost their phone and recovery codes. They will have to set it up again.",
- "Verifikasyon 2 etap la efase.": "Two-step verification has been reset."
+ "Verifikasyon 2 etap la efase.": "Two-step verification has been reset.",
+ "Mwen li epi m aksepte": "I have read and accept",
+ "Kondisyon itilizasyon yo": "the Terms of Use",
+ "ak|kondisyon": "and",
+ "Politik konfidansyalite a": "the Privacy Policy",
+ "Ou dwe aksepte kondisyon yo pou w kontinye.": "You must accept the terms to continue.",
+ "Beta": "Beta",
+ "Kalkil pewòl yo poko verifye pa yon kontab. Verifye chif yo avan ou peye oswa avan ou fè deklarasyon.": "Payroll calculations have not yet been verified by an accountant. Check the amounts before paying or filing declarations.",
+ "Mwen konprann KONMBIT se yon zouti: biznis la rete responsab deklarasyon l yo (DGI, ONA, OFATMA), e yon kontab dwe verifye chif pewòl yo. Kontinye?": "I understand that KONMBIT is a tool: the business remains responsible for its filings (DGI, ONA, OFATMA), and an accountant must verify the payroll amounts. Continue?",
+ "Ou dwe konfime avètisman an pou w apwouve pewòl la.": "You must confirm the warning to approve the payroll.",
+ "Kondisyon itilizasyon": "Terms of Use",
+ "Politik konfidansyalite": "Privacy Policy",
+ "Kondisyon itilizasyon — KONMBIT": "Terms of Use — KONMBIT",
+ "Politik konfidansyalite — KONMBIT": "Privacy Policy — KONMBIT",
+ "Bouyon: tèks sa a poko revize pa yon avoka. Li ka chanje.": "Draft: this text has not yet been reviewed by a lawyer. It may change.",
+ "Tèks sa a disponib an kreyòl sèlman pou kounye a.": "This text is only available in Haitian Creole for now."
 }

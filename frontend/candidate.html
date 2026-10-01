@@ -211,11 +211,21 @@
       const err = h('div', { class: 'alert alert-error', role: 'alert' });
       const btn = h('button', { class: 'btn btn-primary', type: 'submit' }, t('Kreye kont kandida'));
 
+      const accept = h('input', { type: 'checkbox', id: 's-terms' });
+      const termsLabel = h('label', { class: 'check', for: 's-terms', style: 'align-items: flex-start;' }, accept,
+        h('span', {},
+          t('Mwen li epi m aksepte'), ' ',
+          h('a', { href: 'kondisyon.html', target: '_blank', rel: 'noopener' }, t('Kondisyon itilizasyon yo')), ' ',
+          t('ak|kondisyon'), ' ',
+          h('a', { href: 'konfidansyalite.html', target: '_blank', rel: 'noopener' }, t('Politik konfidansyalite a')),
+          '.'));
+
       const form = h('form', { class: 'auth-form', novalidate: true },
         err,
         field(t('Non konplè'), name),
         field(t('Imel'), email, t('Itilize menm imel ou te mete nan aplikasyon w yo: yo ap parèt otomatikman.')),
         field(t('Modpas'), pw, t('Omwen 10 karaktè, ak lèt ak chif.')),
+        termsLabel,
         btn);
 
       form.addEventListener('submit', async (e) => {
@@ -227,6 +237,10 @@
           return;
         }
         if (!email.checkValidity()) { err.textContent = t('Mete yon imel valab.'); return; }
+        if (!accept.checked) {
+          err.textContent = t('Ou dwe aksepte kondisyon yo pou w kontinye.');
+          return;
+        }
         if (password.length < 10 || !/\d/.test(password) || !/[a-zA-Z]/.test(password)) {
           err.textContent = t('Modpas la dwe gen omwen 10 karaktè, ak lèt ak chif.');
           return;
@@ -235,7 +249,7 @@
         btn.textContent = t('Yon ti moman…');
         try {
           await api.post('/api/candidate/signup',
-            { full_name: name.value.trim(), email: email.value.trim(), password },
+            { full_name: name.value.trim(), email: email.value.trim(), password, accept_terms: accept.checked },
             { auth: false });
           // Repons lan toujou menm jan an (backend la pa di si imel la deja gen kont).
           form.replaceWith(h('div', { class: 'alert alert-ok', role: 'status', style: 'margin-top: 16px;' },

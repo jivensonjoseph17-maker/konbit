@@ -37,6 +37,7 @@ from ..config import settings
 from ..deps import CurrentUser, DbSession
 from ..email_texts import account_exists_text
 from ..i18n import requested_language
+from ..legal import require_terms, stamp_terms
 from ..login_guard import SIGNUP, client_ip, record_attempt, signup_blocked
 from ..mailer import send_email
 from ..models import (
@@ -260,6 +261,7 @@ class CandidateSignup(BaseModel):
     full_name: str = Field(min_length=2, max_length=200)
     email: EmailStr
     password: str = Field(min_length=10, max_length=128)
+    accept_terms: bool = False          # app/legal.py — obligatwa
 
 
 @router.post("/signup", response_model=Message)
@@ -277,6 +279,7 @@ def candidate_signup(
     if problems:
         raise HTTPException(status_code=422, detail=problems)
 
+    require_terms(payload.accept_terms)
     record_attempt(db, SIGNUP, ip, payload.email, success=False)
     email = payload.email.lower().strip()
     language = requested_language(request.headers.get("accept-language"))
@@ -302,6 +305,7 @@ def candidate_signup(
         is_active=True,
         email_verified=False,
     )
+    stamp_terms(user, payload.accept_terms)
     db.add(user)
     db.commit()
     db.refresh(user)

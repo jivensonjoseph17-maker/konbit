@@ -1490,5 +1490,20 @@
  "Mete kòd la.": "Geben Sie den Code ein.",
  "Efase 2FA": "2FA zurücksetzen",
  "Efase verifikasyon 2 etap {name}? Fè sa sèlman si li pèdi telefòn li ak kòd sekou li yo. Li ap oblije konfigire l ankò.": "Die Bestätigung in zwei Schritten von {name} zurücksetzen? Nur tun, wenn Telefon und Wiederherstellungscodes verloren sind. Sie muss danach neu eingerichtet werden.",
- "Verifikasyon 2 etap la efase.": "Die Bestätigung in zwei Schritten wurde zurückgesetzt."
+ "Verifikasyon 2 etap la efase.": "Die Bestätigung in zwei Schritten wurde zurückgesetzt.",
+ "Mwen li epi m aksepte": "Ich habe gelesen und akzeptiere",
+ "Kondisyon itilizasyon yo": "die Nutzungsbedingungen",
+ "ak|kondisyon": "und",
+ "Politik konfidansyalite a": "die Datenschutzerklärung",
+ "Ou dwe aksepte kondisyon yo pou w kontinye.": "Sie müssen die Bedingungen akzeptieren, um fortzufahren.",
+ "Beta": "Beta",
+ "Kalkil pewòl yo poko verifye pa yon kontab. Verifye chif yo avan ou peye oswa avan ou fè deklarasyon.": "Die Lohnberechnungen wurden noch nicht von einem Buchhalter geprüft. Prüfen Sie die Beträge, bevor Sie zahlen oder Meldungen abgeben.",
+ "Mwen konprann KONMBIT se yon zouti: biznis la rete responsab deklarasyon l yo (DGI, ONA, OFATMA), e yon kontab dwe verifye chif pewòl yo. Kontinye?": "Ich verstehe, dass KONMBIT ein Werkzeug ist: Das Unternehmen bleibt für seine Meldungen (DGI, ONA, OFATMA) verantwortlich, und ein Buchhalter muss die Lohnbeträge prüfen. Fortfahren?",
+ "Ou dwe konfime avètisman an pou w apwouve pewòl la.": "Sie müssen den Hinweis bestätigen, um die Lohnabrechnung zu genehmigen.",
+ "Kondisyon itilizasyon": "Nutzungsbedingungen",
+ "Politik konfidansyalite": "Datenschutzerklärung",
+ "Kondisyon itilizasyon — KONMBIT": "Nutzungsbedingungen — KONMBIT",
+ "Politik konfidansyalite — KONMBIT": "Datenschutzerklärung — KONMBIT",
+ "Bouyon: tèks sa a poko revize pa yon avoka. Li ka chanje.": "Entwurf: Dieser Text wurde noch nicht von einem Anwalt geprüft. Er kann sich ändern.",
+ "Tèks sa a disponib an kreyòl sèlman pou kounye a.": "Dieser Text ist vorerst nur auf Haitianisch-Kreolisch verfügbar."
 }

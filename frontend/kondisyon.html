@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="logo.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n>Kondisyon itilizasyon — KONMBIT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="app.css">
+  <style>
+    body { background: var(--bg); }
+    .c-bar { position: sticky; top: 0; z-index: 10; display: flex; justify-content: space-between; align-items: center;
+      gap: 12px; padding: 12px 24px; border-bottom: 1px solid var(--line);
+      background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); }
+    .c-bar .brand { text-decoration: none; }
+    .legal { max-width: 760px; margin: 0 auto; padding: 32px 20px 64px; line-height: 1.7; }
+    .legal h1 { margin: 0 0 6px; }
+    .legal h2 { font-size: 18px; margin: 28px 0 8px; }
+    .legal p, .legal li { color: var(--text); }
+    .legal .meta { color: var(--muted); font-size: 14px; margin-bottom: 18px; }
+    .legal .todo { background: rgba(234, 179, 8, 0.16); padding: 0 4px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <header class="c-bar">
+    <a class="brand" href="index.html" data-i18n-attr="aria-label" aria-label="KONMBIT — akèy">
+      <span class="brand-mark" aria-hidden="true">K</span>
+      <span class="brand-name">KONMBIT</span>
+    </a>
+    <div id="lang-slot"></div>
+  </header>
+
+  <main class="legal" lang="ht">
+    <h1 data-i18n>Kondisyon itilizasyon</h1>
+    <p class="meta">Vèsyon 2026-10-bouyon</p>
+    <div class="alert alert-warn" data-i18n>Bouyon: tèks sa a poko revize pa yon avoka. Li ka chanje.</div>
+    <p class="hint" id="lang-note" hidden data-i18n>Tèks sa a disponib an kreyòl sèlman pou kounye a.</p>
+
+    <h2>1. Kiyès nou ye</h2>
+    <p>KONMBIT se yon sèvis <span class="todo">[NON LEGAL ANTREPRIZ LA, FÒM LEGAL (SA, SARL…)]</span>,
+      ki anrejistre an Ayiti ak NIF <span class="todo">[NIF]</span>, ki gen biwo li nan
+      <span class="todo">[ADRÈS]</span>. Pou kontakte nou: <a href="mailto:kontak@konmbit.com">kontak@konmbit.com</a>.
+      Nan tèks sa a, « nou » vle di KONMBIT, epi « ou » vle di moun oswa biznis ki itilize sèvis la.</p>
+
+    <h2>2. Sa KONMBIT ye, e sa li pa ye</h2>
+    <p>KONMBIT se yon lojisyèl sou entènèt pou jere resous imèn: dosye anplwaye, prezans, konje, orè,
+      pewòl, fòmasyon ak rekritman. KONMBIT <strong>pa</strong> yon bank, li pa voye lajan bay anplwaye
+      yo, epi li <strong>pa</strong> ranplase yon kontab, yon avoka oswa yon konseye fiskal.</p>
+
+    <h2>3. Kont yo</h2>
+    <ul>
+      <li>Moun ki enskri yon biznis vin <strong>administratè</strong> biznis sa a. Li deklare li gen otorite pou l angaje biznis la.</li>
+      <li>Biznis la responsab kont li kreye pou anplwaye l yo, ak wòl li ba yo.</li>
+      <li>Chak moun dwe kenbe modpas li sekrè. Pou administratè ak moun HR, verifikasyon an 2 etap obligatwa.</li>
+      <li>Kont kandida yo (espas kandida) pèsonèl. Yon moun dwe gen omwen <span class="todo">[16 / 18]</span> an pou l kreye yon kont.</li>
+    </ul>
+
+    <h2>4. Responsablite biznis kliyan an</h2>
+    <ul>
+      <li>Mete enfòmasyon ki egzat, epi korije yo lè yo chanje.</li>
+      <li>Enfòme anplwaye yo ke done yo trete nan KONMBIT, epi gen dwa pou l fè sa dapre lalwa.</li>
+      <li>Fè <strong>deklarasyon fiskal ak sosyal</strong> li yo (DGI, ONA, OFATMA…) epi peye yo nan dat yo.</li>
+      <li>Fè yon kontab verifye chif pewòl yo, sitou premye pewòl la ak chak fwa lwa a chanje.</li>
+      <li>Respekte Kòd Travay la ak lòt lwa ki aplike pou biznis li.</li>
+    </ul>
+
+    <h2>5. Pewòl ak kalkil</h2>
+    <p>Kalkil pewòl yo (IRI, ONA, OFATMA, CFGDCT, FDU/CAS, retni sou bonis…) baze sou piblikasyon
+      ofisyèl nou te konnen lè nou te ekri yo. Lwa yo ka chanje, epi gen ka espesyal sistèm lan pa kouvri.
+      Biznis la rete responsab chif li sèvi pou peye anplwaye l yo ak pou deklarasyon l yo. Avan premye
+      apwobasyon pewòl la, sistèm lan mande yon moun HR oswa administratè konfime li konprann sa.
+      <span class="todo">[AVOKA: limit responsablite KONMBIT pou erè kalkil, penalite ak enterè.]</span></p>
+
+    <h2>6. Sa ki entèdi</h2>
+    <ul>
+      <li>Antre nan done yon lòt biznis, oswa eseye kontoune sekirite sistèm lan.</li>
+      <li>Mete done ou pa gen dwa itilize, oswa done ki ilegal.</li>
+      <li>Revann oswa prete aksè KONMBIT bay yon lòt moun san otorizasyon nou.</li>
+      <li>Sèvi ak sistèm lan pou voye spam oswa twonpe moun.</li>
+    </ul>
+
+    <h2>7. Done pèsonèl</h2>
+    <p>Fason nou trete done pèsonèl yo eksplike nan <a href="konfidansyalite.html">Politik konfidansyalite</a> a.
+      Pou done anplwaye ak kandida li yo, se biznis la ki deside poukisa e kijan yo itilize; KONMBIT trete
+      yo pou biznis la, dapre enstriksyon l. <span class="todo">[AVOKA: konfime modèl « responsab » / « sou-trètan » an.]</span></p>
+
+    <h2>8. Disponiblite</h2>
+    <p>KONMBIT nan faz <strong>Beta</strong>. Nou fè efò pou sèvis la disponib e pou done yo an sekirite
+      (kopi sekirite chak jou), men nou pa ka garanti sèvis la p ap janm kanpe. Nou ka fè travay antretyen;
+      nou ap avèti davans lè sa posib.</p>
+
+    <h2>9. Pri</h2>
+    <p>Pandan Beta a, sèvis la <span class="todo">[gratis / pri: …]</span>. Si nou kòmanse mande lajan, nou ap
+      avèti biznis yo omwen <span class="todo">[30]</span> jou davans, epi yo ap ka chwazi kite sèvis la.</p>
+
+    <h2>10. Fèmen yon kont</h2>
+    <p>Yon biznis ka fèmen kont li nenpòt ki lè. Li ap gen <span class="todo">[30]</span> jou pou l telechaje
+      done l yo. Nou ka sispann oswa fèmen yon kont ki vyole kondisyon sa yo, apre nou avèti l, eksepte si
+      gen yon danje grav pou lòt itilizatè yo. <span class="todo">[AVOKA: delè, ak sa ki rive done yo apre.]</span></p>
+
+    <h2>11. Limit responsablite</h2>
+    <p><span class="todo">[AVOKA: tèks sou limit responsablite, garanti, ak fòs majè.]</span></p>
+
+    <h2>12. Chanjman nan kondisyon yo</h2>
+    <p>Nou ka chanje tèks sa a. Lè chanjman an enpòtan, nou ap avèti administratè yo, epi n ap mande yo
+      aksepte nouvo vèsyon an. Chak vèsyon gen yon nimewo (anlè paj la).</p>
+
+    <h2>13. Lwa ak tribinal</h2>
+    <p>Lwa <span class="todo">[Repiblik Ayiti]</span> aplike. Si gen yon dezakò, n ap eseye rezoud li alamiab
+      avan. Si sa pa mache, se tribinal <span class="todo">[Pòtoprens]</span> ki gen konpetans.</p>
+
+    <h2>14. Lang</h2>
+    <p>Tèks sa a ekri an kreyòl <span class="todo">[ak an franse]</span>. Si gen diferans ant de vèsyon yo,
+      se vèsyon <span class="todo">[…]</span> an ki fè fwa.</p>
+  </main>
+
+  <script src="api.js"></script>
+  <script>
+  (async function () {
+    'use strict';
+    const { i18n } = Konbit;
+    await i18n.ready;
+    document.getElementById('lang-slot').append(i18n.switcher());
+    if (i18n.lang !== 'ht') document.getElementById('lang-note').hidden = false;
+  })();
+  </script>
+</body>
+</html>
