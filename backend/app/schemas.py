@@ -149,6 +149,7 @@ class UserOut(UserBrief):
     is_active: bool
     email_verified: bool
     must_change_password: bool = False
+    totp_enabled: bool = False       # verifikasyon an 2 etap aktive (routers/mfa.py)
     last_login_at: Optional[datetime] = None
     created_at: datetime
 

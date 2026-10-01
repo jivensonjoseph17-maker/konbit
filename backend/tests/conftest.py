@@ -193,6 +193,8 @@ import pytest as _pytest_konbit  # noqa: E402
 def _skip_forced_password_change(monkeypatch):
     import app.deps
     monkeypatch.setattr(app.deps, "ENFORCE_PASSWORD_CHANGE", False)
+    # 2FA obligatwa: test_mfa.py aktive l li menm ak monkeypatch.
+    monkeypatch.setattr(app.deps, "ENFORCE_MFA", False)
 
 
 # --- KONMBIT: limit koneksyon (app/login_guard.py) ---

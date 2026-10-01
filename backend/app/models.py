@@ -224,6 +224,10 @@ class User(Base, TimestampMixin):
     # Chak token pote vèsyon sa a (claim "ver"). Dekonekte, chanje modpas oswa
     # yon reset HR ogmante l: tout ansyen token yo sispann mache (deps.py).
     token_version = Column(Integer, default=0, nullable=False, server_default="0")
+    # Verifikasyon an 2 etap (TOTP, routers/mfa.py). Sekrè a ap chifre nan pati D.
+    totp_secret = Column(String(64))
+    totp_enabled = Column(Boolean, default=False, nullable=False, server_default=false())
+    totp_last_step = Column(Integer)        # dènye fenèt 30 s ki sèvi: yon kòd pa sèvi 2 fwa
 
     organization = relationship("Organization", back_populates="users")
     employee = relationship("Employee", back_populates="user", uselist=False)
@@ -1148,5 +1152,18 @@ class EmailToken(Base):
     purpose = Column(String(10), nullable=False)             # "reset" oswa "verify"
     token_hash = Column(String(64), unique=True, index=True, nullable=False)
     expires_at = Column(DateTime(timezone=True), nullable=False)
+    used_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), nullable=False)
+
+# ---------------------------------------------------------------------------
+# KÒD SEKOU 2FA (routers/mfa.py): sha256 sèlman; chak kòd sèvi yon sèl fwa.
+# ---------------------------------------------------------------------------
+
+class RecoveryCode(Base):
+    __tablename__ = "recovery_codes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    code_hash = Column(String(64), index=True, nullable=False)
     used_at = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), nullable=False)

@@ -39,6 +39,22 @@ FORBIDDEN_ERROR = HTTPException(
 # Yon moun ki gen yon modpas tanporè ka sèlman wè kiyès li ye, chanje
 # modpas li, oswa dekonekte. Tès yo ka mete sa a False (gade conftest.py).
 ENFORCE_PASSWORD_CHANGE = True
+
+# Verifikasyon an 2 etap obligatwa pou wòl sa yo (routers/mfa.py).
+# False jiskaske pati D2 (paj security.html + etap kòd nan login.html) la:
+# san ekran konfigirasyon, yon admin ta bloke deyò.
+ENFORCE_MFA = False
+MFA_REQUIRED_ROLES = {UserRole.ORG_ADMIN, UserRole.HR, UserRole.SUPER_ADMIN}
+_MFA_SETUP_ALLOWED = {
+    "/api/auth/identity",
+    "/api/auth/me",
+    "/api/auth/change-password",
+    "/api/auth/logout",
+    "/api/auth/resend-verification",
+    "/api/auth/mfa/status",
+    "/api/auth/mfa/setup",
+    "/api/auth/mfa/enable",
+}
 _PASSWORD_CHANGE_ALLOWED = {
     "/api/auth/identity",
     "/api/auth/me",
@@ -80,6 +96,13 @@ def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Chanje modpas tanporè ou a anvan ou kontinye.",
+        )
+
+    if (ENFORCE_MFA and user.role in MFA_REQUIRED_ROLES and not user.totp_enabled
+            and request.url.path not in _MFA_SETUP_ALLOWED):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Aktive verifikasyon an 2 etap anvan ou kontinye.",
         )
     return user
 

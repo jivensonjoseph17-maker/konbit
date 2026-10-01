@@ -51,6 +51,7 @@ from ..login_guard import (
 )
 from ..security import (
     DUMMY_HASH,
+    create_mfa_token,
     REFRESH_TOKEN,
     create_access_token,
     create_refresh_token,
@@ -255,11 +256,27 @@ def signup(payload: SignupRequest, request: Request, background: BackgroundTasks
 # KONEKSYON
 # ---------------------------------------------------------------------------
 
-@router.post("/login", response_model=TokenPair)
+class LoginResult(BaseModel):
+    """
+    San 2FA: access_token + refresh_token (menm jan ak anvan).
+    Ak 2FA: mfa_required=True ak yon mfa_token (5 min) pou /api/auth/mfa/verify.
+    """
+    access_token: Optional[str] = None
+    refresh_token: Optional[str] = None
+    token_type: str = "bearer"
+    expires_in: Optional[int] = None
+    mfa_required: bool = False
+    mfa_token: Optional[str] = None
+
+
+@router.post("/login", response_model=LoginResult)
 def login(payload: LoginRequest, request: Request, db: DbSession):
     user = _authenticate(db, request, payload.email, payload.password)
+    if user.totp_enabled:
+        # Modpas la bon; etap 2 a (kòd la) toujou manke: pa gen token ankò.
+        return LoginResult(mfa_required=True, mfa_token=create_mfa_token(user.id, user.token_version or 0))
     _log(db, request, user, "login", "user", user.id)
-    return _issue_tokens(user)
+    return LoginResult(**_issue_tokens(user).model_dump())
 
 
 @router.post("/token", response_model=TokenPair, include_in_schema=False)
@@ -270,6 +287,12 @@ def login_oauth_form(
 ):
     """Menm bagay ak /login, men ak fòm OAuth2. Se sa bouton 'Authorize' nan /docs sèvi."""
     user = _authenticate(db, request, form.username, form.password)
+    if user.totp_enabled:
+        # Fòm OAuth la (/docs) pa gen etap kòd: sèvi ak /login + /mfa/verify.
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Kont sa a gen verifikasyon an 2 etap: konekte sou paj koneksyon an.",
+        )
     _log(db, request, user, "login", "user", user.id)
     return _issue_tokens(user)
 

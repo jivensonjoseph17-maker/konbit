@@ -151,3 +151,32 @@ def reset_blocked(db: Session, ip: Optional[str], email: Optional[str]) -> bool:
     if ip and (base.filter(AuthAttempt.ip_address == ip).scalar() or 0) >= settings.reset_max_per_ip_hour:
         return True
     return False
+
+
+# ---------------------------------------------------------------------------
+# KÒD 2FA (routers/mfa.py): menm règ ak modpas la — max_failed_logins move
+# kòd nan fenèt la → 15 minit. Yon kòd ki bon efase kontè a.
+# ---------------------------------------------------------------------------
+
+MFA = "mfa"
+
+
+def mfa_blocked(db: Session, email: Optional[str]) -> bool:
+    email = _norm_email(email)
+    if not email:
+        return False
+    since = _now() - timedelta(minutes=settings.login_window_minutes)
+    last_ok = _aware(db.query(func.max(AuthAttempt.created_at)).filter(
+        AuthAttempt.kind == MFA,
+        AuthAttempt.email == email,
+        AuthAttempt.success.is_(True),
+    ).scalar())
+    if last_ok is not None and last_ok > since:
+        since = last_ok
+    failures = db.query(func.count(AuthAttempt.id)).filter(
+        AuthAttempt.kind == MFA,
+        AuthAttempt.email == email,
+        AuthAttempt.success.is_(False),
+        AuthAttempt.created_at > since,
+    ).scalar() or 0
+    return failures >= settings.max_failed_logins

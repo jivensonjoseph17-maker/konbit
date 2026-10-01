@@ -146,3 +146,21 @@ def decode_token(token: str, expected_type: str = ACCESS_TOKEN) -> Optional[dict
     if not payload.get("sub"):
         return None
     return payload
+
+
+# ---------------------------------------------------------------------------
+# TOKEN ETAP 2 KONEKSYON AN (routers/mfa.py)
+# Modpas la bon, kòd 2FA a poko verifye. 5 minit, kalite "mfa": deps
+# (kalite "access") ak /refresh (kalite "refresh") refize l.
+# ---------------------------------------------------------------------------
+
+MFA_TOKEN = "mfa"
+
+
+def create_mfa_token(user_id: int, token_version: int = 0) -> str:
+    return _create_token(
+        subject=user_id,
+        token_type=MFA_TOKEN,
+        expires_delta=timedelta(minutes=5),
+        extra_claims={"ver": token_version},
+    )

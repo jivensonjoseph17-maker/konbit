@@ -553,7 +553,8 @@
 
     if (!res.ok) throw toApiError(res.status, data);
     // Chanje modpas anile tout ansyen token yo (token_version): backend la voye nouvo yo.
-    if (path === '/api/auth/change-password' && data && data.access_token) {
+    if (['/api/auth/change-password', '/api/auth/mfa/enable', '/api/auth/mfa/verify'].includes(path)
+        && data && data.access_token) {
       tokens.save(data.access_token, data.refresh_token);
     }
     return data;
@@ -597,7 +598,8 @@
 
     async login(email, password) {
       const data = await api.post('/api/auth/login', { email, password }, { auth: false });
-      tokens.save(data.access_token, data.refresh_token);
+      // Ak 2FA, pa gen token ankò: login.html mande kòd la (data.mfa_required).
+      if (data.access_token) tokens.save(data.access_token, data.refresh_token);
       return data;
     },
 
