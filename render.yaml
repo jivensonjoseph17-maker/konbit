@@ -1,13 +1,14 @@
 # Konbit — Render Blueprint
 # Chemen: render.yaml (rasin repo a)
 #
-# Render li fichye sa a pou kreye 3 bagay yon sèl kou:
-#   1. konmbit-db   — PostgreSQL
-#   2. konmbit-api  — backend FastAPI     → https://api.konmbit.com
-#   3. konmbit-web  — paj yo (frontend)   → https://konmbit.com, https://www.konmbit.com
+# Render li fichye sa a pou kreye 4 bagay yon sèl kou:
+#   1. konmbit-db     — PostgreSQL
+#   2. konmbit-api    — backend FastAPI     → https://api.konmbit.com
+#   3. konmbit-web    — paj yo (frontend)   → https://konmbit.com, https://www.konmbit.com
+#   4. konmbit-purge  — chak jou: efase nèt biznis ki fèmen depi plis pase 30 jou
 #
-# Gade DEPLOY_KONMBIT.md pou etap yo. SECRET_KEY PA nan fichye sa a:
-# Render ap mande w li lè w enpòte Blueprint la (sync: false).
+# Gade DEPLOY_KONMBIT.md pou etap yo. Kle sekrè yo PA nan fichye sa a:
+# Render ap mande w yo lè w enpòte Blueprint la (sync: false).
 #
 # REJYON: virginia (US East). Se sant done Render ki pi pre Ayiti, kidonk
 # paj yo reponn pi vit. Baz done a ak backend la DWE nan menm rejyon an.
@@ -53,7 +54,7 @@ services:
           name: konmbit-db
           property: connectionString
       - key: SECRET_KEY
-        sync: false            # Render mande w li. Jenere l ak: python -c "import secrets; print(secrets.token_hex(48))"
+        sync: false            # python -c "import secrets; print(secrets.token_hex(48))"
       - key: FRONTEND_URL
         value: https://konmbit.com
       - key: ALLOWED_ORIGINS
@@ -62,19 +63,62 @@ services:
         sync: false            # KLE SEPARE ak SECRET_KEY (kòd tablèt yo). Jenere l menm jan.
       - key: DATA_ENCRYPTION_KEY
         sync: false            # Kle Fernet (app/crypto.py). SERE L NAN YON JESYONÈ MODPAS: san li, backup yo pa ka li nimewo kont yo.
-      # --- Imel (app/mailer.py): valè yo depann de founisè a (Zoho, ZeptoMail, Resend) ---
+      # --- Imel (app/mailer.py): Zoho Mail, pò 465 SSL dirèk ---
       - key: MAIL_BACKEND
         value: smtp
       - key: MAIL_FROM
         value: "KONMBIT <no-reply@konmbit.com>"
       - key: SMTP_HOST
-        sync: false            # egz: smtp.zoho.com, smtp.zeptomail.com, smtp.resend.com
+        value: smtppro.zoho.com
       - key: SMTP_PORT
         value: "465"
+      - key: SMTP_STARTTLS
+        value: "false"
       - key: SMTP_USER
-        sync: false
+        value: kontak@konmbit.com
       - key: SMTP_PASSWORD
-        sync: false            # "app password" / kle API — PA modpas prensipal bwat imel la
+        sync: false            # "app password" Zoho — PA modpas prensipal bwat imel la
+
+  # ------------------------------------------------------------------
+  # CHAK JOU: efase nèt biznis ki fèmen depi plis pase 30 jou
+  # (backend/scripts/purge_closed_orgs.py). Menm kòd, menm varyab ak backend la:
+  # config.py refize demare san yo. 08:00 UTC = 4è oswa 3è dimaten an Ayiti.
+  # ------------------------------------------------------------------
+  - type: cron
+    name: konmbit-purge
+    runtime: python
+    region: virginia
+    rootDir: backend
+    plan: starter
+    schedule: "0 8 * * *"
+    buildCommand: pip install -r requirements.txt "psycopg[binary]>=3.2"
+    startCommand: python scripts/purge_closed_orgs.py --apply
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.14.4"
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: konmbit-db
+          property: connectionString
+      - key: FRONTEND_URL
+        value: https://konmbit.com
+      - key: MAIL_BACKEND
+        value: smtp
+      # Sekrè yo kopye dirèk sou backend la: yon sèl kote pou chanje yo.
+      - key: SECRET_KEY
+        fromService: { type: web, name: konmbit-api, envVarKey: SECRET_KEY }
+      - key: KIOSK_LOOKUP_KEY
+        fromService: { type: web, name: konmbit-api, envVarKey: KIOSK_LOOKUP_KEY }
+      - key: DATA_ENCRYPTION_KEY
+        fromService: { type: web, name: konmbit-api, envVarKey: DATA_ENCRYPTION_KEY }
+      - key: SMTP_HOST
+        fromService: { type: web, name: konmbit-api, envVarKey: SMTP_HOST }
+      - key: SMTP_USER
+        fromService: { type: web, name: konmbit-api, envVarKey: SMTP_USER }
+      - key: SMTP_PASSWORD
+        fromService: { type: web, name: konmbit-api, envVarKey: SMTP_PASSWORD }
 
   # ------------------------------------------------------------------
   # FRONTEND — fichye HTML/JS/CSS yo tèl jan yo ye, pa gen build.
@@ -106,9 +150,10 @@ services:
       # CSP: 'unsafe-inline' paske chak paj gen <script> anndan HTML la. Pou
       # retire l, fòk kòd JavaScript la deplase nan fichye .js (apre lansman).
       # connect-src limite kote paj la ka voye done: api.konmbit.com sèlman.
+      # cdnjs.cloudflare.com: ikòn Font Awesome paj akèy la (style + font).
       - path: /*
         name: Content-Security-Policy
-        value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' https: blob:; connect-src 'self' https://api.konmbit.com; frame-src https://www.youtube-nocookie.com https://player.vimeo.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+        value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; media-src 'self' https: blob:; connect-src 'self' https://api.konmbit.com; frame-src https://www.youtube-nocookie.com https://player.vimeo.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
       # Tradiksyon yo chanje chak fwa nou ajoute yon fraz: pa kenbe yo nan kach twò lontan.
       - path: /i18n/*
         name: Cache-Control
