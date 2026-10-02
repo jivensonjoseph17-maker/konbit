@@ -765,6 +765,10 @@ _ROWS: list[tuple[str, str, str]] = [
     ("Kont ou efase.",
      "Votre compte a été supprimé.",
      "Your account has been deleted."),
+    # --- Paj karyè: limit (applications.py) ---
+    ("Twòp aplikasyon soti nan menm koneksyon an. Eseye ankò pita.",
+     "Trop de candidatures depuis la même connexion. Réessayez plus tard.",
+     "Too many applications from the same connection. Try again later."),
 ]
 
 MESSAGES: dict[str, dict[str, str]] = {ht: {"fr": fr, "en": en} for ht, fr, en in _ROWS}

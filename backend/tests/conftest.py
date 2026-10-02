@@ -212,3 +212,5 @@ def _relax_auth_limits(monkeypatch):
     monkeypatch.setattr(settings, "signup_max_per_ip_hour", 1_000_000)
     monkeypatch.setattr(settings, "reset_max_per_email_hour", 1_000_000)
     monkeypatch.setattr(settings, "reset_max_per_ip_hour", 1_000_000)
+    monkeypatch.setattr(settings, "apply_max_per_ip_hour", 1_000_000)
+    monkeypatch.setattr(settings, "apply_max_per_email_hour", 1_000_000)

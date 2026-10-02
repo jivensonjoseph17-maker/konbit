@@ -180,3 +180,24 @@ def mfa_blocked(db: Session, email: Optional[str]) -> bool:
         AuthAttempt.created_at > since,
     ).scalar() or 0
     return failures >= settings.max_failed_logins
+
+
+# ---------------------------------------------------------------------------
+# APLIKASYON PIBLIK (paj karyè a, routers/applications.py)
+# ---------------------------------------------------------------------------
+
+APPLY = "apply"
+
+
+def apply_blocked(db: Session, ip: Optional[str], email: Optional[str]) -> bool:
+    since = _now() - timedelta(hours=1)
+    base = db.query(func.count(AuthAttempt.id)).filter(
+        AuthAttempt.kind == APPLY,
+        AuthAttempt.created_at > since,
+    )
+    email = _norm_email(email)
+    if ip and (base.filter(AuthAttempt.ip_address == ip).scalar() or 0) >= settings.apply_max_per_ip_hour:
+        return True
+    if email and (base.filter(AuthAttempt.email == email).scalar() or 0) >= settings.apply_max_per_email_hour:
+        return True
+    return False

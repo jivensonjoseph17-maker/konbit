@@ -68,6 +68,9 @@ class Settings(BaseSettings):
     email_verify_hours: int = 48
     reset_max_per_email_hour: int = 3    # "Mwen bliye modpas mwen" + "voye lyen an ankò"
     reset_max_per_ip_hour: int = 10
+    # Paj karyè a (routers/applications.py): aplikasyon piblik pa èdtan.
+    apply_max_per_ip_hour: int = 20
+    apply_max_per_email_hour: int = 5
 
     # --- CORS ---
     # Nan varyab anviwonman: ALLOWED_ORIGINS=["https://konmbit.com","https://www.konmbit.com"]

@@ -166,6 +166,13 @@ class ApplicationReceipt(BaseModel):
     message: str
 
 
+from fastapi import Request as _Request  # noqa: E402
+
+from ..login_guard import APPLY, apply_blocked, client_ip, record_attempt  # noqa: E402
+
+TOO_MANY_APPLICATIONS = "Twòp aplikasyon soti nan menm koneksyon an. Eseye ankò pita."
+
+
 @router.post(
     "/public/{org_slug}/{job_slug}",
     response_model=ApplicationReceipt,
@@ -176,10 +183,12 @@ def apply_public(
     org_slug: str,
     job_slug: str,
     payload: PublicApplicationCreate,
+    request: _Request,
     db: DbSession,
 ):
     """
     Aplike pou yon travay depi paj karyè a. Pa gen otantifikasyon.
+    Limit pa IP ak pa imel pa èdtan (login_guard.apply_blocked).
 
     Repons lan pa bay okenn enfòmasyon entèn — jis yon resi. Se enpòtan:
     si nou te di "ou deja aplike", nenpòt moun ta ka teste yon imel pou
@@ -213,6 +222,10 @@ def apply_public(
     answer_pairs = validate_answers(applicable_questions(db, org.id, job.id), payload.answers)
 
     email = payload.email.lower().strip()
+    ip = client_ip(request)
+    if apply_blocked(db, ip, email):
+        raise HTTPException(status_code=429, detail=TOO_MANY_APPLICATIONS)
+    record_attempt(db, APPLY, ip, email, success=True)
     existing = db.query(Application).filter(
         Application.job_posting_id == job.id,
         Application.email == email,
