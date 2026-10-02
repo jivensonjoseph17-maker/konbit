@@ -1523,5 +1523,12 @@
  "Efase kont ou nèt? Biznis yo ap kenbe aplikasyon ou te voye yo, men ou p ap ka wè yo isit la ankò.": "حذف حسابك نهائيًا؟ تحتفظ الشركات بالطلبات التي أرسلتها، لكنك لن تتمكن من رؤيتها هنا بعد الآن.",
  "Kont ou efase.": "تم حذف حسابك.",
  "Biznis yo ap kenbe aplikasyon ou te voye yo (se dosye rekritman yo), men yo p ap konekte ak kont ou ankò. Ou ka kreye yon nouvo kont pita ak menm imel la.": "تحتفظ الشركات بالطلبات التي أرسلتها (فهي سجلات التوظيف لديها)، لكنها لن تبقى مرتبطة بحسابك. يمكنك لاحقًا إنشاء حساب جديد بالبريد الإلكتروني نفسه.",
- "Tape non biznis la egzakteman pou konfime.": "اكتب اسم الشركة بالضبط للتأكيد."
+ "Tape non biznis la egzakteman pou konfime.": "اكتب اسم الشركة بالضبط للتأكيد.",
+ "Fondatè · Devlopè frontend ak backend · Administratè baz done": "المؤسس · مطوّر واجهات أمامية وخلفية · مدير قواعد البيانات",
+ "Lisansye nan syans enfòmatik. Devlopè frontend ak backend ak administratè baz done: li konbine frontend, backend, baz done ak API pou bati aplikasyon ki rapid, an sekirite epi fasil pou itilize.": "حاصل على إجازة في علوم الحاسوب. مطوّر واجهات أمامية وخلفية ومدير قواعد بيانات: يجمع بين الواجهة الأمامية والخلفية وقواعد البيانات وواجهات البرمجة لبناء تطبيقات سريعة وآمنة وسهلة الاستخدام.",
+ "Kofondatè · Devlopè full-stack": "شريك مؤسس · مطوّر متكامل (Full-stack)",
+ "Lisansye nan syans enfòmatik. Devlopè full-stack ki pasyone pou teknoloji: li renmen rezoud pwoblèm teknik epi fè ide yo tounen pwojè reyèl.": "حاصل على إجازة في علوم الحاسوب. مطوّر متكامل شغوف بالتكنولوجيا: يحب حل المشكلات التقنية وتحويل الأفكار إلى مشاريع حقيقية.",
+ "Lisansye nan syans enfòmatik. Li konstwi sèvè a ak kalkil yo, e li jere rezo a.": "حاصل على إجازة في علوم الحاسوب. يبني الخادم والحسابات، ويدير الشبكة.",
+ "Nou twa gen yon lisans nan syans enfòmatik nan UNEPH, e nou soti nan diferan kwen peyi a.": "نحن الثلاثة حاصلون على إجازة في علوم الحاسوب من جامعة UNEPH، ونأتي من مناطق مختلفة من البلاد.",
+ "Mwen etidye enfòmatik biwotik nan Alyans, epi syans enfòmatik nan Inivèsite Episkopal Ayiti (UNEPH), Pòtoprens, kote m gen lisans mwen. Mwen se devlopè frontend ak backend, e mwen travay ak baz done MySQL, Oracle ak Access. Mwen travay tou nan klimatizasyon (HVAC) Ozetazini, kote m te wè ki jan yon ekip sou teren òganize travay li.": "درستُ المعلوماتية المكتبية في Alliance، ثم علوم الحاسوب في الجامعة الأسقفية في هايتي (UNEPH) في بورت أو برنس، حيث حصلت على إجازتي. أنا مطوّر واجهات أمامية وخلفية، وأعمل مع قواعد بيانات MySQL وOracle وAccess. وأعمل أيضًا في مجال التكييف (HVAC) في الولايات المتحدة، حيث رأيت كيف ينظّم فريق ميداني عمله."
 }

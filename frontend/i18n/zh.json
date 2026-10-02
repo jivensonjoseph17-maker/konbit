@@ -1523,5 +1523,12 @@
  "Efase kont ou nèt? Biznis yo ap kenbe aplikasyon ou te voye yo, men ou p ap ka wè yo isit la ankò.": "要永久删除您的账户吗？企业会保留您提交的申请，但您将无法再在这里查看。",
  "Kont ou efase.": "您的账户已删除。",
  "Biznis yo ap kenbe aplikasyon ou te voye yo (se dosye rekritman yo), men yo p ap konekte ak kont ou ankò. Ou ka kreye yon nouvo kont pita ak menm imel la.": "企业会保留您提交的申请（这是它们的招聘记录），但这些申请将不再与您的账户关联。您以后可以用同一邮箱创建新账户。",
- "Tape non biznis la egzakteman pou konfime.": "请准确输入企业名称以确认。"
+ "Tape non biznis la egzakteman pou konfime.": "请准确输入企业名称以确认。",
+ "Fondatè · Devlopè frontend ak backend · Administratè baz done": "创始人 · 前端与后端开发者 · 数据库管理员",
+ "Lisansye nan syans enfòmatik. Devlopè frontend ak backend ak administratè baz done: li konbine frontend, backend, baz done ak API pou bati aplikasyon ki rapid, an sekirite epi fasil pou itilize.": "计算机科学学士。前端与后端开发者、数据库管理员：他结合前端、后端、数据库和 API，打造快速、安全、易用的应用。",
+ "Kofondatè · Devlopè full-stack": "联合创始人 · 全栈开发者",
+ "Lisansye nan syans enfòmatik. Devlopè full-stack ki pasyone pou teknoloji: li renmen rezoud pwoblèm teknik epi fè ide yo tounen pwojè reyèl.": "计算机科学学士。热爱技术的全栈开发者：他喜欢解决技术难题，把想法变成真正的项目。",
+ "Lisansye nan syans enfòmatik. Li konstwi sèvè a ak kalkil yo, e li jere rezo a.": "计算机科学学士。他负责构建服务器和计算功能，并管理网络。",
+ "Nou twa gen yon lisans nan syans enfòmatik nan UNEPH, e nou soti nan diferan kwen peyi a.": "我们三人都拥有 UNEPH 的计算机科学学士学位，来自海地的不同地区。",
+ "Mwen etidye enfòmatik biwotik nan Alyans, epi syans enfòmatik nan Inivèsite Episkopal Ayiti (UNEPH), Pòtoprens, kote m gen lisans mwen. Mwen se devlopè frontend ak backend, e mwen travay ak baz done MySQL, Oracle ak Access. Mwen travay tou nan klimatizasyon (HVAC) Ozetazini, kote m te wè ki jan yon ekip sou teren òganize travay li.": "我曾在 Alliance 学习办公自动化，之后在太子港的海地圣公会大学（UNEPH）学习计算机科学并获得学士学位。我是一名前端与后端开发者，使用 MySQL、Oracle 和 Access 数据库。我还在美国从事暖通空调（HVAC）工作，在那里看到了一线团队如何组织工作。"
 }
