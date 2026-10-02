@@ -26,7 +26,7 @@ from .routers import (
     calculator, schedules, positions, portal, kiosk, team, admin, organization,
     payroll_exports, audit, org_logo, geofence, payment_changes, my_profile,
     notifications, employee_import, employee_photos, salary_advances,
-    candidate, mfa, legal,
+    candidate, mfa, legal, org_data,
 )
 
 # --- Router ki poko pare ---
@@ -262,6 +262,8 @@ app.include_router(candidate.router, prefix="/api/candidate", tags=["Espas kandi
 app.include_router(mfa.router, prefix="/api/auth/mfa", tags=["Otantifikasyon"])
 # Kondisyon itilizasyon, konfidansyalite, avètisman pewòl (app/legal.py)
 app.include_router(legal.router, prefix="/api/legal", tags=["Legal"])
+# Ekspòtasyon konplè ak fèmti biznis la (app/org_data.py)
+app.include_router(org_data.router, prefix="/api/org-data", tags=["Legal"])
 # Klòch notifikasyon (chak moun wè pa l sèlman) ak enpòtasyon anplwaye CSV (HR)
 app.include_router(notifications.router,   prefix="/api/notifications",   tags=["Notifikasyon"])
 app.include_router(employee_import.router, prefix="/api/employee-import", tags=["Anplwaye"])

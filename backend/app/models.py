@@ -197,6 +197,10 @@ class Organization(Base, TimestampMixin):
     # Pa gen ForeignKey: sa ta kreye yon 2yèm chemen organizations↔users,
     # epi relasyon Organization.users ta vin ambigu (tout modèl yo kraze).
     payroll_ack_by_id = Column(Integer)
+    # Fèmti biznis la (routers/org_data.py). Efase nèt apre 30 jou
+    # (scripts/purge_closed_orgs.py). Pa gen ForeignKey: menm rezon anlè a.
+    closure_requested_at = Column(DateTime(timezone=True))
+    closed_by_id = Column(Integer)
     is_active = Column(Boolean, default=True, nullable=False)
 
     users = relationship("User", back_populates="organization")

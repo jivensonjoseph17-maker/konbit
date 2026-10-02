@@ -755,6 +755,16 @@ _ROWS: list[tuple[str, str, str]] = [
     ("Konfime avètisman pewòl la anvan premye apwobasyon an.",
      "Confirmez l'avertissement sur la paie avant la première approbation.",
      "Confirm the payroll warning before the first approval."),
+    # --- Done biznis la, efase kont (org_data.py, candidate.py) ---
+    ("Tape non biznis la egzakteman pou konfime.",
+     "Saisissez exactement le nom de l'entreprise pour confirmer.",
+     "Type the business name exactly to confirm."),
+    ("Biznis la fèmen. Tout done li ap efase nèt nan 30 jou.",
+     "L'entreprise est fermée. Toutes ses données seront supprimées définitivement dans 30 jours.",
+     "The business is closed. All its data will be permanently deleted in 30 days."),
+    ("Kont ou efase.",
+     "Votre compte a été supprimé.",
+     "Your account has been deleted."),
 ]
 
 MESSAGES: dict[str, dict[str, str]] = {ht: {"fr": fr, "en": en} for ht, fr, en in _ROWS}

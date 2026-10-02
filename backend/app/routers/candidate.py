@@ -404,3 +404,49 @@ def respond_to_offer(
            "candidate_accept_offer" if payload.accept else "candidate_decline_offer",
            app.id, changes=f"Pwopozisyon #{offer.id}. {note}".strip())
     return _view(db, app)
+
+
+# ---------------------------------------------------------------------------
+# EFASE KONT KANDIDA (dwa pou efase done yo — politik konfidansyalite §8)
+# ---------------------------------------------------------------------------
+
+class DeleteAccountRequest(BaseModel):
+    password: str = Field(min_length=1, max_length=128)
+
+
+@router.post("/delete-account", response_model=Message)
+def delete_candidate_account(payload: DeleteAccountRequest, user: CurrentUser,
+                             request: Request, db: DbSession):
+    """
+    Kandida a efase kont li. Nou ANONIMIZE ranje User la olye nou efase l:
+    jounal odit biznis yo ka pwente sou li (ForeignKey). Imel la libere
+    (moun nan ka kreye yon nouvo kont), e modpas la pa ka sèvi ankò.
+
+    Aplikasyon yo RETE nan biznis yo te voye yo a (se dosye rekritman
+    biznis la), men yo pa konekte ak kont lan ankò.
+    """
+    import secrets
+
+    from ..models import EmailToken, RecoveryCode
+
+    if user.role != UserRole.APPLICANT:
+        raise HTTPException(status_code=403, detail="Espas sa a se pou kandida sèlman.")
+    if not verify_password(payload.password, user.hashed_password):
+        raise HTTPException(status_code=400, detail="Modpas aktyèl la pa kòrèk.")
+
+    db.query(Application).filter(Application.applicant_user_id == user.id).update(
+        {Application.applicant_user_id: None}, synchronize_session=False)
+    db.query(EmailToken).filter(EmailToken.user_id == user.id).delete(synchronize_session=False)
+    db.query(RecoveryCode).filter(RecoveryCode.user_id == user.id).delete(synchronize_session=False)
+    db.query(Notification).filter(Notification.user_id == user.id).delete(synchronize_session=False)
+
+    user.email = f"efase-{user.id}-{secrets.token_hex(4)}@efase.invalid"
+    user.full_name = "Kont efase"
+    user.hashed_password = hash_password(secrets.token_urlsafe(32))
+    user.is_active = False
+    user.email_verified = False
+    user.totp_enabled = False
+    user.totp_secret = None
+    user.token_version = (user.token_version or 0) + 1
+    db.commit()
+    return Message(detail="Kont ou efase.")
