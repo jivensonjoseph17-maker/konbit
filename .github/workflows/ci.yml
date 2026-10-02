@@ -2,8 +2,10 @@
 # Chemen: .github/workflows/ci.yml
 #
 # 1. pytest (SQLite, menm jan ak sou machin ou)
-# 2. Migrasyon Alembic yo sou yon VRÈ PostgreSQL 16 — menm vèsyon ak Render.
-#    Se sa DEPLOYMENT.md (Etap 4) mande anvan pwodiksyon.
+# 2. Sou yon VRÈ PostgreSQL 16 — menm vèsyon ak Render:
+#    a. migrasyon Alembic yo (baz konmbit_ci);
+#    b. TOUT tès yo ankò (baz konmbit_test, TEST_DATABASE_URL): PostgreSQL pi
+#       strik pase SQLite (ForeignKey, dat ak fizo orè, lòd efasman).
 # 3. Tradiksyon yo: pa gen fraz ki manke nan okenn lang.
 #
 # SECRET_KEY: pa gen okenn kle ekri nan fichye sa a. Chak run jenere pwòp
@@ -37,7 +39,7 @@ jobs:
           echo "SECRET_KEY=$KEY" >> "$GITHUB_ENV"
       - name: Enstale depandans yo
         run: pip install -r backend/requirements.txt "psycopg[binary]>=3.2"
-      - name: pytest
+      - name: pytest (SQLite)
         run: python -m pytest -q
       - name: Mesaj backend ki pa tradui
         working-directory: backend
@@ -45,7 +47,7 @@ jobs:
       - name: Tradiksyon frontend
         run: python frontend/i18n/check_i18n.py
 
-  migrations-postgres:
+  postgres:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -59,11 +61,9 @@ jobs:
           --health-cmd "pg_isready -U konmbit"
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      # Baz done tanporè CI a sèlman (li disparèt apre run lan). Pa yon sekrè.
+      # Baz done tanporè CI a sèlman (yo disparèt apre run lan). Pa yon sekrè.
       DATABASE_URL: postgresql://konmbit:konmbit@localhost:5432/konmbit_ci
-    defaults:
-      run:
-        working-directory: backend
+      PGPASSWORD: konmbit
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -77,10 +77,13 @@ jobs:
           echo "::add-mask::$KEY"
           echo "SECRET_KEY=$KEY" >> "$GITHUB_ENV"
       - name: Enstale depandans yo
-        run: pip install -r requirements.txt "psycopg[binary]>=3.2"
+        run: pip install -r backend/requirements.txt "psycopg[binary]>=3.2"
+
       - name: alembic upgrade head (PostgreSQL)
+        working-directory: backend
         run: alembic upgrade head
       - name: Verifye tab yo egziste
+        working-directory: backend
         run: |
           python - <<'PY'
           from sqlalchemy import create_engine, inspect
@@ -89,3 +92,15 @@ jobs:
           print(f"{len(tables)} tab:", ", ".join(sorted(tables)))
           assert len(tables) >= 15, "twò pe tab: yon migrasyon pa pase nèt"
           PY
+      - name: alembic downgrade epi upgrade ankò (migrasyon yo ka retounen)
+        working-directory: backend
+        run: |
+          alembic downgrade -3
+          alembic upgrade head
+
+      - name: Kreye yon baz apa pou tès yo
+        run: psql -h localhost -U konmbit -d konmbit_ci -c "CREATE DATABASE konmbit_test"
+      - name: pytest (PostgreSQL)
+        env:
+          TEST_DATABASE_URL: postgresql://konmbit:konmbit@localhost:5432/konmbit_test
+        run: python -m pytest -q

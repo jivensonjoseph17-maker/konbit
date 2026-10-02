@@ -32,7 +32,7 @@ if str(BACKEND_DIR) not in sys.path:
 # Dwe fèt AVAN nenpòt enpòtasyon `app.*` — pydantic-settings pran yon
 # varyab anviwonman anvan valè `.env` la, kidonk sa a fòse yon baz done
 # SEPARE pou tès yo, pa touche `konbit.db` devlopman an.
-os.environ["DATABASE_URL"] = "sqlite:///./test_konbit.db"
+os.environ["DATABASE_URL"] = os.environ.get("TEST_DATABASE_URL", "sqlite:///./test_konbit.db")
 # Imel yo sere nan app.mailer.OUTBOX olye yo pati (test_email_flows.py li yo).
 os.environ["MAIL_BACKEND"] = "memory"
 
