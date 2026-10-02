@@ -241,6 +241,41 @@
           </div>
         </form>
 
+        <!-- Done biznis la ak fèmti (administratè sèlman — routers/org_data.py) -->
+        <div class="settings" id="data-zone" hidden style="margin-top: 18px;">
+          <section class="panel" aria-labelledby="s-data">
+            <div class="panel-head"><h2 id="s-data" data-i18n>Done biznis la</h2></div>
+            <p class="hint" style="display: block; margin: 0 0 12px;" data-i18n>Telechaje tout done biznis la (anplwaye, prezans, konje, pewòl, rekritman…) nan yon fichye ZIP ak tablo CSV ou ka louvri nan Excel. Nimewo kont labank ak NIF yo parèt an klè: sere fichye a yon kote ki an sekirite.</p>
+            <div class="field" style="max-width: 320px;">
+              <label for="x-pw" data-i18n>Modpas ou</label>
+              <input class="input" id="x-pw" type="password" autocomplete="current-password" maxlength="128">
+            </div>
+            <div class="geo-actions" style="margin-top: 12px;">
+              <button class="btn btn-primary btn-sm" type="button" id="x-go" data-i18n>Telechaje tout done yo</button>
+              <span class="hint" id="x-status" role="status"></span>
+            </div>
+          </section>
+
+          <section class="panel" aria-labelledby="s-close" style="border-color: #e5484d;">
+            <div class="panel-head"><h2 id="s-close" style="color: #e5484d;" data-i18n>Fèmen biznis la</h2></div>
+            <p class="hint" style="display: block; margin: 0 0 12px;" data-i18n>Pèsonn p ap ka konekte ankò, e paj karyè a ap disparèt touswit. Tout done yo ap efase nèt apre 30 jou. Telechaje done yo AVAN.</p>
+            <div class="grid-2">
+              <div class="field">
+                <label for="c-pw" data-i18n>Modpas ou</label>
+                <input class="input" id="c-pw" type="password" autocomplete="current-password" maxlength="128">
+              </div>
+              <div class="field">
+                <label for="c-name" id="c-name-label"></label>
+                <input class="input" id="c-name" maxlength="200" autocomplete="off">
+              </div>
+            </div>
+            <div class="geo-actions" style="margin-top: 12px;">
+              <button class="btn btn-danger btn-sm" type="button" id="c-go" data-i18n>Fèmen biznis la nèt</button>
+              <span class="hint" id="c-status" role="status"></span>
+            </div>
+          </section>
+        </div>
+
         <div id="loading"><p class="loading" data-i18n>Ap chaje…</p></div>
       </main>
     </div>
@@ -537,6 +572,82 @@
 
     loadPinMode();
 
+    // ---------------------------------------------------------------------
+    // DONE BIZNIS LA: EKSPÒTASYON AK FÈMTI (administratè sèlman)
+    // ---------------------------------------------------------------------
+
+    const isOwner = ['org_admin', 'super_admin'].includes(identity.user.role);
+
+    function zoneStatus(id, text, isError) {
+      $(id).textContent = text;
+      $(id).classList.toggle('is-error', Boolean(isError));
+      $(id).style.color = isError ? '#e5484d' : '';
+    }
+
+    $('x-go').addEventListener('click', async () => {
+      const password = $('x-pw').value;
+      if (!password) { zoneStatus('x-status', t('Mete modpas ou.'), true); $('x-pw').focus(); return; }
+      $('x-go').disabled = true;
+      zoneStatus('x-status', t('Ap prepare fichye a…'));
+      try {
+        // Yon apèl api.* an premye: si sesyon an ekspire, api.js renouvle token an.
+        await api.get('/api/auth/identity');
+        const res = await fetch(new URL('/api/org-data/export', Konbit.API_URL), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept-Language': Konbit.i18n.lang,
+            Authorization: `Bearer ${localStorage.getItem('konbit.access_token')}`,
+          },
+          body: JSON.stringify({ password }),
+        });
+        if (!res.ok) {
+          let detail = t('Yon bagay pa mache.');
+          try { const body = await res.json(); if (typeof body.detail === 'string') detail = body.detail; } catch { /* pa JSON */ }
+          throw new Error(detail);
+        }
+        const blob = await res.blob();
+        const match = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') || '');
+        const url = URL.createObjectURL(blob);
+        const link = h('a', { href: url, download: match ? match[1] : 'konmbit-done.zip' });
+        document.body.append(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+        $('x-pw').value = '';
+        zoneStatus('x-status', t('Fichye a telechaje.'));
+      } catch (err) {
+        zoneStatus('x-status', err.message || t('Yon bagay pa mache.'), true);
+      } finally {
+        $('x-go').disabled = false;
+      }
+    });
+
+    $('c-go').addEventListener('click', async () => {
+      const password = $('c-pw').value;
+      const name = $('c-name').value.trim();
+      if (!password) { zoneStatus('c-status', t('Mete modpas ou.'), true); $('c-pw').focus(); return; }
+      if (name.toLowerCase() !== (original.name || '').trim().toLowerCase()) {
+        zoneStatus('c-status', t('Tape non biznis la egzakteman pou konfime.'), true);
+        $('c-name').focus();
+        return;
+      }
+      if (!confirm(t('Dènye konfimasyon: fèmen {name} nèt? Pèsonn p ap ka konekte ankò.', { name: original.name }))) return;
+      $('c-go').disabled = true;
+      try {
+        await api.post('/api/org-data/close', { password, confirm_name: name });
+        zoneStatus('c-status', t('Biznis la fèmen. Ou ap dekonekte.'));
+        try {
+          localStorage.removeItem('konbit.access_token');
+          localStorage.removeItem('konbit.refresh_token');
+        } catch { /* navigasyon prive */ }
+        setTimeout(() => location.replace('index.html'), 4000);
+      } catch (err) {
+        zoneStatus('c-status', errorMessage(err), true);
+        $('c-go').disabled = false;
+      }
+    });
+
     $('form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const msg = $('msg');
@@ -608,6 +719,8 @@
       fill(await api.get('/api/organization'));
       $('loading').hidden = true;
       $('form').hidden = false;
+      $('data-zone').hidden = !isOwner;
+      $('c-name-label').textContent = t('Tape non biznis la pou konfime: {name}', { name: original.name });
     } catch (err) {
       $('loading').replaceChildren(h('div', { class: 'alert alert-error' }, errorMessage(err)));
     }
