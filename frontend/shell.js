@@ -474,7 +474,22 @@
       identity = await api.get('/api/auth/identity');
     } catch (err) {
       const main = document.querySelector('main');
-      if (main) main.replaceChildren(h('div', { class: 'alert alert-error' }, err.message));
+      // 403 sou /identity = biznis la fèmen/dezaktive oswa kont lan bloke: token yo pa
+      // sèvi ankò. Nou efase yo, sinon login.html ta voye moun nan isit la ankò (bouk).
+      const blocked = Boolean(err && err.status === 403);
+      if (blocked) {
+        try {
+          localStorage.removeItem('konbit.access_token');
+          localStorage.removeItem('konbit.refresh_token');
+        } catch { /* navigasyon prive */ }
+      }
+      if (main) {
+        main.replaceChildren(h('div', { class: 'alert alert-error' }, err.message,
+          blocked
+            ? h('div', { style: 'margin-top: 12px;' },
+                h('a', { class: 'btn btn-ghost btn-sm', href: 'login.html' }, t('Retounen nan koneksyon an')))
+            : null));
+      }
       return null;
     }
 

@@ -64,3 +64,5 @@ reportlab>=4.2
 # Verifikasyon an 2 etap (app/totp.py)
 pyotp>=2.9
 qrcode[pil]>=8.0
+# Ekspòtasyon Excel (app/org_data.py)
+openpyxl>=3.1

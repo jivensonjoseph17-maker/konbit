@@ -10,6 +10,8 @@ from app.database import SessionLocal
 from app.models import (
     Application, ApplicationStage, Employee, JobPosting, JobStatus, Organization, User,
 )
+from openpyxl import load_workbook
+
 from app.org_data import HIDDEN_WORDS, purge_closed_organizations
 
 
@@ -43,13 +45,14 @@ def test_export_has_only_this_business_and_no_secrets(client, make_org, make_emp
     make_employee(b["headers"], first_name="Zebulon")
 
     zf = _zip(client, a)
-    assert "LI-M.txt" in zf.namelist() and "employees.csv" in zf.namelist()
-    employees = zf.read("employees.csv").decode("utf-8-sig")
+    names = zf.namelist()
+    assert {"LI-M.txt", "konmbit-done.xlsx", "csv/employees.csv"} <= set(names)
+    employees = zf.read("csv/employees.csv").decode("utf-8-sig")
     assert "Anayiz" in employees and "Zebulon" not in employees
     assert "1234567890" in employees            # dechifre: se done biznis la
     assert "'=1+2" in employees                 # pa gen fòmil Excel ki egzekite
 
-    users = zf.read("users.csv").decode("utf-8-sig")
+    users = zf.read("csv/users.csv").decode("utf-8-sig")
     assert a["email"] in users and b["email"] not in users
 
     for name in zf.namelist():
@@ -59,8 +62,19 @@ def test_export_has_only_this_business_and_no_secrets(client, make_org, make_emp
         assert "enc:v1:" not in text, name
         header = text.splitlines()[0].lower()
         assert not any(word in header for word in HIDDEN_WORDS), (name, header)
-    for table in ("email_tokens.csv", "recovery_codes.csv", "auth_attempts.csv"):
-        assert table not in zf.namelist()
+    for table in ("email_tokens", "recovery_codes", "auth_attempts"):
+        assert f"csv/{table}.csv" not in names
+
+    # Excel la: yon fèy pa tab, menm done yo, "=1+2" se TÈKS (pa yon fòmil).
+    book = load_workbook(io.BytesIO(zf.read("konmbit-done.xlsx")))
+    assert "employees" in book.sheetnames and "email_tokens" not in book.sheetnames
+    sheet = book["employees"]
+    header = [c.value for c in sheet[1]]
+    rows = [dict(zip(header, (c.value for c in r))) for r in sheet.iter_rows(min_row=2)]
+    ana = next(r for r in rows if r["first_name"] == "Anayiz")
+    assert ana["city"] == "=1+2" and ana["bank_account_number"] == "1234567890"
+    assert sheet.cell(row=rows.index(ana) + 2, column=header.index("city") + 1).data_type == "s"
+    assert not any(any(w in str(h).lower() for w in HIDDEN_WORDS) for h in header)
 
 
 def test_export_needs_admin_and_password(client, org_admin, make_employee_login):
@@ -155,3 +169,13 @@ def test_candidate_deletes_account_but_business_keeps_application(client, org_ad
     # Yon kont biznis pa ka sèvi ak bouton sa a
     assert client.post("/api/candidate/delete-account", json={"password": org_admin["password"]},
                        headers=org_admin["headers"]).status_code == 403
+
+
+def test_closing_kills_every_session_including_refresh(client, make_org):
+    org = make_org()
+    login = client.post("/api/auth/login", json={"email": org["email"], "password": org["password"]})
+    refresh_token = login.json()["refresh_token"]
+
+    _close(client, org)
+    again = client.post("/api/auth/refresh", json={"refresh_token": refresh_token})
+    assert again.status_code != 200, again.text

@@ -14,9 +14,10 @@ SA KI PA JANM SOTI (ekspòtasyon):
   - Kolòn binè (foto, logo).
   Kolòn chifre yo (kont labank, NIF…) soti AN KLÈ: se done biznis la.
 
-CSV: UTF-8 ak BOM, separatè ";" (Excel an franse). Yon selil ki kòmanse
-pa = + - @ jwenn yon "'" devan l: yon kandida pa ka mete yon fòmil Excel
-ki ta egzekite lè HR louvri fichye a.
+FÒMA: yon sèl fichye EXCEL (konmbit-done.xlsx, yon fèy pa tab) ki louvri
+byen kèlkeswa lang Windows la, PLIS yon dosye csv/ (UTF-8, vigil) pou lòt
+zouti. Yon tèks ki kòmanse pa = + - @ PA janm vin yon fòmil: nan Excel la
+li sere kòm tèks, nan CSV a li jwenn yon "'" devan l.
 
 EFASMAN (purge_organization): nou kalkile ID pou efase yo AVAN, nou mete
 ForeignKey ki ka vid yo a NULL (pou kase sik tankou depatman ↔ anplwaye),
@@ -30,6 +31,9 @@ import zipfile
 from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
+from openpyxl import Workbook
+from openpyxl.cell import WriteOnlyCell
+from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
 from sqlalchemy import LargeBinary, delete, func, select, update
 from sqlalchemy.orm import Session
 
@@ -43,14 +47,16 @@ CLOSURE_GRACE_DAYS = 30
 README = """KONMBIT — Ekspòtasyon done biznis la / Export des données de l'entreprise
 
 KREYÒL
-- Yon fichye CSV pa kalite done. Louvri yo nan Excel (separatè: point-virgule).
+- konmbit-done.xlsx: tout done yo nan Excel, yon fèy pa kalite done.
+- Dosye csv/: menm done yo an CSV (UTF-8, separatè: vigil) pou lòt zouti.
 - Tout montan lajan yo an SANTIM: 4500000 = 45 000,00 HTG.
 - Dat ak lè yo an UTC (fòma ISO).
 - Modpas, sekrè 2FA, kòd tablèt ak foto PA ladan l, pou sekirite.
 - Nimewo kont labank ak NIF yo an klè: sere fichye sa a yon kote ki an sekirite.
 
 FRANÇAIS
-- Un fichier CSV par type de données (séparateur : point-virgule).
+- konmbit-done.xlsx : toutes les données dans Excel, une feuille par type de données.
+- Dossier csv/ : les mêmes données en CSV (UTF-8, séparateur : virgule).
 - Tous les montants sont en CENTIMES : 4500000 = 45 000,00 HTG.
 - Les dates et heures sont en UTC (format ISO).
 - Mots de passe, secrets 2FA, codes des tablettes et photos ne sont PAS inclus.
@@ -89,33 +95,59 @@ def org_scope(org_id: int) -> list[tuple]:
     return [scoped[t.name] for t in Base.metadata.sorted_tables if t.name in scoped]
 
 
-def _cell(value):
+def _plain(value):
+    """Valè a pou yon tablo: enum → tèks, dat → ISO (UTC), bool → 1/0."""
     if value is None:
-        return ""
+        return None
     if isinstance(value, enum.Enum):
         value = value.value
     if isinstance(value, (datetime, date)):
         return value.isoformat()
     if isinstance(value, bool):
-        return "1" if value else "0"
+        return 1 if value else 0
+    if isinstance(value, str):
+        return ILLEGAL_CHARACTERS_RE.sub("", value)
+    return value
+
+
+def _csv_cell(value):
+    value = _plain(value)
+    if value is None:
+        return ""
     if isinstance(value, str) and value.startswith(FORMULA_START):
         return "'" + value
     return value
 
 
+def _xlsx_cell(sheet, value):
+    cell = WriteOnlyCell(sheet, value=_plain(value))
+    if cell.data_type == "f":           # "=…" pa janm egzekite: se tèks
+        cell.data_type = "s"
+    return cell
+
+
 def build_export_zip(db: Session, org_id: int) -> bytes:
+    workbook = Workbook(write_only=True)
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         zf.writestr("LI-M.txt", README)
         for table, where in org_scope(org_id):
             columns = [c for c in table.columns if not _hidden(c)]
             rows = db.execute(select(*columns).where(where)).all()
+
+            sheet = workbook.create_sheet(title=table.name[:31])
+            sheet.append([_xlsx_cell(sheet, c.name) for c in columns])
             out = io.StringIO()
-            writer = csv.writer(out, delimiter=";")
+            writer = csv.writer(out)
             writer.writerow([c.name for c in columns])
             for row in rows:
-                writer.writerow([_cell(v) for v in row])
-            zf.writestr(f"{table.name}.csv", "\ufeff" + out.getvalue())
+                sheet.append([_xlsx_cell(sheet, v) for v in row])
+                writer.writerow([_csv_cell(v) for v in row])
+            zf.writestr(f"csv/{table.name}.csv", "\ufeff" + out.getvalue())
+
+        xlsx = io.BytesIO()
+        workbook.save(xlsx)
+        zf.writestr("konmbit-done.xlsx", xlsx.getvalue())
     return buf.getvalue()
 
 

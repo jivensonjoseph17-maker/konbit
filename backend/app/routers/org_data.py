@@ -82,6 +82,10 @@ def close_business(payload: CloseRequest, user: CurrentUser, org_id: TenantId,
     org.is_active = False
     org.closure_requested_at = datetime.now(timezone.utc)
     org.closed_by_id = user.id
+    # Tout sesyon biznis la mouri touswit, refresh token yo tou: yon lòt onglè
+    # pa ka renouvle sesyon an apre fèmti a.
+    db.query(User).filter(User.organization_id == org_id).update(
+        {User.token_version: User.token_version + 1}, synchronize_session=False)
     _audit(db, request, user, org_id, "close_organization",
            f"Fèmen pa {user.email}. Efasman nèt apre {CLOSURE_GRACE_DAYS} jou.")
 
